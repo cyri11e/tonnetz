@@ -209,4 +209,11 @@ drawTissuTriangles(g) {
     }
     return null;
   }
+
+  setMidiNotes(notes) {
+    this.selectedPcs.clear();
+    notes.forEach(note => {
+      this.selectedPcs.add(nameToPc(note));
+    });
+  }
 }

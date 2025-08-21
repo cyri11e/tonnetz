@@ -3,7 +3,7 @@ class MidiInput {
     this.onNotesChange = onNotesChange; // callback appelé à chaque changement
     this.activeNotes = new Set();       // noms de notes
     this.activeMidi = new Set();        // numéros MIDI
-    this.noteNames = CONFIG.noteNames;  // réutilise ton tableau global
+    this.noteNames = NOTE_NAMES;        // depuis config.js
   }
 
   async init() {
@@ -24,17 +24,25 @@ class MidiInput {
   }
 
   handleMIDIMessage(message) {
+    if (!message || !message.data) return;
+    
     const [status, note, velocity] = message.data;
     const command = status & 0xf0;
 
     if (command === 0x90 && velocity > 0) {
       // Note ON
-      this.activeNotes.add(this.noteNames[note % 12]);
-      this.activeMidi.add(note);
+      const noteName = this.noteNames[note % 12];
+      if (noteName) {
+        this.activeNotes.add(noteName);
+        this.activeMidi.add(note);
+      }
     } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
       // Note OFF
-      this.activeNotes.delete(this.noteNames[note % 12]);
-      this.activeMidi.delete(note);
+      const noteName = this.noteNames[note % 12];
+      if (noteName) {
+        this.activeNotes.delete(noteName);
+        this.activeMidi.delete(note);
+      }
     }
 
     // Appeler le callback avec les notes actuelles

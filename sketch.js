@@ -1,4 +1,5 @@
 let tonnetz;
+let midiInput;
 
 function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
@@ -12,6 +13,15 @@ function setup() {
     Vn: 7,
     canvas
   });
+
+  // Initialisation MIDI
+  midiInput = new MidiInput((notes, midiNums) => {
+    tonnetz.selectedPcs.clear();
+    notes.forEach(note => {
+      tonnetz.selectedPcs.add(nameToPc(note));
+    });
+  });
+  midiInput.init();
 }
 
 function draw() {
