@@ -13,6 +13,8 @@ class Tonnetz {
     this.triangles = []; // tissu
     this.selectedPcs = new Set();
 
+    this.chordDetector = new ChordDetector();
+
     this.buildNodes();
     this.buildEdges();
     this.buildTriangles();
@@ -117,6 +119,21 @@ buildTriangles() {
       b.isActive(this.selectedPcs) &&
       c.isActive(this.selectedPcs)
     );
+  }
+
+  getActiveNotes() {
+    const activeNotes = [];
+    for (const [, node] of this.nodes) {
+      if (node.isActive(this.selectedPcs)) {
+        activeNotes.push(node.name);
+      }
+    }
+    return [...new Set(activeNotes)];
+  }
+
+  getDetectedChords() {
+    const activeNotes = this.getActiveNotes();
+    return this.chordDetector.detect(activeNotes);
   }
 
   drawGrid(g) {

@@ -20,6 +20,21 @@ function draw() {
   tonnetz.drawTriangles(this);
   tonnetz.drawEdges(this);
   tonnetz.drawNodes(this);
+  
+  // Affichage des accords détectés
+  const chords = tonnetz.getDetectedChords();
+  if (chords.length > 0) {
+    push();
+    fill(255);
+    noStroke();
+    textAlign(LEFT, TOP);
+    textSize(16);
+    text('Accords détectés:', 10, 10);
+    chords.forEach((chord, i) => {
+      text(`${chord.root}${chord.type}`, 10, 35 + i * 25);
+    });
+    pop();
+  }
 }
 
 function mousePressed() {
