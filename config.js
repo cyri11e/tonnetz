@@ -12,6 +12,7 @@ const CONFIG = {
     nodeFill: 'rgba(0,0,0,0)',   // vide pour minimalisme
     nodeLabel: '#e7e7ea',
     selectedStroke: '#ffd400',   // liseret jaune
+    rootStroke: '#ff3333',       // tonique en rouge
     edgeP5: '#2b5cff',           // bleu profond
     edgeM3: '#5fa8ff',           // bleu ciel
     edgem3: '#29d3c2',           // bleu turquoise

@@ -216,4 +216,9 @@ drawTissuTriangles(g) {
       this.selectedPcs.add(nameToPc(note));
     });
   }
+
+  isRoot(node) {
+    const chords = this.getDetectedChords();
+    return chords.some(chord => chord.root === node.name);
+  }
 }

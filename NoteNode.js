@@ -31,7 +31,10 @@ class NoteNode {
     g.push();
     g.noFill();
     g.strokeWeight(active ? 3.2 : 1.4);
-    g.stroke(active ? CONFIG.colors.selectedStroke : CONFIG.colors.nodeStroke);
+    const isRoot = active && tonnetz.isRoot(this);
+    g.stroke(isRoot ? CONFIG.colors.rootStroke : 
+             active ? CONFIG.colors.selectedStroke : 
+             CONFIG.colors.nodeStroke);
     g.circle(this.px, this.py, CONFIG.nodeRadius * 2);
     g.fill(CONFIG.colors.nodeLabel);
     g.noStroke();
