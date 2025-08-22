@@ -1,5 +1,6 @@
 let tonnetz;
 let midiInput;
+let piano;
 
 function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
@@ -16,9 +17,12 @@ function setup() {
 
   // Initialisation MIDI
   midiInput = new MidiInput((notes, midiNums) => {
-    tonnetz.setMidiNotes(notes, midiNums);  // Ajout des numéros MIDI
+    tonnetz.setMidiNotes(notes, midiNums);
+    piano.setMidiNotes(midiNums);  // Transmission au piano
   });
   midiInput.init();
+  
+  piano = new Piano();
 }
 
 function draw() {
@@ -28,54 +32,69 @@ function draw() {
   tonnetz.drawEdges(this);
   tonnetz.drawNodes(this);
   
-  // Affichage des accords
+  // Récupération des notes actives et de la fondamentale pour le piano et les accords
   const activeNotes = tonnetz.getActiveNotes();
-  if (activeNotes.length >= 3) {
-    const chords = tonnetz.getDetectedChords();
-    if (chords.length > 0) {
-      // Petit affichage en haut à gauche
-      push();
-      fill(255);
-      noStroke();
-      textAlign(LEFT, TOP);
-      textSize(16);
-      text('Accords détectés:', 10, 10);
-      chords.forEach((chord, i) => {
-        text(`${chord.root}${chord.type}`, 10, 35 + i * 25);
-      });
-      pop();
+  const activePCs = activeNotes.map(note => tonnetz.chordDetector.noteToPc[note]);
+  let rootPc = null;
+  const chords = activeNotes.length >= 3 ? tonnetz.getDetectedChords() : [];
+  
+  if (chords.length > 0) {
+    rootPc = tonnetz.chordDetector.noteToPc[chords[0].root];
+  }
+  
+  // Récupération de la tonique pour le piano si un accord est détecté
+  let rootNote = null;
+  if (chords.length > 0) {
+    rootNote = tonnetz.chordDetector.noteToPc[chords[0].root];
+  }
+  
+  // Affichage du piano (uniquement les notes MIDI)
+  piano.draw(this, rootNote);
+  
+  // Affichage des accords
+  if (chords.length > 0) {
+    // Petit affichage en haut à gauche
+    push();
+    fill(255);
+    noStroke();
+    textAlign(LEFT, TOP);
+    textSize(16);
+    text('Accords détectés:', 10, 10);
+    chords.forEach((chord, i) => {
+      text(`${chord.root}${chord.type}`, 10, 35 + i * 25);
+    });
+    pop();
 
-      // Grand affichage central adaptatif
-      push();
-      const chord = chords[0];
-      const chordText = `${chord.root}${chord.type}`;
-      textAlign(CENTER, CENTER);
-      textStyle(BOLD);
-      
-      // Calcul taille adaptative
-      const targetWidth = width * 0.8;  // 80% de la largeur
-      const baseSize = height/3;
-      let fontSize = baseSize;
+    // Grand affichage central adaptatif
+    push();
+    const chord = chords[0];
+    const chordText = `${chord.root}${chord.type}`;
+    textAlign(CENTER, CENTER);
+    textStyle(BOLD);
+    
+    // Calcul taille adaptative
+    const targetWidth = width * 0.8;  // 80% de la largeur
+    const baseSize = height/3;
+    let fontSize = baseSize;
+    textSize(fontSize);
+    let textWidth = this.textWidth(chordText);
+    
+    // Réduire la taille si nécessaire
+    if (textWidth > targetWidth) {
+      fontSize *= targetWidth / textWidth;
       textSize(fontSize);
-      let textWidth = this.textWidth(chordText);
-      
-      // Réduire la taille si nécessaire
-      if (textWidth > targetWidth) {
-        fontSize *= targetWidth / textWidth;
-        textSize(fontSize);
-      }
-
-      // Contour blanc pour lisibilité
-      strokeWeight(fontSize/16);
-      stroke(255, 30);  // Contour blanc semi-transparent
-      fill(CONFIG.colors.chordDisplay);
-      text(chordText, width/2, height/2);
-      
-      // Texte principal
-      noStroke();
-      text(chordText, width/2, height/2);
-      pop();
     }
+
+    // Contour blanc pour lisibilité
+    strokeWeight(fontSize/16);
+    stroke(255, 30);  // Contour blanc semi-transparent
+    fill(CONFIG.colors.chordDisplay);
+    text(chordText, width/2, height/2);
+    
+    // Texte principal
+    noStroke();
+    text(chordText, width/2, height/2);
+    pop();
   }
 }
 
@@ -133,3 +152,4 @@ function mouseDragged() {
     return false;
   }
 }
+
