@@ -36,13 +36,32 @@ class NoteNode {
              active ? CONFIG.colors.selectedStroke : 
              CONFIG.colors.inactiveNodeStroke);
     g.circle(this.px, this.py, CONFIG.nodeRadius * 2);
+    
+    // Affichage de la note en deux parties
     g.fill(active ? CONFIG.colors.nodeLabel : CONFIG.colors.inactiveNodeLabel);
     g.noStroke();
     g.textAlign(CENTER, CENTER);
     g.textFont('Arial');
     g.textStyle(BOLD);
     g.textSize(CONFIG.fontSize);
-    g.text(this.name, this.px, this.py);
+
+    const letter = this.name[0];  // Première lettre (C, D, E, etc.)
+    const accidental = this.name.slice(1);  // Altération (♯ ou ♭)
+    
+    // Lettre principale centrée
+    g.text(letter, this.px, this.py);
+    
+    // Altération positionnée à "2 heures" avec plus d'espace
+    if (accidental) {
+      g.textSize(CONFIG.fontSize * 0.75);  // Un peu plus petit
+      const angle = -60 * Math.PI / 180;  // 60° (position 2h)
+      const radius = CONFIG.fontSize * 0.6;  // Distance augmentée
+      const offsetX = Math.cos(angle) * radius;
+      const offsetY = Math.sin(angle) * radius;
+      g.text(accidental, this.px + offsetX, this.py + offsetY);
+    }
+    
     g.pop();
   }
 }
+
