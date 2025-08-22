@@ -30,16 +30,16 @@ class NoteNode {
   draw(g, active) {
     g.push();
     g.noFill();
-    g.strokeWeight(active ? 3.2 : 1.4);
+    g.strokeWeight(active ? 3.2 : 1);
     const isRoot = active && tonnetz.isRoot(this);
     g.stroke(isRoot ? CONFIG.colors.rootStroke : 
              active ? CONFIG.colors.selectedStroke : 
-             CONFIG.colors.nodeStroke);
+             CONFIG.colors.inactiveNodeStroke);
     g.circle(this.px, this.py, CONFIG.nodeRadius * 2);
-    g.fill(CONFIG.colors.nodeLabel);
+    g.fill(active ? CONFIG.colors.nodeLabel : CONFIG.colors.inactiveNodeLabel);
     g.noStroke();
     g.textAlign(CENTER, CENTER);
-    g.textFont('Arial');  // Police plus lisible
+    g.textFont('Arial');
     g.textStyle(BOLD);
     g.textSize(CONFIG.fontSize);
     g.text(this.name, this.px, this.py);

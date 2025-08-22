@@ -16,9 +16,12 @@ const CONFIG = {
     edgeP5: '#2b5cff',           // bleu profond
     edgeM3: '#5fa8ff',           // bleu ciel
     edgem3: '#29d3c2',           // bleu turquoise
-    triangleFill: 'rgba(255,255,255,0.28)'
+    triangleFill: 'rgba(255,255,255,0.28)',
+    inactiveNodeStroke: 'rgba(207,207,210,0.3)',  // version atténuée
+    inactiveNodeLabel: 'rgba(231,231,234,0.3)',   // version atténuée
+    chordDisplay: 'rgba(255,255,255,0.15)'       // accord reconnu
   },
-  edgeWidthThin: 1.2,
+  edgeWidthThin: 1,
   edgeWidthThick: 8, // x2
   triangleStroke: 0
 };

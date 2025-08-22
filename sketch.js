@@ -28,11 +28,12 @@ function draw() {
   tonnetz.drawEdges(this);
   tonnetz.drawNodes(this);
   
-  // Affichage des accords uniquement si 3 notes ou plus
+  // Affichage des accords
   const activeNotes = tonnetz.getActiveNotes();
   if (activeNotes.length >= 3) {
     const chords = tonnetz.getDetectedChords();
     if (chords.length > 0) {
+      // Petit affichage en haut à gauche
       push();
       fill(255);
       noStroke();
@@ -42,6 +43,37 @@ function draw() {
       chords.forEach((chord, i) => {
         text(`${chord.root}${chord.type}`, 10, 35 + i * 25);
       });
+      pop();
+
+      // Grand affichage central adaptatif
+      push();
+      const chord = chords[0];
+      const chordText = `${chord.root}${chord.type}`;
+      textAlign(CENTER, CENTER);
+      textStyle(BOLD);
+      
+      // Calcul taille adaptative
+      const targetWidth = width * 0.8;  // 80% de la largeur
+      const baseSize = height/3;
+      let fontSize = baseSize;
+      textSize(fontSize);
+      let textWidth = this.textWidth(chordText);
+      
+      // Réduire la taille si nécessaire
+      if (textWidth > targetWidth) {
+        fontSize *= targetWidth / textWidth;
+        textSize(fontSize);
+      }
+
+      // Contour blanc pour lisibilité
+      strokeWeight(fontSize/16);
+      stroke(255, 30);  // Contour blanc semi-transparent
+      fill(CONFIG.colors.chordDisplay);
+      text(chordText, width/2, height/2);
+      
+      // Texte principal
+      noStroke();
+      text(chordText, width/2, height/2);
       pop();
     }
   }
@@ -64,4 +96,31 @@ function keyPressed() {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   tonnetz.origin = { x: width / 2, y: height / 2 };
+}
+
+function mouseWheel(event) {
+  // Zoom centré sur la position de la souris
+  const zoomFactor = event.delta > 0 ? 0.95 : 1.05;
+  const newZoom = tonnetz.zoom * zoomFactor;
+  
+  // Limite le zoom entre 0.5 et 5
+  if (newZoom >= 0.5 && newZoom <= 5) {
+    // Calcul du décalage pour centrer le zoom sur la souris
+    const mx = mouseX - tonnetz.panX;
+    const my = mouseY - tonnetz.panY;
+    tonnetz.panX += mx * (1 - zoomFactor);
+    tonnetz.panY += my * (1 - zoomFactor);
+    tonnetz.zoom = newZoom;
+  }
+  
+  return false; // Empêche le scroll de la page
+}
+
+function mouseDragged() {
+  // Pan avec le clic droit
+  if (mouseButton === RIGHT) {
+    tonnetz.panX += movedX;
+    tonnetz.panY += movedY;
+    return false;
+  }
 }

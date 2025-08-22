@@ -16,6 +16,10 @@ class Tonnetz {
 
     this.chordDetector = new ChordDetector();
 
+    this.zoom = 1;
+    this.panX = 0;
+    this.panY = 0;
+
     this.buildNodes();
     this.buildEdges();
     this.buildTriangles();
@@ -146,8 +150,18 @@ buildTriangles() {
     return this.chordDetector.detect(activeNotes, this.activeMidiNums);
   }
 
+  // Convertit les coordonnées du canvas en coordonnées zoomées
+  canvasToZoomed(x, y) {
+    return {
+      x: (x - this.origin.x - this.panX) / this.zoom + this.origin.x,
+      y: (y - this.origin.y - this.panY) / this.zoom + this.origin.y
+    };
+  }
+
   drawGrid(g) {
     g.push();
+    g.translate(this.panX, this.panY);
+    g.scale(this.zoom);
     g.strokeWeight(1);
     for (let xu = this.minXu; xu <= this.maxXu; xu++) {
       const x = this.origin.x + xu * CONFIG.unitX;
@@ -166,10 +180,14 @@ buildTriangles() {
   }
 
   drawEdges(g) {
+    g.push();
+    g.translate(this.panX, this.panY);
+    g.scale(this.zoom);
     for (const e of this.edges) {
       const active = e.a.isActive(this.selectedPcs) && e.b.isActive(this.selectedPcs);
       e.draw(g, active);
     }
+    g.pop();
   }
 
   drawTriangles(g) {
@@ -186,6 +204,8 @@ buildTriangles() {
 
     // Triangles reconnus
     g.push();
+    g.translate(this.panX, this.panY);
+    g.scale(this.zoom);
     g.noStroke();
     g.fill(CONFIG.colors.triangleFill);
     for (const [a, b, c] of this.getRecognizedTriangles()) {
@@ -208,14 +228,19 @@ drawTissuTriangles(g) {
 
 
   drawNodes(g) {
+    g.push();
+    g.translate(this.panX, this.panY);
+    g.scale(this.zoom);
     for (const [, n] of this.nodes) {
       n.draw(g, n.isActive(this.selectedPcs));
     }
+    g.pop();
   }
 
   findNodeAt(mx, my) {
+    const {x, y} = this.canvasToZoomed(mx, my);
     for (const [, n] of this.nodes) {
-      if (n.contains(mx, my)) return n;
+      if (n.contains(x, y)) return n;
     }
     return null;
   }
