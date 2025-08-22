@@ -1,5 +1,6 @@
 // ---------- Config visuelle ----------
 const CONFIG = {
+  fadeTime : 200, // en millisecondes
   unitX: 18,       // px par 1 demi-ton (axe X logique)
   unitY: 18,       // px par 1 unité Y (esthétique)
   nodeRadius: 22,  // x2

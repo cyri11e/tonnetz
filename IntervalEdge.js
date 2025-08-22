@@ -1,8 +1,9 @@
 class IntervalEdge {
   constructor(a, b, type) {
-    this.a = a; // NoteNode
-    this.b = b; // NoteNode
-    this.type = type; // 'P5' | 'M3' | 'm3'
+    this.a = a;
+    this.b = b;
+    this.type = type;
+    this.lastActiveTime = 0;
   }
 
   color() {
@@ -12,11 +13,45 @@ class IntervalEdge {
   }
 
   draw(g, active) {
-    if (!active) return; // minimaliste: on n’affiche épais que si les deux nœuds sont actifs
+    if (active) this.lastActiveTime = millis();
+    const fadeFactor = getFadeFactor(this.lastActiveTime);
+
+    // --- Maillage fin ---
     g.push();
-    g.stroke(this.color());
-    g.strokeWeight(CONFIG.edgeWidthThick); // x2
+    const baseColor = g.color(this.color());
+    baseColor.setAlpha(60);
+    g.stroke(baseColor);
+    g.strokeWeight(CONFIG.edgeWidthThin);
     g.line(this.a.px, this.a.py, this.b.px, this.b.py);
     g.pop();
+
+    // --- Highlight ---
+    if (active || fadeFactor > 0) {
+      g.push();
+      const c = g.color(this.color());
+      c.setAlpha(255 * fadeFactor);
+      g.stroke(c);
+      g.strokeWeight(CONFIG.edgeWidthThick);
+      g.line(this.a.px, this.a.py, this.b.px, this.b.py);
+      g.pop();
+
+      // Label highlight
+      const midX = (this.a.px + this.b.px) / 2;
+      const midY = (this.a.py + this.b.py) / 2;
+      let angle = Math.atan2(this.b.py - this.a.py, this.b.px - this.a.px);
+      if (this.type === 'm3') angle += Math.PI;
+
+      g.push();
+      g.translate(midX, midY);
+      g.rotate(angle);
+      g.textAlign(g.CENTER, g.CENTER);
+      g.textSize(CONFIG.edgeLabelSize || 14);
+      g.noStroke();
+      const labelColor = g.color(255);
+      labelColor.setAlpha(255 * fadeFactor);
+      g.fill(labelColor);
+      g.text(this.type, 0, -5);
+      g.pop();
+    }
   }
 }

@@ -27,33 +27,34 @@ function setup() {
 
 function draw() {
   background(CONFIG.colors.bg);
+
+  // --- Appliquer pan et zoom ---
+  push();
+  translate(tonnetz.panX, tonnetz.panY);
+  scale(tonnetz.zoom);
+
   tonnetz.drawGrid(this);
   tonnetz.drawTriangles(this);
   tonnetz.drawEdges(this);
   tonnetz.drawNodes(this);
-  
-  // Récupération des notes actives et de la fondamentale pour le piano et les accords
+
+  pop();
+
+  // --- Récupération des notes actives ---
   const activeNotes = tonnetz.getActiveNotes();
-  const activePCs = activeNotes.map(note => tonnetz.chordDetector.noteToPc[note]);
-  let rootPc = null;
   const chords = activeNotes.length >= 3 ? tonnetz.getDetectedChords() : [];
-  
-  if (chords.length > 0) {
-    rootPc = tonnetz.chordDetector.noteToPc[chords[0].root];
-  }
-  
-  // Récupération de la tonique pour le piano si un accord est détecté
+
   let rootNote = null;
   if (chords.length > 0) {
     rootNote = tonnetz.chordDetector.noteToPc[chords[0].root];
   }
-  
-  // Affichage du piano (uniquement les notes MIDI)
+
+  // --- Piano ---
   piano.draw(this, rootNote);
-  
-  // Affichage des accords
+
+  // --- Affichage accords ---
   if (chords.length > 0) {
-    // Petit affichage en haut à gauche
+    // Petit affichage
     push();
     fill(255);
     noStroke();
@@ -65,38 +66,33 @@ function draw() {
     });
     pop();
 
-    // Grand affichage central adaptatif
+    // Grand affichage central
     push();
-    const chord = chords[0];
-    const chordText = `${chord.root}${chord.type}`;
+    const chordText = `${chords[0].root}${chords[0].type}`;
     textAlign(CENTER, CENTER);
     textStyle(BOLD);
-    
-    // Calcul taille adaptative
-    const targetWidth = width * 0.8;  // 80% de la largeur
-    const baseSize = height/3;
+
+    const targetWidth = width * 0.8;
+    const baseSize = height / 3;
     let fontSize = baseSize;
     textSize(fontSize);
-    let textWidth = this.textWidth(chordText);
-    
-    // Réduire la taille si nécessaire
-    if (textWidth > targetWidth) {
-      fontSize *= targetWidth / textWidth;
+    let tw = textWidth(chordText);
+    if (tw > targetWidth) {
+      fontSize *= targetWidth / tw;
       textSize(fontSize);
     }
 
-    // Contour blanc pour lisibilité
-    strokeWeight(fontSize/16);
-    stroke(255, 30);  // Contour blanc semi-transparent
+    strokeWeight(fontSize / 16);
+    stroke(255, 30);
     fill(CONFIG.colors.chordDisplay);
-    text(chordText, width/2, height/2);
-    
-    // Texte principal
+    text(chordText, width / 2, height / 2);
+
     noStroke();
-    text(chordText, width/2, height/2);
+    text(chordText, width / 2, height / 2);
     pop();
   }
 }
+
 
 function mousePressed() {
   const node = tonnetz.findNodeAt(mouseX, mouseY);

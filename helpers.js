@@ -17,3 +17,7 @@ function keyToPc(k) {
   const name = whiteMap[c] || blackMap[c];
   return name ? nameToPc(name) : null;
 }
+function getFadeFactor(lastTime) {
+  const elapsed = millis() - lastTime;
+  return 1 - Math.min(elapsed / CONFIG.fadeTime, 1);
+}
