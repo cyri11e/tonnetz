@@ -22,7 +22,7 @@ function setup() {
   });
   midiInput.init();
   
-  piano = new Piano();
+  piano = new Piano(61); // Par exemple, piano 61 touches
 }
 
 function draw() {
@@ -106,6 +106,20 @@ function mousePressed() {
 }
 
 function keyPressed() {
+  // Tailles de piano avec les touches numériques
+  const pianoSizes = {
+    '2': 25,  // 2 octaves
+    '4': 49,  // 4 octaves
+    '6': 61,  // 5 octaves + 1
+    '7': 76,  // 6 octaves + 4
+    '8': 88   // piano complet
+  };
+
+  if (pianoSizes[key]) {
+    changePianoSize(pianoSizes[key]);
+    return;
+  }
+
   if (key === 'Tab') {
     // Cycle entre les styles de notes
     const styles = ['sharp', 'flat', 'mixed'];
@@ -151,5 +165,10 @@ function mouseDragged() {
     tonnetz.panY += movedY;
     return false;
   }
+}
+
+// Ajouter une fonction pour changer la taille du piano
+function changePianoSize(size) {
+  piano = new Piano(size);
 }
 

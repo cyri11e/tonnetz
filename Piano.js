@@ -1,7 +1,17 @@
 class Piano {
-  constructor() {
-    this.startMidi = 21;  // A0
-    this.endMidi = 108;  // C8
+  constructor(size = 88) {
+    // Définition des différentes tailles de piano
+    this.PIANO_SIZES = {
+      88: { start: 21, end: 108 },  // A0 à C8  (piano complet)
+      76: { start: 28, end: 103 },  // E1 à G7  (piano 76 touches)
+      61: { start: 36, end: 96 },   // C2 à C7  (piano 61 touches)
+      49: { start: 36, end: 84 },   // C2 à C6  (piano 4 octaves)
+      25: { start: 48, end: 72 }    // C3 à C5  (piano 2 octaves)
+    };
+
+    const range = this.PIANO_SIZES[size] || this.PIANO_SIZES[88];
+    this.startMidi = range.start;
+    this.endMidi = range.end;
     
     // Pattern des touches pour un octave (0 = C)
     this.keyPattern = [
@@ -29,13 +39,16 @@ class Piano {
   draw(g, rootPc = null) {
     g.push();
     
-    // Position et dimensions de base
     const margin = 20;
     const y = g.height - margin;
     const totalWidth = g.width - (margin * 2);
     
-    // Calculer dimensions des touches
-    const numWhiteKeys = 52;
+    // Calculer le nombre de touches blanches pour cette taille de piano
+    const numWhiteKeys = Array.from(
+      { length: this.endMidi - this.startMidi + 1 },
+      (_, i) => this.startMidi + i
+    ).filter(midi => this.keyPattern[midi % 12]).length;
+
     const whiteKeyWidth = totalWidth / numWhiteKeys;
     const whiteKeyHeight = whiteKeyWidth * 4;
     const blackKeyWidth = whiteKeyWidth * 0.6;
