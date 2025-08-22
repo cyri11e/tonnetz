@@ -2,9 +2,18 @@ let tonnetz;
 let midiInput;
 let piano;
 
+// État pour le fondu logique de l'accord central
+let lastChordText = '';
+let lastChordTime = 0;
+
+function getFadeFactor(lastTime) {
+  const elapsed = millis() - lastTime;
+  return 1 - Math.min(elapsed / CONFIG.fadeTime, 1);
+}
+
 function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
-  textFont('Arial');  // Police globale plus lisible
+  textFont('Arial');
   textStyle(BOLD);
   background(CONFIG.colors.bg);
 
@@ -15,46 +24,49 @@ function setup() {
     canvas
   });
 
-  // Initialisation MIDI
   midiInput = new MidiInput((notes, midiNums) => {
     tonnetz.setMidiNotes(notes, midiNums);
-    piano.setMidiNotes(midiNums);  // Transmission au piano
+    piano.setMidiNotes(midiNums);
   });
   midiInput.init();
   
-  piano = new Piano(61); // Par exemple, piano 61 touches
+  piano = new Piano(61);
+
+  if (tonnetz.zoom == null) tonnetz.zoom = 1;
+  if (tonnetz.panX == null) tonnetz.panX = 0;
+  if (tonnetz.panY == null) tonnetz.panY = 0;
 }
 
 function draw() {
   background(CONFIG.colors.bg);
 
-  // --- Appliquer pan et zoom ---
   push();
   translate(tonnetz.panX, tonnetz.panY);
   scale(tonnetz.zoom);
-
   tonnetz.drawGrid(this);
   tonnetz.drawTriangles(this);
   tonnetz.drawEdges(this);
   tonnetz.drawNodes(this);
-
   pop();
-
-  // --- Récupération des notes actives ---
+  
   const activeNotes = tonnetz.getActiveNotes();
   const chords = activeNotes.length >= 3 ? tonnetz.getDetectedChords() : [];
+
+  const chordIsActive = chords.length > 0;
+  if (chordIsActive) {
+    const chord = chords[0];
+    lastChordText = `${chord.root}${chord.type}`;
+    lastChordTime = millis();
+  }
 
   let rootNote = null;
   if (chords.length > 0) {
     rootNote = tonnetz.chordDetector.noteToPc[chords[0].root];
   }
-
-  // --- Piano ---
+  
   piano.draw(this, rootNote);
-
-  // --- Affichage accords ---
+  
   if (chords.length > 0) {
-    // Petit affichage
     push();
     fill(255);
     noStroke();
@@ -65,34 +77,50 @@ function draw() {
       text(`${chord.root}${chord.type}`, 10, 35 + i * 25);
     });
     pop();
+  }
 
-    // Grand affichage central
-    push();
-    const chordText = `${chords[0].root}${chords[0].type}`;
-    textAlign(CENTER, CENTER);
-    textStyle(BOLD);
-
-    const targetWidth = width * 0.8;
-    const baseSize = height / 3;
-    let fontSize = baseSize;
-    textSize(fontSize);
-    let tw = textWidth(chordText);
-    if (tw > targetWidth) {
-      fontSize *= targetWidth / tw;
-      textSize(fontSize);
+  // Affichage central avec opacité pleine si actif, fondu sinon
+  {
+    let alphaValue;
+    if (chordIsActive) {
+      alphaValue = 65; // Pleine opacité
+    } else {
+      alphaValue = 65 * getFadeFactor(lastChordTime); // Fondu après relâche
     }
 
-    strokeWeight(fontSize / 16);
-    stroke(255, 30);
-    fill(CONFIG.colors.chordDisplay);
-    text(chordText, width / 2, height / 2);
+    if (alphaValue > 0 && lastChordText) {
+      push();
+      textAlign(CENTER, CENTER);
+      textStyle(BOLD);
 
-    noStroke();
-    text(chordText, width / 2, height / 2);
-    pop();
+      const targetWidth = width * 0.8;
+      const baseSize = height / 3;
+      let fontSize = baseSize;
+      textSize(fontSize);
+      let tw = this.textWidth(lastChordText);
+      if (tw > targetWidth) {
+        fontSize *= targetWidth / tw;
+        textSize(fontSize);
+      }
+
+      const c = color(CONFIG.colors.chordDisplay);
+      c.setAlpha(alphaValue);
+
+      strokeWeight(fontSize / 16);
+      const outline = color(255);
+      outline.setAlpha(30 * (alphaValue / 255));
+      stroke(outline);
+
+      fill(c);
+      text(lastChordText, width / 2, height / 2);
+
+      noStroke();
+      fill(c);
+      text(lastChordText, width / 2, height / 2);
+      pop();
+    }
   }
 }
-
 
 function mousePressed() {
   const node = tonnetz.findNodeAt(mouseX, mouseY);
@@ -102,13 +130,12 @@ function mousePressed() {
 }
 
 function keyPressed() {
-  // Tailles de piano avec les touches numériques
   const pianoSizes = {
-    '2': 25,  // 2 octaves
-    '4': 49,  // 4 octaves
-    '6': 61,  // 5 octaves + 1
-    '7': 76,  // 6 octaves + 4
-    '8': 88   // piano complet
+    '2': 25,
+    '4': 49,
+    '6': 61,
+    '7': 76,
+    '8': 88
   };
 
   if (pianoSizes[key]) {
@@ -117,12 +144,11 @@ function keyPressed() {
   }
 
   if (key === 'Tab') {
-    // Cycle entre les styles de notes
     const styles = ['sharp', 'flat', 'mixed'];
     const currentIndex = styles.indexOf(tonnetz.noteStyle);
     const nextStyle = styles[(currentIndex + 1) % styles.length];
     tonnetz.setNoteStyle(nextStyle);
-    return false; // Empêche le comportement par défaut
+    return false;
   }
 
   const pc = keyToPc(key);
@@ -137,13 +163,10 @@ function windowResized() {
 }
 
 function mouseWheel(event) {
-  // Zoom centré sur la position de la souris
   const zoomFactor = event.delta > 0 ? 0.95 : 1.05;
   const newZoom = tonnetz.zoom * zoomFactor;
   
-  // Limite le zoom entre 0.5 et 5
   if (newZoom >= 0.5 && newZoom <= 5) {
-    // Calcul du décalage pour centrer le zoom sur la souris
     const mx = mouseX - tonnetz.panX;
     const my = mouseY - tonnetz.panY;
     tonnetz.panX += mx * (1 - zoomFactor);
@@ -151,11 +174,10 @@ function mouseWheel(event) {
     tonnetz.zoom = newZoom;
   }
   
-  return false; // Empêche le scroll de la page
+  return false;
 }
 
 function mouseDragged() {
-  // Pan avec le clic droit
   if (mouseButton === RIGHT) {
     tonnetz.panX += movedX;
     tonnetz.panY += movedY;
@@ -163,8 +185,6 @@ function mouseDragged() {
   }
 }
 
-// Ajouter une fonction pour changer la taille du piano
 function changePianoSize(size) {
   piano = new Piano(size);
 }
-
