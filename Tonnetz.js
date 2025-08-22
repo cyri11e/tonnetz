@@ -12,6 +12,7 @@ class Tonnetz {
     this.edges = [];
     this.triangles = []; // tissu
     this.selectedPcs = new Set();
+    this.activeMidiNums = [];  // Stockage des numéros MIDI actifs
 
     this.chordDetector = new ChordDetector();
 
@@ -131,9 +132,18 @@ buildTriangles() {
     return [...new Set(activeNotes)];
   }
 
+  setMidiNotes(notes, midiNums) {
+    this.selectedPcs.clear();
+    notes.forEach(note => {
+      this.selectedPcs.add(nameToPc(note));
+    });
+    this.activeMidiNums = midiNums || [];
+  }
+
   getDetectedChords() {
     const activeNotes = this.getActiveNotes();
-    return this.chordDetector.detect(activeNotes);
+    if (activeNotes.length < 3) return [];
+    return this.chordDetector.detect(activeNotes, this.activeMidiNums);
   }
 
   drawGrid(g) {
@@ -210,14 +220,9 @@ drawTissuTriangles(g) {
     return null;
   }
 
-  setMidiNotes(notes) {
-    this.selectedPcs.clear();
-    notes.forEach(note => {
-      this.selectedPcs.add(nameToPc(note));
-    });
-  }
-
   isRoot(node) {
+    const activeNotes = this.getActiveNotes();
+    if (activeNotes.length < 3) return false;
     const chords = this.getDetectedChords();
     return chords.some(chord => chord.root === node.name);
   }

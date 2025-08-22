@@ -16,10 +16,7 @@ function setup() {
 
   // Initialisation MIDI
   midiInput = new MidiInput((notes, midiNums) => {
-    tonnetz.selectedPcs.clear();
-    notes.forEach(note => {
-      tonnetz.selectedPcs.add(nameToPc(note));
-    });
+    tonnetz.setMidiNotes(notes, midiNums);  // Ajout des numéros MIDI
   });
   midiInput.init();
 }
@@ -31,19 +28,22 @@ function draw() {
   tonnetz.drawEdges(this);
   tonnetz.drawNodes(this);
   
-  // Affichage des accords détectés
-  const chords = tonnetz.getDetectedChords();
-  if (chords.length > 0) {
-    push();
-    fill(255);
-    noStroke();
-    textAlign(LEFT, TOP);
-    textSize(16);
-    text('Accords détectés:', 10, 10);
-    chords.forEach((chord, i) => {
-      text(`${chord.root}${chord.type}`, 10, 35 + i * 25);
-    });
-    pop();
+  // Affichage des accords uniquement si 3 notes ou plus
+  const activeNotes = tonnetz.getActiveNotes();
+  if (activeNotes.length >= 3) {
+    const chords = tonnetz.getDetectedChords();
+    if (chords.length > 0) {
+      push();
+      fill(255);
+      noStroke();
+      textAlign(LEFT, TOP);
+      textSize(16);
+      text('Accords détectés:', 10, 10);
+      chords.forEach((chord, i) => {
+        text(`${chord.root}${chord.type}`, 10, 35 + i * 25);
+      });
+      pop();
+    }
   }
 }
 

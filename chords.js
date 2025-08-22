@@ -1,27 +1,25 @@
-// chords.js
-// ====================
-// 🎵 Détection d'accords avancée (ES6, style cohérent)
-// ====================
-
 class ChordDetector {
   constructor() {
     this.chordFormulas = {
-      '': [0, 4, 7],        // accord majeur (sans suffixe)
-      'm': [0, 3, 7],       // mineur
-      'dim': [0, 3, 6],
-      'aug': [0, 4, 8],
-      'sus2': [0, 2, 7],
-      'sus4': [0, 5, 7],
-      '7': [0, 4, 7, 10],
-      'm7': [0, 3, 7, 10],
-      'maj7': [0, 4, 7, 11],
-      'dim7': [0, 3, 6, 9],
-      'm7b5': [0, 3, 6, 10],
-      '6': [0, 4, 7, 9],
-      'm6': [0, 3, 7, 9],
-      '9': [0, 4, 7, 10, 14],
-      'm9': [0, 3, 7, 10, 14],
-      'maj9': [0, 4, 7, 11, 14]
+      '':       [0, 4, 7],
+      'm':      [0, 3, 7],
+      'dim':    [0, 3, 6],
+      'aug':    [0, 4, 8],
+      'sus2':   [0, 2, 7],
+      'sus4':   [0, 5, 7],
+      '7':      [0, 4, 7, 10],
+      'm7':     [0, 3, 7, 10],
+      'maj7':   [0, 4, 7, 11],
+      'mMaj7':  [0, 3, 7, 11],
+      'dim7':   [0, 3, 6, 9],
+      'm7b5':   [0, 3, 6, 10],
+      '6':      [0, 4, 7, 9],
+      'm6':     [0, 3, 7, 9],
+      '9':      [0, 4, 7, 10, 14],
+      'maj9':   [0, 4, 7, 11, 14],
+      'm9':     [0, 3, 7, 10, 14],
+      '11':     [0, 4, 7, 10, 17],
+      '13':     [0, 4, 7, 10, 21]
     };
 
     this.noteToPc = {
@@ -33,40 +31,101 @@ class ChordDetector {
     this.pcToNote = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   }
 
-  detect(activeNotes) {
-    const pcs = [...new Set(activeNotes.map(n => this.noteToPc[n]))].sort((a,b) => a-b);
+  detect(activeNotes, midiNumbers = null) {
+    let pcs, bassNote, midiList;
+
+    if (Array.isArray(midiNumbers) && midiNumbers.length > 0) {
+      midiList = [...new Set(midiNumbers)].sort((a,b) => a-b);
+      const bassMidi = Math.min(...midiList);
+      bassNote = this.pcToNote[bassMidi % 12];
+      pcs = [...new Set(midiList.map(m => m % 12))].sort((a,b) => a-b);
+    } else {
+      midiList = activeNotes.map(n => this.noteToPc[n]);
+      bassNote = this.pcToNote[midiList[0]];
+      pcs = [...new Set(midiList)].sort((a,b) => a-b);
+    }
+
     const results = [];
 
     pcs.forEach(rootPc => {
-      const intervals = pcs.map(pc => (pc - rootPc + 12) % 12).sort((a,b) => a-b);
+      let rootMidi = null;
+      if (midiList && midiList.length > 0 && typeof midiList[0] === 'number') {
+        rootMidi = midiList.find(m => m % 12 === rootPc);
+      }
+
+      let intervalsAbs = [];
+      if (rootMidi !== null) {
+        intervalsAbs = midiList.map(m => {
+          let iv = m - rootMidi;
+          while (iv < 0) iv += 12;   // vers [0, +∞)
+          while (iv > 23) iv -= 12;  // rabat au plus à 2 octaves
+          return iv;                 // 0..23 (0 = R, 14 = 9, 17 = 11, 21 = 13)
+        });
+      }
+
+
+      const intervalsPC = pcs.map(pc => (pc - rootPc + 12) % 12).sort((a,b) => a-b);
 
       for (const [name, formula] of Object.entries(this.chordFormulas)) {
-        if (formula.length === intervals.length && 
-            formula.every(iv => intervals.includes(iv))) {
+        if (formula.every(iv => intervalsPC.includes(iv))) {
+          let chordName = this.pcToNote[rootPc] + name;
+          const has7 = intervalsPC.includes(10) || intervalsPC.includes(11);
+
+          if (has7 && (name === '6' || name === 'm6')) continue;
+
+          // intervalsPC = intervalles en demi-tons par rapport à la fondamentale
+          const uniquePCs = [...new Set(intervalsPC)];
+
+          // Extensions et altérations
+          if (intervalsAbs.length > 0) {
+            if (!has7) {
+              if (intervalsAbs.includes(14)) chordName += 'add9';
+              if (intervalsAbs.includes(17)) chordName += 'add11';
+              if (intervalsAbs.includes(21)) chordName += 'add13';
+            } else {
+              if (intervalsAbs.includes(21)) {
+                chordName = this.pcToNote[rootPc] + name.replace('7', '13');
+              } else if (intervalsAbs.includes(17)) {
+                chordName = this.pcToNote[rootPc] + name.replace('7', '11');
+              } else if (intervalsAbs.includes(14)) {
+                chordName = this.pcToNote[rootPc] + name.replace('7', '9');
+              }
+            }
+          }
+
+          const alterations = [];
+          if (intervalsAbs.includes(13) && !chordName.includes('b9')) alterations.push('b9');
+          if (intervalsAbs.includes(15) && !chordName.includes('#9')) alterations.push('#9');
+          if (intervalsAbs.includes(18) && !chordName.includes('#11')) alterations.push('#11');
+          if (intervalsAbs.includes(20) && !chordName.includes('b13')) alterations.push('b13');
+
+          if (alterations.length > 0) {
+            chordName += `(${alterations.join(',')})`;
+          }
+
           results.push({
             root: this.pcToNote[rootPc],
-            type: name,
-            notes: pcs.map(pc => this.pcToNote[pc]),
-            bass: this.pcToNote[pcs[0]]
+            type: chordName.replace(this.pcToNote[rootPc], ''),
+            bass: bassNote,
+            formulaSize: formula.length
           });
         }
       }
     });
 
-    // Slash chords uniquement si basse ≠ fondamentale
-    //results.forEach(r => {
-    //  if (r.bass !== r.root) {
-    //    r.type += `/${r.bass}`;
-    //  }
-    //});
+    results.forEach(r => {
+      if (r.bass !== r.root) {
+        r.type = r.type ? `${r.type}/${r.bass}` : `/${r.bass}`;
+      }
+    });
 
-    // Supprimer doublons
-    return results.filter((r, idx, arr) =>
-      idx === arr.findIndex(o => o.root === r.root && o.type === r.type)
-    );
+    results.sort((a, b) => {
+      const aBassMatch = a.bass === a.root ? 1 : 0;
+      const bBassMatch = b.bass === b.root ? 1 : 0;
+      if (aBassMatch !== bBassMatch) return bBassMatch - aBassMatch;
+      return b.formulaSize - a.formulaSize;
+    });
+
+    return results.length > 0 ? [results[0]] : [];
   }
 }
-
-// On rend la classe accessible globalement pour P5.js
-window.ChordDetector = ChordDetector;
-

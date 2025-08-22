@@ -1,7 +1,7 @@
 class MidiInput {
   constructor(onNotesChange) {
     this.onNotesChange = onNotesChange; // callback appelé à chaque changement
-    this.activeNotes = new Set();       // noms de notes
+    this.activeNotes = new Map();       // Map pour compter les occurrences
     this.activeMidi = new Set();        // numéros MIDI
     this.noteNames = NOTE_NAMES;        // depuis config.js
   }
@@ -28,27 +28,29 @@ class MidiInput {
     
     const [status, note, velocity] = message.data;
     const command = status & 0xf0;
+    const noteName = this.noteNames[note % 12];
+    
+    if (!noteName) return;
 
     if (command === 0x90 && velocity > 0) {
-      // Note ON
-      const noteName = this.noteNames[note % 12];
-      if (noteName) {
-        this.activeNotes.add(noteName);
-        this.activeMidi.add(note);
-      }
+      // Note ON - Incrémente le compteur
+      this.activeNotes.set(noteName, (this.activeNotes.get(noteName) || 0) + 1);
+      this.activeMidi.add(note);
     } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
-      // Note OFF
-      const noteName = this.noteNames[note % 12];
-      if (noteName) {
+      // Note OFF - Décrémente le compteur
+      const count = this.activeNotes.get(noteName) || 0;
+      if (count > 1) {
+        this.activeNotes.set(noteName, count - 1);
+      } else {
         this.activeNotes.delete(noteName);
-        this.activeMidi.delete(note);
       }
+      this.activeMidi.delete(note);
     }
 
     // Appeler le callback avec les notes actuelles
     if (this.onNotesChange) {
       this.onNotesChange(
-        Array.from(this.activeNotes),
+        Array.from(this.activeNotes.keys()),
         Array.from(this.activeMidi)
       );
     }
