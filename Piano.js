@@ -36,6 +36,69 @@ class Piano {
     this.activeKeys = new Set(midiNums);
   }
 
+  // Nouvelle méthode pour dessiner une touche blanche selon son type
+  drawWhiteKey(g, x, y, w, h, type, isActive, isRoot) {
+    g.fill(isRoot ? CONFIG.colors.rootStroke :
+           isActive ? CONFIG.colors.selectedStroke :
+           '#ffffff');
+    g.stroke(40);
+    g.strokeWeight(1);
+
+    g.beginShape();
+    switch(type) {
+      case 'C': 
+      case 'F': // Forme en L
+        g.vertex(x, y);
+        g.vertex(x, y + h);
+        g.vertex(x + w, y + h);
+        g.vertex(x + w, y + h * 0.6);
+        g.vertex(x + w/1.5, y + h * 0.6);
+        g.vertex(x + w/1.5, y);
+        break;
+
+      case 'E':
+      case 'B': // Miroir du C
+        g.vertex(x + w/3, y);
+        g.vertex(x + w, y);
+        g.vertex(x + w, y + h);
+        g.vertex(x, y + h);
+        g.vertex(x, y + h * 0.6);
+        g.vertex(x + w/3, y + h * 0.6);
+        break;
+
+      case 'D':
+      case 'G':
+      case 'A': // Forme en T avec partie haute fine
+        g.vertex(x + w/3, y);
+        g.vertex(x + w/1.5, y);
+        g.vertex(x + w/1.5, y + h * 0.6);
+        g.vertex(x + w, y + h * 0.6);
+        g.vertex(x + w, y + h);
+        g.vertex(x, y + h);
+        g.vertex(x, y + h * 0.6);
+        g.vertex(x + w/3, y + h * 0.6);
+        break;
+
+      default: // Rectangle simple pour le dernier C
+        g.vertex(x, y);
+        g.vertex(x + w, y);
+        g.vertex(x + w, y + h);
+        g.vertex(x, y + h);
+    }
+    g.endShape(CLOSE);
+  }
+
+  drawBlackKey(g, x, y, w, h, isActive, isRoot) {
+    g.push();
+    g.noStroke();
+    g.fill(isRoot ? CONFIG.colors.rootStroke :
+           isActive ? CONFIG.colors.selectedStroke :
+           '#000000');
+    // Touche noire plus large (2/3 au lieu de 1/2)
+    g.rect(x - w/3, y, w * 0.67, h * 0.6);
+    g.pop();
+  }
+
   draw(g, rootPc = null) {
     g.push();
     
@@ -55,22 +118,25 @@ class Piano {
     const blackKeyHeight = whiteKeyHeight * 0.6;
     const startX = margin;
 
-    // Touches blanches
+    // Touches blanches avec formes spécifiques
     g.strokeWeight(1);
     g.stroke(40);
     let whiteKeyCount = 0;
     
     for (let midi = this.startMidi; midi <= this.endMidi; midi++) {
-      const isWhite = this.keyPattern[midi % 12];
+      const pc = midi % 12;
+      const isWhite = this.keyPattern[pc];
       if (isWhite) {
         const x = startX + (whiteKeyWidth * whiteKeyCount);
         const isActive = this.activeKeys.has(midi);
-        const isRoot = isActive && rootPc !== null && (midi % 12 === rootPc);
+        const isRoot = isActive && rootPc !== null && pc === rootPc;
+        const isLastC = midi === this.endMidi && pc === 0;
         
-        g.fill(isRoot ? CONFIG.colors.rootStroke :
-               isActive ? CONFIG.colors.selectedStroke :
-               '#ffffff');
-        g.rect(x, y - whiteKeyHeight, whiteKeyWidth - 1, whiteKeyHeight);
+        const noteTypes = {0:'C', 2:'D', 4:'E', 5:'F', 7:'G', 9:'A', 11:'B'};
+        const keyType = noteTypes[pc];
+        
+        this.drawWhiteKey(g, x, y - whiteKeyHeight, whiteKeyWidth - 1, 
+                         whiteKeyHeight, keyType, isActive, isRoot);
         whiteKeyCount++;
       }
     }
@@ -80,16 +146,16 @@ class Piano {
     whiteKeyCount = 0;
     
     for (let midi = this.startMidi; midi <= this.endMidi; midi++) {
-      const isWhite = this.keyPattern[midi % 12];
+      const pc = midi % 12;
+      const isWhite = this.keyPattern[pc];
       if (!isWhite) {
-        const x = startX + (whiteKeyWidth * (whiteKeyCount - 0.3));
+        // Position ajustée : utilise la position de la touche blanche précédente
+        const x = startX + (whiteKeyWidth * (whiteKeyCount));
         const isActive = this.activeKeys.has(midi);
         const isRoot = isActive && rootPc !== null && (midi % 12 === rootPc);
         
-        g.fill(isRoot ? CONFIG.colors.rootStroke :
-               isActive ? CONFIG.colors.selectedStroke :
-               '#000000');
-        g.rect(x - blackKeyWidth/2, y - whiteKeyHeight, blackKeyWidth, blackKeyHeight);
+        this.drawBlackKey(g, x, y - whiteKeyHeight, whiteKeyWidth, whiteKeyHeight, 
+                         isActive, isRoot);
       } else {
         whiteKeyCount++;
       }
