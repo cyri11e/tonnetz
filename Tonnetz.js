@@ -105,13 +105,21 @@ buildTriangles() {
 
 
   computeXRange() {
+    // Calculer combien de demi-tons on peut afficher sur la largeur
+    const totalWidth = this.canvas.width;
+    const halfWidth = totalWidth / 2;
+    
+    // Nombre de demi-tons visibles de chaque côté du centre
+    this.H = Math.ceil(halfWidth / CONFIG.unitX);
+    
+    // Calculer la plage X effective
     let minXu = Infinity, maxXu = -Infinity;
     for (const [, n] of this.nodes) {
       minXu = Math.min(minXu, n.xu);
       maxXu = Math.max(maxXu, n.xu);
     }
-    this.minXu = minXu;
-    this.maxXu = maxXu;
+    this.minXu = Math.floor(-totalWidth / CONFIG.unitX);
+    this.maxXu = Math.ceil(totalWidth / CONFIG.unitX);
   }
 
   togglePc(pc) {
@@ -180,7 +188,13 @@ buildTriangles() {
     g.translate(this.panX, this.panY);
     g.scale(this.zoom);
     g.strokeWeight(1);
-    for (let xu = this.minXu; xu <= this.maxXu; xu++) {
+
+    // Étendre la grille sur tout le canvas
+    const visibleWidth = g.width / this.zoom;
+    const start = Math.floor((0 - this.origin.x - this.panX) / CONFIG.unitX);
+    const end = Math.ceil((visibleWidth - this.origin.x - this.panX) / CONFIG.unitX);
+
+    for (let xu = start; xu <= end; xu++) {
       const x = this.origin.x + xu * CONFIG.unitX;
       const is12 = mod12(xu) === 0;
       g.stroke(is12 ? CONFIG.colors.grid12 : CONFIG.colors.grid);
@@ -256,10 +270,19 @@ drawTissuTriangles(g) {
 
   findNodeAt(mx, my) {
     const {x, y} = this.canvasToZoomed(mx, my);
+    let nearestNode = null;
+    let minDist = CONFIG.nodeRadius * 2;  // Augmenter la zone de détection
+
     for (const [, n] of this.nodes) {
-      if (n.contains(x, y)) return n;
+      const dx = x - n.px;
+      const dy = y - n.py;
+      const dist = Math.hypot(dx, dy);
+      if (dist < minDist) {
+        minDist = dist;
+        nearestNode = n;
+      }
     }
-    return null;
+    return nearestNode;
   }
 
   isRoot(node) {
