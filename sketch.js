@@ -87,6 +87,15 @@ function mousePressed() {
 }
 
 function keyPressed() {
+  if (key === 'Tab') {
+    // Cycle entre les styles de notes
+    const styles = ['sharp', 'flat', 'mixed'];
+    const currentIndex = styles.indexOf(tonnetz.noteStyle);
+    const nextStyle = styles[(currentIndex + 1) % styles.length];
+    tonnetz.setNoteStyle(nextStyle);
+    return false; // Empêche le comportement par défaut
+  }
+
   const pc = keyToPc(key);
   if (pc !== null) {
     tonnetz.togglePc(pc);

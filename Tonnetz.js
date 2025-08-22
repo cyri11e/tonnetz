@@ -20,6 +20,8 @@ class Tonnetz {
     this.panX = 0;
     this.panY = 0;
 
+    this.noteStyle = 'sharp'; // 'sharp', 'flat', ou 'mixed'
+
     this.buildNodes();
     this.buildEdges();
     this.buildTriangles();
@@ -115,6 +117,16 @@ buildTriangles() {
   togglePc(pc) {
     if (this.selectedPcs.has(pc)) this.selectedPcs.delete(pc);
     else this.selectedPcs.add(pc);
+  }
+
+  setNoteStyle(style) {
+    if (ENHARMONIC_MAPS[style]) {
+      this.noteStyle = style;
+      // Mettre à jour les noms des notes
+      for (const [, node] of this.nodes) {
+        node.name = ENHARMONIC_MAPS[style][node.pc];
+      }
+    }
   }
 
   // Triangles reconnus dynamiquement

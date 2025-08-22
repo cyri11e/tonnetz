@@ -27,7 +27,13 @@ const CONFIG = {
 };
 
 // ---------- Utilitaires musique ----------
-const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const ENHARMONIC_MAPS = {
+  sharp: ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],
+  flat:  ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'],
+  mixed: ['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'] // version courante
+};
+
+const NOTE_NAMES = ENHARMONIC_MAPS.sharp; // valeur par défaut
 const nameToPc = (name) => NOTE_NAMES.indexOf(name);
 const pcToName = (pc) => NOTE_NAMES[(pc % 12 + 12) % 12];
 
