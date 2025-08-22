@@ -126,6 +126,11 @@ buildTriangles() {
       for (const [, node] of this.nodes) {
         node.name = ENHARMONIC_MAPS[style][node.pc];
       }
+      // Forcer une nouvelle détection d'accords avec le nouveau style
+      const activeNotes = this.getActiveNotes();
+      if (activeNotes.length >= 3) {
+        this.lastDetectedChords = this.chordDetector.detect(activeNotes, this.activeMidiNums);
+      }
     }
   }
 

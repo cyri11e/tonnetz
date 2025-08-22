@@ -28,9 +28,9 @@ const CONFIG = {
 
 // ---------- Utilitaires musique ----------
 const ENHARMONIC_MAPS = {
-  sharp: ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],
-  flat:  ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'],
-  mixed: ['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'] // version courante
+  sharp: ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'],
+  flat:  ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'],
+  mixed: ['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'] // version courante
 };
 
 const NOTE_NAMES = ENHARMONIC_MAPS.sharp; // valeur par défaut

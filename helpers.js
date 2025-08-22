@@ -11,7 +11,7 @@ function keyToPc(k) {
 
   // Noirs: Z E T Y U
   const blackMap = {
-    'z': 'C#', 'e': 'D#', 't': 'F#', 'y': 'G#', 'u': 'A#'
+    'z': 'C♯', 'e': 'D♯', 't': 'F♯', 'y': 'G♯', 'u': 'A♯'
   };
 
   const name = whiteMap[c] || blackMap[c];
