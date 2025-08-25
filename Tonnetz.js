@@ -22,6 +22,8 @@ class Tonnetz {
 
     this.noteStyle = 'mixed'; // 'sharp', 'flat', ou 'mixed'
 
+    NOTE_NAMES = ENHARMONIC_MAPS[this.noteStyle]; // ← mise à jour globale
+
     this.buildNodes();
     this.buildEdges();
     this.buildTriangles();

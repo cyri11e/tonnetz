@@ -34,7 +34,7 @@ const ENHARMONIC_MAPS = {
   mixed: ['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'] // version courante
 };
 
-const NOTE_NAMES = ENHARMONIC_MAPS.sharp; // valeur par défaut
+let NOTE_NAMES = ENHARMONIC_MAPS.sharp; // valeur par défaut
 const nameToPc = (name) => NOTE_NAMES.indexOf(name);
 const pcToName = (pc) => NOTE_NAMES[(pc % 12 + 12) % 12];
 
