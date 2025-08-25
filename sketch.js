@@ -13,7 +13,7 @@ function getFadeFactor(lastTime) {
 
 function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
-  textFont('Arial');
+  textFont('Arial Unicode MS');
   textStyle(BOLD);
   background(CONFIG.colors.bg);
 
