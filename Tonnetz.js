@@ -312,9 +312,14 @@ drawTissuTriangles(g) {
   }
 
   isRoot(node) {
-    const activeNotes = this.getActiveNotes();
-    if (activeNotes.length < 3) return false;
-    const chords = this.getDetectedChords();
-    return chords.some(chord => chord.root === node.name);
-  }
+  const activeNotes = this.getActiveNotes();
+  if (activeNotes.length < 3) return false;
+
+  const chords = this.getDetectedChords();
+  if (chords.length === 0) return false;
+
+  // On ne prend que le premier accord détecté
+  return chords[0].root === node.name;
+}
+
 }
