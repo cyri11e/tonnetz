@@ -297,7 +297,7 @@ drawTissuTriangles(g) {
   findNodeAt(mx, my) {
     const {x, y} = this.canvasToZoomed(mx, my);
     let nearestNode = null;
-    let minDist = CONFIG.nodeRadius * 2;  // Augmenter la zone de détection
+    let minDist = CONFIG.nodeRadius * 2 / this.zoom;
 
     for (const [, n] of this.nodes) {
       const dx = x - n.px;

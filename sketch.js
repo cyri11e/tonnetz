@@ -125,9 +125,10 @@ function draw() {
 function mousePressed() {
   const node = tonnetz.findNodeAt(mouseX, mouseY);
   if (node) {
-    node.manualSelected = !node.manualSelected;
+    tonnetz.setKey(node.name); // définit la tonique
   }
 }
+
 
 function keyPressed() {
   const pianoSizes = {
