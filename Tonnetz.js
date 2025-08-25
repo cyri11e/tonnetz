@@ -26,6 +26,9 @@ class Tonnetz {
     this.buildEdges();
     this.buildTriangles();
     this.computeXRange();
+    this.lastMidiSignature = '';
+    this.lastDetectedChords = [];
+
   }
 
   key(i, j) { return `${i},${j}`; }
@@ -162,18 +165,27 @@ buildTriangles() {
   }
 
   setMidiNotes(notes, midiNums) {
+    const signature = midiNums.slice().sort((a,b) => a - b).join(',');
+
+    // Si les notes sont identiques à la dernière fois, on ne fait rien
+    if (signature === this.lastMidiSignature) return;
+
+    this.lastMidiSignature = signature;
     this.selectedPcs.clear();
     notes.forEach(note => {
       this.selectedPcs.add(nameToPc(note));
     });
     this.activeMidiNums = midiNums || [];
+
+    // Mise à jour des accords détectés
+    this.lastDetectedChords = this.chordDetector.detect(notes, midiNums);
   }
 
-  getDetectedChords() {
-    const activeNotes = this.getActiveNotes();
-    if (activeNotes.length < 3) return [];
-    return this.chordDetector.detect(activeNotes, this.activeMidiNums);
-  }
+
+getDetectedChords() {
+  return this.lastDetectedChords;
+}
+
 
   // Convertit les coordonnées du canvas en coordonnées zoomées
   canvasToZoomed(x, y) {
