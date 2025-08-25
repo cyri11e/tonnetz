@@ -20,7 +20,7 @@ class Tonnetz {
     this.panX = 0;
     this.panY = 0;
 
-    this.noteStyle = 'sharp'; // 'sharp', 'flat', ou 'mixed'
+    this.noteStyle = 'mixed'; // 'sharp', 'flat', ou 'mixed'
 
     this.buildNodes();
     this.buildEdges();
