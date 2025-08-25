@@ -31,10 +31,19 @@ class Tonnetz {
     this.lastMidiSignature = '';
     this.lastDetectedChords = [];
 
+    this.keyNote = 'C'; // Tonalité par défaut
+    this.keyPc = nameToPc(this.keyNote);
   }
 
   key(i, j) { return `${i},${j}`; }
   get(i, j) { return this.nodes.get(this.key(i, j)); }
+
+  setKey(noteName) {
+  if (ENHARMONIC_MAPS[this.noteStyle].includes(noteName)) {
+    this.keyNote = noteName;
+    this.keyPc = nameToPc(noteName);
+  }
+}
 
   buildNodes() {
     for (let s = -this.Vn; s <= this.Vn; s++) {
@@ -277,8 +286,11 @@ drawTissuTriangles(g) {
     g.translate(this.panX, this.panY);
     g.scale(this.zoom);
     for (const [, n] of this.nodes) {
-      n.draw(g, n.isActive(this.selectedPcs));
+      const isActive = n.isActive(this.selectedPcs);
+      const isTonic = n.pc === this.keyPc; // ← est-ce la tonique ?
+      n.draw(g, isActive, isTonic);
     }
+
     g.pop();
   }
 

@@ -21,7 +21,7 @@ class NoteNode {
     return Math.hypot(dx, dy) <= CONFIG.nodeRadius + 2;
   }
 
-  draw(g, active) {
+  draw(g, active, isTonic) {
     if (active) this.lastActiveTime = millis();
     const fadeFactor = getFadeFactor(this.lastActiveTime);
 
@@ -31,6 +31,8 @@ class NoteNode {
     g.strokeWeight(1);
     g.stroke(CONFIG.colors.inactiveNodeStroke);
     g.circle(this.px, this.py, CONFIG.nodeRadius * 2);
+    if (isTonic)  
+      g.circle(this.px, this.py, CONFIG.nodeRadius * 2.4);
     g.fill(CONFIG.colors.inactiveNodeLabel);
     g.noStroke();
     g.textAlign(CENTER, CENTER);
@@ -47,6 +49,8 @@ class NoteNode {
       g.text(accidental, this.px + Math.cos(angle) * radius, this.py + Math.sin(angle) * radius);
     }
     g.pop();
+
+    
 
     // --- Highlight ---
     if (active || fadeFactor > 0) {
