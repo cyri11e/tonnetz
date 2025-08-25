@@ -68,7 +68,7 @@ draw(g, active, isTonic) {
     g.noFill();
     g.strokeWeight(active ? 3.2 : 1);
     const isRoot = active && tonnetz.isRoot(this);
-    const baseColor = isRoot ? CONFIG.colors.selectedStroke : CONFIG.colors.selectedStroke;
+    const baseColor = isRoot ? CONFIG.colors.rootStroke : CONFIG.colors.selectedStroke;
     const c = g.color(baseColor);
     c.setAlpha(255 * fadeFactor);
     g.stroke(c);
