@@ -26,19 +26,3 @@ const CONFIG = {
   edgeWidthThick: 8, // x2
   triangleStroke: 0
 };
-
-// ---------- Utilitaires musique ----------
-const ENHARMONIC_MAPS = {
-  sharp: ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'],
-  flat:  ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'],
-  mixed: ['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'] // version courante
-};
-
-let NOTE_NAMES = ENHARMONIC_MAPS.sharp; // valeur par défaut
-const nameToPc = (name) => NOTE_NAMES.indexOf(name);
-const pcToName = (pc) => NOTE_NAMES[(pc % 12 + 12) % 12];
-
-// ---------- Vecteurs fondamentaux ----------
-const U = { x: 4, y: 5 };   // +M3
-const V = { x: -3, y: 5 };  // +m3
-const QV = { x: 7, y: 0 };  // +P5 = U - V

@@ -6,13 +6,9 @@ let piano;
 let lastChordText = '';
 let lastChordTime = 0;
 
-function getFadeFactor(lastTime) {
-  const elapsed = millis() - lastTime;
-  return 1 - Math.min(elapsed / CONFIG.fadeTime, 1);
-}
-
 function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
+  canvas.elt.oncontextmenu = () => false; // bloque clic droit menu
   textFont('Arial Unicode MS');
   textStyle(BOLD);
   background(CONFIG.colors.bg);
@@ -83,9 +79,9 @@ function draw() {
   {
     let alphaValue;
     if (chordIsActive) {
-      alphaValue = 65; // Pleine opacité
+      alphaValue = 65;
     } else {
-      alphaValue = 65 * getFadeFactor(lastChordTime); // Fondu après relâche
+      alphaValue = 65 * getFadeFactor(lastChordTime);
     }
 
     if (alphaValue > 0 && lastChordText) {
@@ -125,10 +121,9 @@ function draw() {
 function mousePressed() {
   const node = tonnetz.findNodeAt(mouseX, mouseY);
   if (node) {
-    tonnetz.setKey(node.name); // définit la tonique
+    tonnetz.setKey(node.name);
   }
 }
-
 
 function keyPressed() {
   const pianoSizes = {
@@ -152,7 +147,7 @@ function keyPressed() {
     return false;
   }
 
-  const pc = keyToPc(key);
+  const pc = keyToPc(key); // helpers.js
   if (pc !== null) {
     tonnetz.togglePc(pc);
   }
@@ -179,7 +174,7 @@ function mouseWheel(event) {
 }
 
 function mouseDragged() {
-  if (mouseButton === RIGHT) {
+  if (mouseButton === RIGHT || (mouseButton === LEFT && keyIsDown(SHIFT))) {
     tonnetz.panX += movedX;
     tonnetz.panY += movedY;
     return false;
