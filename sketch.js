@@ -2,13 +2,12 @@ let tonnetz;
 let midiInput;
 let piano;
 
-// État pour le fondu logique de l'accord central
 let lastChordText = '';
 let lastChordTime = 0;
 
 function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
-  canvas.elt.oncontextmenu = () => false; // bloque clic droit menu
+  canvas.elt.oncontextmenu = () => false; // bloque menu clic droit
   textFont('Arial Unicode MS');
   textStyle(BOLD);
   background(CONFIG.colors.bg);
@@ -25,30 +24,24 @@ function setup() {
     piano.setMidiNotes(midiNums);
   });
   midiInput.init();
-  
-  piano = new Piano(61);
 
-  if (tonnetz.zoom == null) tonnetz.zoom = 1;
-  if (tonnetz.panX == null) tonnetz.panX = 0;
-  if (tonnetz.panY == null) tonnetz.panY = 0;
+  piano = new Piano(61);
 }
 
 function draw() {
   background(CONFIG.colors.bg);
 
-  push();
-  translate(tonnetz.panX, tonnetz.panY);
-  scale(tonnetz.zoom);
+  // Dessin direct (px/py déjà calculés)
   tonnetz.drawGrid(this);
   tonnetz.drawTriangles(this);
   tonnetz.drawEdges(this);
   tonnetz.drawNodes(this);
-  pop();
-  
+
+  // Détection accords
   const activeNotes = tonnetz.getActiveNotes();
   const chords = activeNotes.length >= 3 ? tonnetz.getDetectedChords() : [];
-
   const chordIsActive = chords.length > 0;
+
   if (chordIsActive) {
     const chord = chords[0];
     lastChordText = `${chord.root}${chord.type}`;
@@ -59,9 +52,10 @@ function draw() {
   if (chords.length > 0) {
     rootNote = tonnetz.chordDetector.noteToPc[chords[0].root];
   }
-  
+
   piano.draw(this, rootNote);
-  
+
+  // Liste accords détectés
   if (chords.length > 0) {
     push();
     fill(255);
@@ -75,46 +69,41 @@ function draw() {
     pop();
   }
 
-  // Affichage central avec opacité pleine si actif, fondu sinon
-  {
-    let alphaValue;
-    if (chordIsActive) {
-      alphaValue = 65;
-    } else {
-      alphaValue = 65 * getFadeFactor(lastChordTime);
-    }
+  // Affichage central avec fondu
+  let alphaValue = chordIsActive
+    ? 65
+    : 65 * getFadeFactor(lastChordTime);
 
-    if (alphaValue > 0 && lastChordText) {
-      push();
-      textAlign(CENTER, CENTER);
-      textStyle(BOLD);
+  if (alphaValue > 0 && lastChordText) {
+    push();
+    textAlign(CENTER, CENTER);
+    textStyle(BOLD);
 
-      const targetWidth = width * 0.8;
-      const baseSize = height / 3;
-      let fontSize = baseSize;
+    const targetWidth = width * 0.8;
+    const baseSize = height / 3;
+    let fontSize = baseSize;
+    textSize(fontSize);
+    let tw = textWidth(lastChordText);
+    if (tw > targetWidth) {
+      fontSize *= targetWidth / tw;
       textSize(fontSize);
-      let tw = this.textWidth(lastChordText);
-      if (tw > targetWidth) {
-        fontSize *= targetWidth / tw;
-        textSize(fontSize);
-      }
-
-      const c = color(CONFIG.colors.chordDisplay);
-      c.setAlpha(alphaValue);
-
-      strokeWeight(fontSize / 16);
-      const outline = color(255);
-      outline.setAlpha(30 * (alphaValue / 255));
-      stroke(outline);
-
-      fill(c);
-      text(lastChordText, width / 2, height / 2);
-
-      noStroke();
-      fill(c);
-      text(lastChordText, width / 2, height / 2);
-      pop();
     }
+
+    const c = color(CONFIG.colors.chordDisplay);
+    c.setAlpha(alphaValue);
+
+    strokeWeight(fontSize / 16);
+    const outline = color(255);
+    outline.setAlpha(30 * (alphaValue / 255));
+    stroke(outline);
+
+    fill(c);
+    text(lastChordText, width / 2, height / 2);
+
+    noStroke();
+    fill(c);
+    text(lastChordText, width / 2, height / 2);
+    pop();
   }
 }
 
@@ -126,16 +115,9 @@ function mousePressed() {
 }
 
 function keyPressed() {
-  const pianoSizes = {
-    '2': 25,
-    '4': 49,
-    '6': 61,
-    '7': 76,
-    '8': 88
-  };
-
+  const pianoSizes = { '2': 25, '4': 49, '6': 61, '7': 76, '8': 88 };
   if (pianoSizes[key]) {
-    changePianoSize(pianoSizes[key]);
+    piano = new Piano(pianoSizes[key]);
     return;
   }
 
@@ -147,7 +129,7 @@ function keyPressed() {
     return false;
   }
 
-  const pc = keyToPc(key); // helpers.js
+  const pc = keyToPc(key);
   if (pc !== null) {
     tonnetz.togglePc(pc);
   }
@@ -155,32 +137,25 @@ function keyPressed() {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
-  tonnetz.origin = { x: width / 2, y: height / 2 };
+  tonnetz.resize(width, height);
 }
 
 function mouseWheel(event) {
-  const zoomFactor = event.delta > 0 ? 0.95 : 1.05;
-  const newZoom = tonnetz.zoom * zoomFactor;
-  
-  if (newZoom >= 0.5 && newZoom <= 5) {
-    const mx = mouseX - tonnetz.panX;
-    const my = mouseY - tonnetz.panY;
-    tonnetz.panX += mx * (1 - zoomFactor);
-    tonnetz.panY += my * (1 - zoomFactor);
-    tonnetz.zoom = newZoom;
-  }
-  
+  const factor = event.delta > 0 ? 0.95 : 1.05;
+  tonnetz.zoomAt(mouseX, mouseY, factor);
+  console.log(`Zoom actuel : ${tonnetz.zoom.toFixed(2)}`);
   return false;
 }
 
 function mouseDragged() {
-  if (mouseButton === RIGHT || (mouseButton === LEFT && keyIsDown(SHIFT))) {
-    tonnetz.panX += movedX;
-    tonnetz.panY += movedY;
+  console.log(
+    `mouseDragged → left:${mouseButton.left}, right:${mouseButton.right}, center:${mouseButton.center}, movedX:${movedX}, movedY:${movedY}`
+  );
+
+  if (mouseButton.right || (mouseButton.left && keyIsDown(SHIFT))) {
+    tonnetz.pan(movedX, movedY);
     return false;
   }
 }
 
-function changePianoSize(size) {
-  piano = new Piano(size);
-}
+
