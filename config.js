@@ -20,7 +20,9 @@ const CONFIG = {
     triangleFill: 'rgba(255,255,255,0.28)',
     inactiveNodeStroke: 'rgba(207,207,210,0.3)',  // version atténuée
     inactiveNodeLabel: 'rgba(231,231,234,0.3)',   // version atténuée
-    chordDisplay: 'rgba(255,255,255,0.15)'       // accord reconnu
+    chordDisplay: 'rgba(255,255,255,0.15)',       // accord reconnu
+    selectedNodeFill: '#2a2a2a' // << gris foncé pour sélection
+
   },
   edgeWidthThin: 1,
   edgeWidthThick: 8, // x2

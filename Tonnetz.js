@@ -6,6 +6,8 @@ class Tonnetz {
     this.canvas = canvas;
     this.debug = debug;
 
+    this.gamme = new Gamme();
+
     this.origin = { x: canvas.width / 2, y: canvas.height / 2 };
 
     this.zoom = 1;
@@ -137,28 +139,29 @@ clampPan() {
 
 
 
-  pan(dx, dy) {
-    this.panX += dx;
-    this.panY += dy;
-    this.clampPan();
-    this.updateNodePositions();
-  }
+pan(dx, dy) {
+  this.panX += dx;
+  this.panY += dy;
+  this.clampPan();
+  this.updateNodePositions();
+}
 
-  zoomAt(mx, my, factor) {
-    let newZoom = this.zoom * factor;
-    newZoom = Math.max(0.6, Math.min(2, newZoom)); // limite zoom
+zoomAt(mx, my, factor) {
+  let newZoom = this.zoom * factor;
+  newZoom = Math.max(0.6, Math.min(2, newZoom));
 
-    const worldX = (mx - this.origin.x - this.panX) / this.zoom;
-    const worldY = (my - this.origin.y - this.panY) / this.zoom;
+  const worldX = (mx - this.origin.x - this.panX) / this.zoom;
+  const worldY = (my - this.origin.y - this.panY) / this.zoom;
 
-    this.zoom = newZoom;
+  this.zoom = newZoom;
 
-    this.panX = mx - this.origin.x - worldX * this.zoom;
-    this.panY = my - this.origin.y - worldY * this.zoom;
+  this.panX = mx - this.origin.x - worldX * this.zoom;
+  this.panY = my - this.origin.y - worldY * this.zoom;
 
-    this.clampPan();
-    this.updateNodePositions();
-  }
+  this.clampPan();
+  this.updateNodePositions();
+}
+
 
   resize(width, height) {
     this.origin.x = width / 2;

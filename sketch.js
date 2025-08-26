@@ -109,10 +109,22 @@ function draw() {
 
 function mousePressed() {
   const node = tonnetz.findNodeAt(mouseX, mouseY);
-  if (node) {
+  if (!node) return;
+
+  if (keyIsDown(SHIFT)) {
+    // Shift + clic → changer la tonique
     tonnetz.setKey(node.name);
+  } else {
+    // Clic simple → toggle dans la gamme
+    const pc = node.pc;
+    if (tonnetz.gamme.chroma.includes(pc)) {
+      tonnetz.gamme.supprimer(pc);
+    } else {
+      tonnetz.gamme.ajouter(pc);
+    }
   }
 }
+
 
 function keyPressed() {
   const pianoSizes = { '2': 25, '4': 49, '6': 61, '7': 76, '8': 88 };
