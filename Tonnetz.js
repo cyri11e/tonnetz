@@ -72,19 +72,20 @@ class Tonnetz {
     }
   } // nouvelle version avec NoteNode.js
   
-  buildEdges() {
-    this.edges = [];
-    for (const [, node] of this.nodes) {
-      const { i, j } = node;
-      const nU = this.get(i + 1, j);
-      const nV = this.get(i, j + 1);
-      const nQ = this.get(i + 1, j - 1);
+buildEdges() {
+  this.edges = [];
+  for (const [, node] of this.nodes) {
+    const { i, j } = node;
+    const nU = this.get(i + 1, j);
+    const nV = this.get(i, j + 1);
+    const nQ = this.get(i + 1, j - 1);
 
-      if (nU) this.edges.push({ a: node, b: nU, interval: 'M3' });
-      if (nV) this.edges.push({ a: node, b: nV, interval: 'm3' });
-      if (nQ) this.edges.push({ a: node, b: nQ, interval: 'P5' });
-    }
+    if (nU) this.edges.push(new IntervalEdge(node, nU, 'M3'));
+    if (nV) this.edges.push(new IntervalEdge(node, nV, 'm3'));
+    if (nQ) this.edges.push(new IntervalEdge(node, nQ, 'P5'));
   }
+}
+
 
   buildTriangles() {
     this.triangles = [];
@@ -191,21 +192,13 @@ zoomAt(mx, my, factor) {
     }
   }
 
-  drawEdges(g) {
-    for (const e of this.edges) {
-      const active = this.selectedPcs.has(e.a.pc) && this.selectedPcs.has(e.b.pc);
-      let col = active
-        ? g.color(
-            e.interval === 'P5' ? CONFIG.colors.edgeP5 :
-            e.interval === 'M3' ? CONFIG.colors.edgeM3 :
-                                  CONFIG.colors.edgem3
-          )
-        : g.color(CONFIG.colors.grid);
-      g.stroke(col);
-      g.strokeWeight(active ? CONFIG.edgeWidthThick : CONFIG.edgeWidthThin);
-      g.line(e.a.px, e.a.py, e.b.px, e.b.py);
-    }
+drawEdges(g) {
+  for (const edge of this.edges) {
+    const active = edge.isActive(this.selectedPcs);
+    edge.draw(g, active, this.zoom);
   }
+}
+
 
   drawTriangles(g) {
     g.noStroke();
