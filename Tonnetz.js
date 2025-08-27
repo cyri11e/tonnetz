@@ -41,26 +41,37 @@ class Tonnetz {
     console.log(`🎯 Tonique changée : ${this.keyNote} (pc=${this.keyPc})`);
   }
 
+  // buildNodes() {
+  //   this.nodes.clear();
+  //   for (let s = -this.Vn; s <= this.Vn; s++) {
+  //     for (let i = -this.H; i <= this.H; i++) {
+  //       const j = s - i;
+  //       const xu = i * U.x + j * V.x;
+  //       const yu = i * U.y + j * V.y;
+  //       const pc = mod12(this.startPc + xu);
+  //       const node = {
+  //         i, j, xu, yu, pc,
+  //         name: pcToName(pc),
+  //         manualSelected: false,
+  //         lastActiveTime: 0,
+  //         px: 0, py: 0
+  //       };
+  //       this.nodes.set(this.key(i, j), node);
+  //     }
+  //   }
+  // } ancienne version qui gereait pas les methodes de NoteNode mais un objet literal
+
   buildNodes() {
     this.nodes.clear();
     for (let s = -this.Vn; s <= this.Vn; s++) {
       for (let i = -this.H; i <= this.H; i++) {
         const j = s - i;
-        const xu = i * U.x + j * V.x;
-        const yu = i * U.y + j * V.y;
-        const pc = mod12(this.startPc + xu);
-        const node = {
-          i, j, xu, yu, pc,
-          name: pcToName(pc),
-          manualSelected: false,
-          lastActiveTime: 0,
-          px: 0, py: 0
-        };
+        const node = new NoteNode(i, j, this.origin, this.startPc);
         this.nodes.set(this.key(i, j), node);
       }
     }
-  }
-
+  } // nouvelle version avec NoteNode.js
+  
   buildEdges() {
     this.edges = [];
     for (const [, node] of this.nodes) {
@@ -206,79 +217,19 @@ zoomAt(mx, my, factor) {
     }
   }
 
-  drawNodes(g) {
-    for (const [, n] of this.nodes) {
-      const isActive = this.selectedPcs.has(n.pc);
-      const isTonic = n.pc === this.keyPc;
-      const isRoot = this.isRoot(n);
+ drawNodes(g) {
+  for (const [, node] of this.nodes) {
+    const isActive = node.isActive(this.selectedPcs);
+    const isTonic  = node.pc === this.keyPc;
+    const isRoot   = this.isRoot(node);
+    const inGamme  = this.gamme?.chroma.includes(node.pc) || false;
+    const zoom     = this.zoom;
 
-      if (isActive) n.lastActiveTime = millis();
-      const fadeFactor = getFadeFactor(n.lastActiveTime);
-
-      const letter = n.name[0];
-      const accidental = n.name.slice(1);
-      const radius = CONFIG.nodeRadius * this.zoom;
-
-      // --- Cercle de base ---
-      g.push();
-      g.translate(n.px, n.py);
-      g.strokeWeight(1);
-      g.stroke(CONFIG.colors.inactiveNodeStroke);
-      if (isTonic) {
-        g.fill('#5b5b5bff');
-      } else {
-        g.noFill();
-      }
-      g.circle(0, 0, radius * 2);
-
-      // --- Texte principal ---
-      g.textAlign(CENTER, CENTER);
-      g.textFont('Arial');
-      g.textStyle(BOLD);
-      g.textSize(CONFIG.fontSize * this.zoom);
-      g.noStroke();
-      g.fill(isTonic ? '#0f0f10' : CONFIG.colors.inactiveNodeLabel);
-      g.text(letter, 0, 0);
-
-      if (accidental) {
-        g.textSize(CONFIG.fontSize * 0.75 * this.zoom);
-        const angle = -60 * Math.PI / 180;
-        const r = CONFIG.fontSize * 0.6 * this.zoom;
-        g.text(accidental, Math.cos(angle) * r, Math.sin(angle) * r);
-      }
-      g.pop();
-
-      // --- Highlight dynamique ---
-      if (isActive || fadeFactor > 0) {
-        g.push();
-        g.translate(n.px, n.py);
-        g.noFill();
-        g.strokeWeight(isActive ? 3.2 : 1);
-        const baseColor = isRoot ? CONFIG.colors.rootStroke : CONFIG.colors.selectedStroke;
-        const c = g.color(baseColor);
-        c.setAlpha(255 * fadeFactor);
-        g.stroke(c);
-        g.circle(0, 0, radius * 2);
-
-        const labelColor = g.color(CONFIG.colors.nodeLabel);
-        labelColor.setAlpha(255 * fadeFactor);
-        g.fill(labelColor);
-        g.noStroke();
-        g.textAlign(CENTER, CENTER);
-        g.textFont('Arial');
-        g.textStyle(BOLD);
-        g.textSize(CONFIG.fontSize * this.zoom);
-        g.text(letter, 0, 0);
-        if (accidental) {
-          g.textSize(CONFIG.fontSize * 0.75 * this.zoom);
-          const angle = -60 * Math.PI / 180;
-          const r = CONFIG.fontSize * 0.6 * this.zoom;
-          g.text(accidental, Math.cos(angle) * r, Math.sin(angle) * r);
-        }
-        g.pop();
-      }
-    }
+    // On transmet le contexte et tous les états
+    node.draw(g, isActive, isTonic, isRoot, inGamme, zoom);
   }
+}
+
 
   findNodeAt(mx, my) {
     let nearestNode = null;

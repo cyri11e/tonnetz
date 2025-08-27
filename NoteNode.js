@@ -24,7 +24,7 @@ class NoteNode {
 
 // On passe maintenant isRoot en paramètre pour éviter la dépendance globale à tonnetz
 // Ajout d'un paramètre inGamme (booléen) pour afficher la pastille grise si la note est dans la gamme
-draw(g, active, isTonic, isRoot, inGamme= true) {
+draw(g, active, isTonic, isRoot, inGamme= true, zoom=1) {
   if (active) this.lastActiveTime = millis();
   const fadeFactor = getFadeFactor(this.lastActiveTime); // helpers.js
 
@@ -46,22 +46,22 @@ draw(g, active, isTonic, isRoot, inGamme= true) {
     g.noFill();
   }
 
-  g.circle(0, 0, CONFIG.nodeRadius * 2);
+  g.circle(0, 0, CONFIG.nodeRadius * 2 * zoom);
 
   // --- Texte ---
   g.textAlign(CENTER, CENTER);
   g.textFont('Arial');
   g.textStyle(BOLD);
-  g.textSize(CONFIG.fontSize);
+  g.textSize(CONFIG.fontSize  * zoom);
   g.noStroke();
   g.fill(isTonic ? '#0f0f10' : CONFIG.colors.inactiveNodeLabel); // texte sombre si tonique
   g.text(letter, 0, 0);
 
   if (accidental) {
-    g.textSize(CONFIG.fontSize * 0.75);
+    g.textSize(CONFIG.fontSize * 0.75 * zoom);
     const angle = -60 * Math.PI / 180;
-    const radius = CONFIG.fontSize * 0.6;
-    g.text(accidental, Math.cos(angle) * radius, Math.sin(angle) * radius);
+    const radius = CONFIG.fontSize * 0.6 * zoom;
+    g.text(accidental, Math.cos(angle) * radius  , Math.sin(angle) * radius);
   }
 
   g.pop();
