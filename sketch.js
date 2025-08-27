@@ -29,6 +29,10 @@ function setup() {
 }
 
 function draw() {
+
+  const scaleInfo = tonnetz.gamme.getScaleMode(); // { nom: "Majeure", mode: 5 } ou null
+  const tonicName = tonnetz.keyNote;              // ex: "A", "F#", etc.
+
   background(CONFIG.colors.bg);
 
   // Dessin direct (px/py déjà calculés)
@@ -104,7 +108,25 @@ function draw() {
     fill(c);
     text(lastChordText, width / 2, height / 2);
     pop();
+
+
   }
+  if (scaleInfo) {
+  push();
+  stroke(CONFIG.colors.selectedNodeStroke);
+  noFill();
+  strokeWeight(0.5);
+  textAlign(CENTER, TOP);
+  textStyle(BOLD);
+  textSize(50);
+
+  const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
+  const scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
+
+  text(scaleText, width / 2, 10); // Position haute centrale
+  pop();
+}
+
 }
 
 function mousePressed() {
@@ -133,6 +155,19 @@ function keyPressed() {
     return;
   }
 
+
+
+if (key === ' ') {
+  console.log('Space pressed');
+  // Barre espace → remplacer la gamme par les notes jouées
+  tonnetz.gamme = new Gamme(); // Réinitialise la gamme
+  tonnetz.activeMidiNums.forEach(num => {
+    const pc = num % 12;
+    tonnetz.gamme.ajouter(pc);
+  });
+  return false; // Empêche le scroll de la page
+}
+  
   if (key === 'Tab') {
     const styles = ['sharp', 'flat', 'mixed'];
     const currentIndex = styles.indexOf(tonnetz.noteStyle);
