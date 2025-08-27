@@ -219,7 +219,8 @@ drawEdges(g) {
     const zoom     = this.zoom;
 
     // On transmet le contexte et tous les états
-    node.draw(g, isActive, isTonic, isRoot, inGamme, zoom);
+    node.draw(g, isActive, isTonic, isRoot, inGamme, zoom, this.gamme);
+
   }
 }
 

@@ -24,7 +24,8 @@ class NoteNode {
 
 // On passe maintenant isRoot en paramètre pour éviter la dépendance globale à tonnetz
 // Ajout d'un paramètre inGamme (booléen) pour afficher la pastille grise si la note est dans la gamme
-draw(g, active, isTonic, isRoot, inGamme, zoom) {
+draw(g, active, isTonic, isRoot, inGamme, zoom, gamme)
+ {
   // Met à jour le timestamp si la note est activée
   if (active) this.lastActiveTime = millis();
   const fadeFactor = getFadeFactor(this.lastActiveTime);
@@ -32,6 +33,13 @@ draw(g, active, isTonic, isRoot, inGamme, zoom) {
   const letter     = this.name[0];
   const accidental = this.name.slice(1);
   const radius     = CONFIG.nodeRadius * zoom;
+
+  // recupération du label de degré si dans la gamme
+  let degreeLabel = null;
+  if (inGamme && gamme) {
+    degreeLabel = gamme.getLabel(this.pc); // ex: "b3", "6", etc.
+  }
+
 
   // --- Cercle de base ---
   g.push();
@@ -70,7 +78,23 @@ g.circle(0, 0, radius * 2);
     const r = CONFIG.fontSize * 0.6 * zoom;
     g.text(accidental, Math.cos(angle) * r, Math.sin(angle) * r);
   }
+if (degreeLabel && degreeLabel !== "♪") {
+  const match = degreeLabel.match(/(bb|b|##|#)?(\d)/);
+  if (match) {
+    const alt = match[1] ?? "";
+    const num = match[2];
+    const unicode = alt.replace(/bb/, '𝄫').replace(/b/, '♭').replace(/##/, '𝄪').replace(/#/, '♯');
+    const formatted = `${unicode}${num}`;
+    g.textSize(CONFIG.fontSize * 0.6 * zoom);
+    g.textStyle(NORMAL); // plus fin
+    g.fill(CONFIG.colors.degreeLabel); // couleur à définir
+    g.text(formatted, 0, CONFIG.fontSize * 0.7 * zoom); // position sous la lettre
+  }
+}
+
   g.pop();
+
+
 
   // --- Highlight dynamique ---
   if (active || fadeFactor > 0) {

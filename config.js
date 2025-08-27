@@ -39,6 +39,8 @@ const CONFIG = {
     rootStroke:         '#ff3333',         // contour animé pour la tonique
     chordDisplay:       'rgba(255,255,255,0.15)', // couleur du texte des accords
     tonicFillLight: '#5b5b5bff', // fond clair pour la tonique
-    tonicTextDark:  '#0f0f10'    // couleur du texte sur tonique
+    tonicTextDark:  '#0f0f10' ,   // couleur du texte sur tonique
+    degreeLabel: '#7a9ef5ff' // gris doux, ou blanc si fond sombre
+
   }
 };
