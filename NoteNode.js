@@ -39,14 +39,21 @@ draw(g, active, isTonic, isRoot, inGamme, zoom) {
   g.strokeWeight(1);
   g.stroke(CONFIG.colors.inactiveNodeStroke);
 
-  if (isTonic) {
-    g.fill(CONFIG.colors.tonicFillLight);
-  } else if (inGamme) {
-    g.fill(CONFIG.colors.selectedNodeFill);
-  } else {
-    g.noFill();
-  }
-  g.circle(0, 0, radius * 2);
+if (isTonic) {
+  g.fill(CONFIG.colors.tonicFillLight);
+  g.stroke(CONFIG.colors.selectedNodeStroke); // Optionnel si tu veux un contour spécifique
+  g.strokeWeight(2 * zoom);          // ← Ajoute ça !
+} else if (inGamme) {
+  g.fill(CONFIG.colors.selectedNodeFill);
+  g.stroke(CONFIG.colors.selectedNodeStroke);
+  g.strokeWeight( zoom);          // ← Et ici aussi !
+} else {
+  g.noFill();
+  g.stroke(CONFIG.colors.inactiveNodeStroke);
+  g.strokeWeight(1 * zoom);            // ← Même pour les non sélectionnées
+}
+g.circle(0, 0, radius * 2);
+
 
   // --- Texte principal ---
   g.textAlign(CENTER, CENTER);

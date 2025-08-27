@@ -45,7 +45,7 @@ draw(g, active, zoom = 1) {
     g.textAlign(g.CENTER, g.CENTER);
     g.textFont(CONFIG.fontFamily);
     g.textStyle(CONFIG.fontWeight);
-    g.textSize(CONFIG.fontSize * 0.6 * zoom);
+    g.textSize(CONFIG.fontSize * 0.5 * zoom);
     g.noStroke();
 
     const bgColor = g.color(this.color());

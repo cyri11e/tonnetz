@@ -34,6 +34,7 @@ const CONFIG = {
     edgeM3: '#5fa8ff',           // bleu ciel
     edgem3: '#29d3c2',           // bleu turquoise
     selectedNodeFill:   '#2a2a2a',         // fond gris pour notes dans la gamme
+    selectedNodeStroke: '#60b4feff',         // contour animé pour notes dans la gamme
     playedStroke:     '#ffd400',         // contour animé pour notes jouées
     rootStroke:         '#ff3333',         // contour animé pour la tonique
     chordDisplay:       'rgba(255,255,255,0.15)', // couleur du texte des accords
