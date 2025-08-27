@@ -133,12 +133,25 @@ function mousePressed() {
   const node = tonnetz.findNodeAt(mouseX, mouseY);
   if (!node) return;
 
+  const pc = node.pc;
+
   if (keyIsDown(SHIFT)) {
     // Shift + clic → changer la tonique
     tonnetz.setKey(node.name);
+
+    // 🔒 Ajout automatique de la tonique si absente
+    if (!tonnetz.gamme.chroma.includes(tonnetz.keyPc)) {
+      tonnetz.gamme.ajouter(tonnetz.keyPc);
+    }
+
   } else {
+    // 🚫 Empêcher de retirer la tonique active
+    if (pc === tonnetz.keyPc) {
+      console.log("Impossible de retirer la tonique actuelle. Choisissez-en une autre avant.");
+      return;
+    }
+
     // Clic simple → toggle dans la gamme
-    const pc = node.pc;
     if (tonnetz.gamme.chroma.includes(pc)) {
       tonnetz.gamme.supprimer(pc);
     } else {
@@ -146,6 +159,7 @@ function mousePressed() {
     }
   }
 }
+
 
 
 function keyPressed() {
