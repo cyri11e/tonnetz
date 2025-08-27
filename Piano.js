@@ -39,7 +39,7 @@ class Piano {
   // Nouvelle méthode pour dessiner une touche blanche selon son type
   drawWhiteKey(g, x, y, w, h, type, isActive, isRoot) {
     g.fill(isRoot ? CONFIG.colors.rootStroke :
-           isActive ? CONFIG.colors.selectedStroke :
+           isActive ? CONFIG.colors.playedStroke :
            '#ffffff');
     g.stroke(40);
     g.strokeWeight(1);
@@ -92,7 +92,7 @@ class Piano {
     g.push();
     g.noStroke();
     g.fill(isRoot ? CONFIG.colors.rootStroke :
-           isActive ? CONFIG.colors.selectedStroke :
+           isActive ? CONFIG.colors.playedStroke :
            '#000000');
     // Touche noire plus large (2/3 au lieu de 1/2)
     g.rect(x - w/3, y, w * 0.67, h * 0.6);

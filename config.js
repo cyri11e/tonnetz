@@ -1,30 +1,43 @@
-// ---------- Config visuelle ----------
+// Configuration globale de l’application
 const CONFIG = {
-  fadeTime : 200, // en millisecondes
-  unitX: 18,       // px par 1 demi-ton (axe X logique)
-  unitY: 18,       // px par 1 unité Y (esthétique)
-  nodeRadius: 22,  // x2
-  fontSize: 22,    // x2
+  // Durée (en ms) du fondu pour l’overlay des notes jouées
+  fadeTime: 200,
+
+  // Échelle de la grille Tonnetz (en pixels)
+  unitX: 18,        // largeur d’une unité horizontale
+  unitY: 18,        // hauteur d’une unité verticale
+
+  // Propriétés des nœuds
+  nodeRadius: 22,   // rayon de chaque nœud (px)
+  fontSize: 22,     // taille de police de base pour les étiquettes (px)
+
+  // Épaisseurs de traits pour les arêtes et triangles
+  edgeWidthThin: 1,
+  edgeWidthThick: 8,
+  triangleStroke: 0,
+
+  // Police utilisée pour tous les textes
+  fontFamily: 'Arial Unicode MS',  // nom de la police
+  fontWeight: 'bold',               // style/poids (normal, bold, etc.)
+
+  // Palette de couleurs centralisée
   colors: {
-    bg: '#0f0f10',
+    bg:                 '#0f0f10',         // couleur de fond du canvas
+    nodeStroke:         '#cfcfd2',         // contour des nœuds
+    nodeFill:           'rgba(0,0,0,0)',   // remplissage des nœuds (transparent)
+    nodeLabel:          '#e7e7ea',         // couleur du texte des étiquettes
     grid: 'rgba(255,255,255,0.06)',
     grid12: 'rgba(255,255,255,0.12)',
-    nodeStroke: '#cfcfd2',
-    nodeFill: 'rgba(0,0,0,0)',   // vide pour minimalisme
-    nodeLabel: '#e7e7ea',
-    selectedStroke: '#ffd400',   // liseret jaune
-    rootStroke: '#ff3333',       // tonique en rouge
+    inactiveNodeStroke: 'rgba(207,207,210,0.3)', // contour des nœuds inactifs
+    inactiveNodeLabel:  'rgba(231,231,234,0.3)', // étiquette des nœuds inactifs
     edgeP5: '#2b5cff',           // bleu profond
     edgeM3: '#5fa8ff',           // bleu ciel
     edgem3: '#29d3c2',           // bleu turquoise
-    triangleFill: 'rgba(255,255,255,0.28)',
-    inactiveNodeStroke: 'rgba(207,207,210,0.3)',  // version atténuée
-    inactiveNodeLabel: 'rgba(231,231,234,0.3)',   // version atténuée
-    chordDisplay: 'rgba(255,255,255,0.15)',       // accord reconnu
-    selectedNodeFill: '#2a2a2a' // << gris foncé pour sélection
-
-  },
-  edgeWidthThin: 1,
-  edgeWidthThick: 8, // x2
-  triangleStroke: 0
+    selectedNodeFill:   '#2a2a2a',         // fond gris pour notes dans la gamme
+    playedStroke:     '#ffd400',         // contour animé pour notes jouées
+    rootStroke:         '#ff3333',         // contour animé pour la tonique
+    chordDisplay:       'rgba(255,255,255,0.15)', // couleur du texte des accords
+    tonicFillLight: '#5b5b5bff', // fond clair pour la tonique
+    tonicTextDark:  '#0f0f10'    // couleur du texte sur tonique
+  }
 };
