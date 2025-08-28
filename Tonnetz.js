@@ -38,6 +38,7 @@ class Tonnetz {
   setKey(noteName) {
     this.keyNote = noteName;
     this.keyPc = nameToPc(noteName);
+    this.gamme.setTonic(noteName);
     console.log(`🎯 Tonique changée : ${this.keyNote} (pc=${this.keyPc})`);
   }
 

@@ -6,21 +6,72 @@
 
 
 class Gamme {
-  constructor(init = "100000000000") {
+  constructor(init = "100000000000", tonicNote = "C") {
     this.signature = init;
+    this.tonicNote = tonicNote;
+    this.tonicPc = nameToPc(tonicNote);
     this.nomReconnu = null;
     this.modeReconnu = null;
     this.degres = [];
+    this.notes = [];
     this.updateChroma();
+    this.updatePitchClasses();
     this.updateDegres();
     this.reconnaitre();
   }
 
+  setSignature(sig) {
+    if (/^[01]{12}$/.test(sig)) {
+      this.signature = sig;
+      this.updateChroma();
+      this.updateDegres();
+      this.reconnaitre();
+    } else {
+      console.error("Signature invalide. Doit être une chaîne binaire de 12 caractères.");
+    }
+  }
+
+  setTonic(note) {
+    if (note === this.tonicNote) return; // pas de changement
+    this.tonicNote = note;
+    this.tonicPc = nameToPc(note);
+    this.updateSignatureFromTonic();
+    this.reconnaitre();
+    this.updateChroma();
+    this.updateDegres();
+    this.updateIntervalles();
+  }
+
+  updateSignatureFromTonic() {
+    this.signature = "000000000000".split("");
+    this.chroma.forEach(pc => {
+      const index = (pc - this.tonicPc + 12) % 12;
+      this.signature[index] = '1';
+    });
+    this.signature = this.signature.join("");
+  }
+
+
+  updatePitchClasses() {
+    if (typeof this.tonicPc !== 'number') {
+      this.tonicPc = nameToPc(this.tonicNote);
+    }
+
+    this.pitchClasses = [];
+    for (let i = 0; i < 12; i++) {
+      if (this.signature[i] === '1') {
+        this.pitchClasses.push(mod12(i + this.tonicPc));
+      }
+    }
+  }
+
   updateChroma() {
+    console.log("Updating chroma from signature:", this.chroma);
     this.chroma = [];
     for (let i = 0; i < 12; i++) {
       if (this.signature[i] === '1') this.chroma.push(i);
     }
+    console.log("Updated chroma:", this.chroma);
   }
 
   updateDegres() {
@@ -51,24 +102,23 @@ class Gamme {
     return this.degres;
   }
 
-updateIntervalles() {
-  const MAJEURE = [0, 2, 4, 5, 7, 9, 11];
-  const base    = ["P1", "M2", "M3", "P4", "P5", "M6", "M7"];
+  updateIntervalles() {
+    const MAJEURE = [0, 2, 4, 5, 7, 9, 11];
+    const base    = ["P1", "M2", "M3", "P4", "P5", "M6", "M7"];
 
-  if (this.chroma.length === 7) {
-    this.intervalles = this.chroma.map((ch, i) => {
-      const refKey = base[i];
-      const ref = INTERVALLES[refKey];
-      const nat = getIntervalNature(ref.chroma, ch, ref.nature);
-      const number = i + 1;
-      return `${nat}${number}`; // ex: m3, A4, d5
-    });
-  } else {
-    const fallback = ["P1", "m2", "M2", "m3", "M3", "P4", "d5", "P5", "m6", "M6", "m7", "M7"];
-    this.intervalles = this.chroma.map(c => fallback[c] || "?");
+    if (this.chroma.length === 7) {
+      this.intervalles = this.chroma.map((ch, i) => {
+        const refKey = base[i];
+        const ref = INTERVALLES[refKey];
+        const nat = getIntervalNature(ref.chroma, ch, ref.nature);
+        const number = i + 1;
+        return `${nat}${number}`; // ex: m3, A4, d5
+      });
+    } else {
+      const fallback = ["P1", "m2", "M2", "m3", "M3", "P4", "d5", "P5", "m6", "M6", "m7", "M7"];
+      this.intervalles = this.chroma.map(c => fallback[c] || "?");
+    }
   }
-}
-
 
 
 
@@ -77,6 +127,7 @@ updateIntervalles() {
       this.signature = this.signature.slice(0, index) + '1' + this.signature.slice(index + 1);
       this.updateChroma();
       this.updateDegres();
+      this.updatePitchClasses();
       this.reconnaitre();
     }
   }
@@ -86,6 +137,7 @@ updateIntervalles() {
       this.signature = this.signature.slice(0, index) + '0' + this.signature.slice(index + 1);
       this.updateChroma();
       this.updateDegres();
+      this.updatePitchClasses();
       this.reconnaitre();
     }
   }
@@ -103,13 +155,14 @@ updateIntervalles() {
       this.updateChroma();
       this.updateDegres();
       this.reconnaitre();
+      
     }
   }
 
   reconnaitre() {
     this.nomReconnu = null;
     this.modeReconnu = null;
-
+    // retourne -1 si pas trouve
     for (let g of GAMMES) {
       let str = g.signature;
       let rotation = 0;
@@ -117,27 +170,42 @@ updateIntervalles() {
         if (str.startsWith("1") && str === this.signature) {
           this.nomReconnu = g.nom;
           this.modeReconnu = rotation;
+          this.updateNoteLabels();
+
           return;
         }
         str = str.slice(1) + str[0];
         if (str.startsWith("1")) rotation++;
       }
     }
+    return -1;
   }
 
-getLabel(i) {
-  const pos = this.chroma.indexOf(i);
-  return pos !== -1 ? this.degres[pos] : "♪";
-}
+  getLabel(i) {
+    const pos = this.chroma.indexOf(i);
+    return pos !== -1 ? this.degres[pos] : "♪";
+  }
 
-getInterval(i) {
-  const pos = this.chroma.indexOf(i);
-  const fallback = ["P1", "m2", "M2", "m3", "M3", "P4", "d5", "P5", "m6", "M6", "m7", "M7"];
-  // Si l'index n'est pas trouvé, retourne un intervalle par défaut
+  getInterval(i) {
+    const pos = this.chroma.indexOf(i);
+    const fallback = ["P1", "m2", "M2", "m3", "M3", "P4", "d5", "P5", "m6", "M6", "m7", "M7"];
+    // Si l'index n'est pas trouvé, retourne un intervalle par défaut
 
-  return pos !== -1 ? this.intervalles[pos] : fallback[i] || "?";
-}
+    return pos !== -1 ? this.intervalles[pos] : fallback[i] || "?";
+  }
 
+  updateNoteLabels() {
+    // Retourne un tableau des labels des notes dans la gamme
+    // en utilisant la tonique + getNextNoteLabel
+
+    const labels = [];
+    let currentLabel = this.tonicNote;
+    for (let i = 0; i < this.chroma.length; i++) {
+      labels.push(currentLabel);
+      currentLabel = getNextNoteLabel(currentLabel, (this.chroma[(i + 1) % this.chroma.length] - this.chroma[i] + 12) % 12);
+    }
+    this.notes = labels;
+  }
 
   getScaleMode() {
     return this.nomReconnu ? { nom: this.nomReconnu, mode: this.modeReconnu } : null;

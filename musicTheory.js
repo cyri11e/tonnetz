@@ -94,6 +94,40 @@ function getNature(chromaReel, chromaReference) {
   return "?";
 }
 
+// Calcule la "qualité" (P, M, m, A, d, AA, dd) d'un intervalle
+// refChroma: demi-tons de l'intervalle de référence (ex: M3 = 4, P5 = 7)
+// noteChroma: demi-tons observés pour ce degré dans la signature (0..11)
+// refNature: "Juste" (famille parfaite), "Majeur" ou "Mineur" (famille majeure)
+function getIntervalNature(refChroma, noteChroma, refNature) {
+  // normalise l'écart pour rester proche (wrap 12)
+  let delta = noteChroma - refChroma;
+  while (delta > 6)  delta -= 12;
+  while (delta < -6) delta += 12;
+
+  const family = (refNature === "Juste") ? "P" : "M";
+
+  if (family === "P") {
+    switch (delta) {
+      case  0: return "P";
+      case +1: return "A";
+      case -1: return "d";
+      case +2: return "AA";
+      case -2: return "dd";
+      default: return delta > 0 ? "A" : "d";
+    }
+  } else {
+    switch (delta) {
+      case  0: return "M";
+      case -1: return "m";
+      case +1: return "A";
+      case -2: return "d";
+      case +2: return "AA";
+      default: return delta > 0 ? "A" : "d";
+    }
+  }
+}
+
+
 function getRefNature(chroma) {
   const valides = ["Juste", "Majeur", "Mineur"];
   return  INTERVALLES.filter(filterType => filterType.chroma === chroma && valides.includes(filterType.nature))[0];
@@ -174,3 +208,72 @@ function parseLabel(label) {
   const alteration = toUnicodeAlteration(label.replace(/[0-9]/g, ''));
   return { degree, alteration };
 }
+
+function parseNoteName(noteName) {
+  const match = noteName.match(/^([A-G])(bb|b|##|#|♭|♯|𝄫|𝄪|♮)?$/);
+  if (!match) return null;
+
+  const letter = match[1];
+  let accidental = match[2] || "";
+
+  // Normalisation des altérations Unicode
+  accidental = toUnicodeAlteration(accidental);
+
+  return { letter, accidental };
+}
+
+// Noms de notes selon le style d'altération
+const ENHARMONIC_MAPS = {
+              sharp : ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'],
+              flat  : ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'],
+              mixed : ['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'],
+        doubleSharp : ['B♯','C𝄪','D♯','D𝄪','E♯','F♯','F𝄪','G♯','G𝄪','A♯','A𝄪'],
+        doubleFlat  : ['D','D♭','E𝄫','E♭','F♭','G𝄫','G♭','A𝄫','A♭','B𝄫','C♭']
+      };
+
+// Style actif (par défaut : mixte)
+let NOTE_NAMES = ENHARMONIC_MAPS.mixed;
+
+// Fournit un nom de note à partir d’un pitch class
+const pcToName = (pc) => NOTE_NAMES[(pc % 12 + 12) % 12];
+
+function nameToPc(name) {
+  // trouve l index de la note dans l'un des 4 tableaux
+  for (let style in ENHARMONIC_MAPS) {
+    const arr = ENHARMONIC_MAPS[style];
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i] === toUnicodeAlteration(name)) return i;
+    }
+  }
+  return -1; // note non trouvée
+}
+
+function  getNextLetter(letter) {
+    const letters = ['C','D','E','F','G','A','B'];
+    const idx = letters.indexOf(letter);
+    return letters[(idx + 1) % letters.length];
+  }
+
+function  getNextNoteLabel(currentLabel, semiTones = 1 ) {
+    const  { letter, alteration }  = parseNoteName(currentLabel);
+    currentIndex = nameToPc(currentLabel);
+    
+    if (currentIndex === -1) return null; // note non trouvée
+    const nextIndex = (currentIndex + semiTones + 12) % 12;
+
+    // recupere les 4 possibilites
+    const possibles = [];
+    for (let style in ENHARMONIC_MAPS) {
+      const arr = ENHARMONIC_MAPS[style];
+      possibles.push(arr[nextIndex]);
+    }
+
+    for (let note of possibles) {
+      let nextLetter = getNextLetter(letter);
+      if  (note.startsWith(nextLetter)) {
+        return note;  // trouve la note suivante
+      }
+    }  
+    return '?'; // pas trouvé
+  }
+

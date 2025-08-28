@@ -20,26 +20,6 @@ function getFadeFactor(lastTime) {
 }
 
 
-// ==================================================
-// [2] THÉORIE MUSICALE — utilisé par : Tonnetz, NoteNode, MidiInput, Piano
-// ==================================================
-
-// Noms de notes selon le style d'altération
-const ENHARMONIC_MAPS = {
-  sharp: ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'],
-  flat:  ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'],
-  mixed: ['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B']
-};
-
-// Style actif (par défaut : mixte)
-let NOTE_NAMES = ENHARMONIC_MAPS.mixed;
-
-// Fournit un pitch class (0–11) à partir d’un nom de note
-const nameToPc = (name) => NOTE_NAMES.indexOf(name);
-
-// Fournit un nom de note à partir d’un pitch class
-const pcToName = (pc) => NOTE_NAMES[(pc % 12 + 12) % 12];
-
 // Gère le style d'altération des noms affichés dans le Tonnetz
 class NoteNamer {
   constructor(style = 'mixed') { this.setStyle(style); }
