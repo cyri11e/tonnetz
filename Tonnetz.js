@@ -193,12 +193,21 @@ zoomAt(mx, my, factor) {
     }
   }
 
-drawEdges(g) {
-  for (const edge of this.edges) {
-    const active = edge.isActive(this.selectedPcs);
-    edge.draw(g, active, this.zoom);
+  drawEdges(g) {
+    for (const e of this.edges) {
+      const active = this.selectedPcs.has(e.a.pc) && this.selectedPcs.has(e.b.pc);
+      let col = active
+        ? g.color(
+            e.interval === 'P5' ? CONFIG.colors.edgeP5 :
+            e.interval === 'M3' ? CONFIG.colors.edgeM3 :
+                                  CONFIG.colors.edgem3
+          )
+        : g.color(CONFIG.colors.grid);
+      g.stroke(col);
+      g.strokeWeight(active ? CONFIG.edgeWidthThick : CONFIG.edgeWidthThin);
+      g.line(e.a.px, e.a.py, e.b.px, e.b.py);
+    }
   }
-}
 
 
   drawTriangles(g) {
