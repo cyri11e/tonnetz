@@ -22,6 +22,7 @@ class NoteNode {
     return Math.hypot(dx, dy) <= CONFIG.nodeRadius + 2;
   }
 
+
 // On passe maintenant isRoot en paramètre pour éviter la dépendance globale à tonnetz
 // Ajout d'un paramètre inGamme (booléen) pour afficher la pastille grise si la note est dans la gamme
 draw(g, active, isTonic, isRoot, inGamme, zoom, gamme)
@@ -37,9 +38,11 @@ draw(g, active, isTonic, isRoot, inGamme, zoom, gamme)
   // recupération du label de degré si dans la gamme
   let degreeLabel = null;
   if (inGamme && gamme) {
-    degreeLabel = gamme.getLabel(this.pc); // ex: "b3", "6", etc.
+    const relPc = mod12(this.pc - gamme.tonicPc);
+    degreeLabel = gamme.getLabel(relPc);
   }
 
+  //recup du nom de note avec contexte (si dans la sélection courante, afficher le nom personnalisé)
 
   // --- Cercle de base ---
   g.push();

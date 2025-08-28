@@ -35,12 +35,34 @@ class Tonnetz {
   key(i, j) { return `${i},${j}`; }
   get(i, j) { return this.nodes.get(this.key(i, j)); }
 
-  setKey(noteName) {
-    this.keyNote = noteName;
-    this.keyPc = nameToPc(noteName);
-    this.gamme.setTonic(noteName);
-    console.log(`🎯 Tonique changée : ${this.keyNote} (pc=${this.keyPc})`);
+applyGammeChanges() {
+  // Mets à jour les noms et états inGamme de tous les nœuds
+  this.setNoteStyle(this.noteStyle);
+  this.updateNodesFromGamme();
+}
+
+// …et tu appelles ça :
+setKey(noteName) {
+  this.keyNote = noteName;
+  this.keyPc = nameToPc(noteName);
+  this.gamme.setTonic(noteName);
+  this.applyGammeChanges();
+}
+
+togglePc(pc) {
+  this.selectedPcs.has(pc) ? this.selectedPcs.delete(pc) : this.selectedPcs.add(pc);
+  // mets à jour la gamme ici si besoin…
+  this.applyGammeChanges();
+}
+
+updateNodesFromGamme() {
+  for (const [, node] of this.nodes) {
+    node.updateFromGamme(this.gamme);
   }
+}
+
+
+
 
   // buildNodes() {
   //   this.nodes.clear();
@@ -241,19 +263,26 @@ drawEdges(g) {
     return nearestNode;
   }
 
-  setNoteStyle(style) {
-    if (ENHARMONIC_MAPS[style]) {
-      this.noteStyle = style;
-      NOTE_NAMES = ENHARMONIC_MAPS[style];
-      for (const [, n] of this.nodes) {
-        n.name = pcToName(n.pc);
-      }
+setNoteStyle(style='mixed') {
+  if (!ENHARMONIC_MAPS[style]) return;
+
+  this.noteStyle = style;
+  NOTE_NAMES = ENHARMONIC_MAPS[style];
+
+  // On parcourt tous les nœuds et on choisit le nom :
+  // - si le pc est dans la gamme → nom depuis gamme.notes
+  // - sinon → nom par défaut selon style
+  for (const [, n] of this.nodes) {
+    const idx = this.gamme.pitchClasses?.indexOf(n.pc);
+    if (idx !== -1 && this.gamme.notes?.[idx]) {
+      n.name = this.gamme.notes[idx];
+    } else {
+      n.name = pcToName(n.pc);
     }
   }
+}
 
-  togglePc(pc) {
-    this.selectedPcs.has(pc) ? this.selectedPcs.delete(pc) : this.selectedPcs.add(pc);
-  }
+
 
   getActiveNotes() {
     const activeNotes = [];

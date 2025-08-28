@@ -95,7 +95,7 @@ class Gamme {
     this.intervalles = this.degres.map(degre =>
       calculerIntervalle(tonique, degre)
     );
-    
+    this.updateNoteLabels();
   }
 
   getDegres() {
@@ -123,6 +123,7 @@ class Gamme {
 
 
   ajouter(index) {
+    console.log("Adding note at index:", index);
     if (this.signature[index] === '0') {
       this.signature = this.signature.slice(0, index) + '1' + this.signature.slice(index + 1);
       this.updateChroma();
@@ -133,6 +134,7 @@ class Gamme {
   }
 
   supprimer(index) {
+    console.log("Removing note at index:", index);
     if (this.signature[index] === '1') {
       this.signature = this.signature.slice(0, index) + '0' + this.signature.slice(index + 1);
       this.updateChroma();
@@ -194,18 +196,28 @@ class Gamme {
     return pos !== -1 ? this.intervalles[pos] : fallback[i] || "?";
   }
 
-  updateNoteLabels() {
-    // Retourne un tableau des labels des notes dans la gamme
-    // en utilisant la tonique + getNextNoteLabel
+updateNoteLabels() {
+  if (this.nomReconnu == null) return;
 
-    const labels = [];
-    let currentLabel = this.tonicNote;
-    for (let i = 0; i < this.chroma.length; i++) {
-      labels.push(currentLabel);
-      currentLabel = getNextNoteLabel(currentLabel, (this.chroma[(i + 1) % this.chroma.length] - this.chroma[i] + 12) % 12);
-    }
-    this.notes = labels;
+  if (this.chroma.length !== 7) {
+    // fallback : pas de logique de lettres, juste mapping simple
+    this.notes = this.pitchClasses.map(pc => pcToName(pc));
+    return;
   }
+
+  // logique diatonique inchangée
+  const labels = [];
+  let currentLabel = this.tonicNote;
+  for (let i = 0; i < this.chroma.length; i++) {
+    labels.push(currentLabel);
+    currentLabel = getNextNoteLabel(
+      currentLabel,
+      (this.chroma[(i + 1) % this.chroma.length] - this.chroma[i] + 12) % 12
+    );
+  }
+  this.notes = labels;
+}
+
 
   getScaleMode() {
     return this.nomReconnu ? { nom: this.nomReconnu, mode: this.modeReconnu } : null;
