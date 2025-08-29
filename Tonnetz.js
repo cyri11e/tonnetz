@@ -6,7 +6,10 @@ class Tonnetz {
     this.canvas = canvas;
     this.debug = debug;
 
-    this.gamme = new Gamme();
+    this.keyNote = 'C';
+    this.keyPc = nameToPc(this.keyNote);
+
+    this.gamme = new Gamme(this.keyNote);
 
     this.origin = { x: canvas.width / 2, y: canvas.height / 2 };
 
@@ -19,8 +22,6 @@ class Tonnetz {
     this.chordDetector = new ChordDetector();
     this.noteStyle = 'mixed';
     NOTE_NAMES = ENHARMONIC_MAPS[this.noteStyle];
-    this.keyNote = 'C';
-    this.keyPc = nameToPc(this.keyNote);
 
     this.nodes = new Map();
     this.edges = [];
