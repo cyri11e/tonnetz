@@ -1,26 +1,24 @@
 class Tonnetz {
   constructor({ startNote = 'C', H = 8, Vn = 6, canvas, debug = true }) {
-    this.startPc = nameToPc(startNote);
+    this.startPc = nameToPc(startNote); // premiere note du tonnetz 
+    this.keyNote = 'A';
+    this.keyPc = nameToPc(this.keyNote);  // tonique de la gamme courante
     this.H = H;
     this.Vn = Vn;
     this.canvas = canvas;
-    this.debug = debug;
-
-    this.gamme = new Gamme();
-
+    this.debug = debug
+    this.gamme = new Gamme('100000000000', this.keyNote);
+    //this.gamme.updateSignatureFromTonic();
     this.origin = { x: canvas.width / 2, y: canvas.height / 2 };
-
     this.zoom = 1;
     this.panX = 0;
     this.panY = 0;
-
-    this.selectedPcs = new Set();
+    this.activePcs = new Set(); // notes jouées (midi in)
     this.activeMidiNums = [];
     this.chordDetector = new ChordDetector();
     this.noteStyle = 'mixed';
     NOTE_NAMES = ENHARMONIC_MAPS[this.noteStyle];
-    this.keyNote = 'C';
-    this.keyPc = nameToPc(this.keyNote);
+
 
     this.nodes = new Map();
     this.edges = [];
@@ -29,38 +27,50 @@ class Tonnetz {
     this.buildNodes();
     this.buildEdges();
     this.buildTriangles();
+    this.updateNodesFromGamme();
+
     this.updateNodePositions();
   }
 
   key(i, j) { return `${i},${j}`; }
   get(i, j) { return this.nodes.get(this.key(i, j)); }
 
-  setKey(noteName) {
-    this.keyNote = noteName;
-    this.keyPc = nameToPc(noteName);
-    this.gamme.setTonic(noteName);
-    console.log(`🎯 Tonique changée : ${this.keyNote} (pc=${this.keyPc})`);
-  }
+// Tonnetz.js
+setKey(noteName) {
+  this.keyNote = noteName;
+  this.keyPc   = nameToPc(noteName);
 
-  // buildNodes() {
-  //   this.nodes.clear();
-  //   for (let s = -this.Vn; s <= this.Vn; s++) {
-  //     for (let i = -this.H; i <= this.H; i++) {
-  //       const j = s - i;
-  //       const xu = i * U.x + j * V.x;
-  //       const yu = i * U.y + j * V.y;
-  //       const pc = mod12(this.startPc + xu);
-  //       const node = {
-  //         i, j, xu, yu, pc,
-  //         name: pcToName(pc),
-  //         manualSelected: false,
-  //         lastActiveTime: 0,
-  //         px: 0, py: 0
-  //       };
-  //       this.nodes.set(this.key(i, j), node);
-  //     }
-  //   }
-  // } ancienne version qui gereait pas les methodes de NoteNode mais un objet literal
+  this.gamme.tonicNote = noteName;
+  this.gamme.tonicPc   = this.keyPc;
+
+  // signature relative = calculée en pivotant autour de la nouvelle tonique
+  const sig = Array(12).fill('0');
+  for (const pc of this.gamme.pitchClasses) {
+    const relIndex = (pc - this.keyPc + 12) % 12;
+    sig[relIndex] = '1';
+  }
+  this.gamme.signature = sig.join('');
+
+  // recalcul ordonné à partir de la nouvelle tonique
+  this.gamme.updateChroma();       // indices relatifs ordonnés depuis 0 = tonique
+  this.gamme.updateDegres();       // "1, 2, b3…" dans le nouvel ordre
+  this.gamme.updateNoteLabels();   // noms de notes pivotés
+
+  this.updateNodesFromGamme();
+}
+
+
+
+updateNodesFromGamme() {
+  for (const [, node] of this.nodes) {
+    const pc = node.pc;
+    const idx = this.gamme.pitchClasses.indexOf(pc);
+
+    node.inGamme     = idx !== -1;
+    node.degreeLabel = this.gamme.getDegreeForPc(pc);
+    node.name        = (idx !== -1 ? (this.gamme.notes[idx] || pcToName(pc)) : pcToName(pc));
+  }
+}
 
   buildNodes() {
     this.nodes.clear();
@@ -195,7 +205,7 @@ zoomAt(mx, my, factor) {
 
   drawEdges(g) {
     for (const e of this.edges) {
-      const active = this.selectedPcs.has(e.a.pc) && this.selectedPcs.has(e.b.pc);
+      const active = this.activePcs.has(e.a.pc) && this.activePcs.has(e.b.pc);
       let col = active
         ? g.color(
             e.interval === 'P5' ? CONFIG.colors.edgeP5 :
@@ -214,7 +224,7 @@ zoomAt(mx, my, factor) {
     g.noStroke();
     g.fill(CONFIG.colors.triangleFill);
     for (const [a, b, c] of this.triangles) {
-      if (this.selectedPcs.has(a.pc) && this.selectedPcs.has(b.pc) && this.selectedPcs.has(c.pc)) {
+      if (this.activePcs.has(a.pc) && this.activePcs.has(b.pc) && this.activePcs.has(c.pc)) {
         g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
       }
     }
@@ -222,10 +232,10 @@ zoomAt(mx, my, factor) {
 
  drawNodes(g) {
   for (const [, node] of this.nodes) {
-    const isActive = node.isActive(this.selectedPcs);
+    const isActive = node.isActive(this.activePcs);
     const isTonic  = node.pc === this.keyPc;
     const isRoot   = this.isRoot(node);
-    const inGamme  = this.gamme?.chroma.includes(node.pc) || false;
+    const inGamme  = this.gamme?.pitchClasses.includes(node.pc) || false;
     const zoom     = this.zoom;
 
     // On transmet le contexte et tous les états
@@ -267,7 +277,7 @@ zoomAt(mx, my, factor) {
   getActiveNotes() {
     const activeNotes = [];
     for (const [, node] of this.nodes) {
-      if (this.selectedPcs.has(node.pc)) activeNotes.push(node.name);
+      if (this.activePcs.has(node.pc)) activeNotes.push(node.name);
     }
     return [...new Set(activeNotes)];
   }
@@ -276,7 +286,7 @@ zoomAt(mx, my, factor) {
     const signature = (midiNums || []).slice().sort((a,b) => a - b).join(',');
     if (signature === this.lastMidiSignature) return;
     this.lastMidiSignature = signature;
-    this.selectedPcs.clear();
+    this.activePcs.clear();
     (notes || []).forEach(note => this.selectedPcs.add(nameToPc(note)));
     this.activeMidiNums = midiNums || [];
     this.lastDetectedChords = this.chordDetector.detect(notes || [], midiNums || []);

@@ -13,7 +13,7 @@ function setup() {
   background(CONFIG.colors.bg);
 
   tonnetz = new Tonnetz({
-    startNote: 'C',
+    startNote: 'G',
     H: 9,
     Vn: 7,
     canvas
@@ -136,29 +136,34 @@ function mousePressed() {
   const pc = node.pc;
 
   if (keyIsDown(SHIFT)) {
-    // Shift + clic → changer la tonique
+    // Changer la tonique
     tonnetz.setKey(node.name);
 
-    // 🔒 Ajout automatique de la tonique si absente
-    if (!tonnetz.gamme.chroma.includes(tonnetz.keyPc)) {
-      tonnetz.gamme.ajouter(tonnetz.keyPc);
+    // S’assurer que la tonique est présente
+    const rel0 = 0; // index relatif de la tonique
+    if (tonnetz.gamme.signature[rel0] !== '1') {
+      tonnetz.gamme.ajouter(rel0);
+      tonnetz.updateNodesFromGamme();
     }
-
-  } else {
-    // 🚫 Empêcher de retirer la tonique active
-    if (pc === tonnetz.keyPc) {
-      console.log("Impossible de retirer la tonique actuelle. Choisissez-en une autre avant.");
-      return;
-    }
-
-    // Clic simple → toggle dans la gamme
-    if (tonnetz.gamme.chroma.includes(pc)) {
-      tonnetz.gamme.supprimer(pc);
-    } else {
-      tonnetz.gamme.ajouter(pc);
-    }
+    return;
   }
+
+  // Empêcher de retirer la tonique active
+  if (pc === tonnetz.keyPc) return;
+
+  // pc absolu -> index relatif (0..11)
+  const rel = (pc - tonnetz.keyPc + 12) % 12;
+
+  // Basculer la note dans la gamme via index relatif
+  if (tonnetz.gamme.chroma.includes(rel) || tonnetz.gamme.signature[rel] === '1') {
+    tonnetz.gamme.supprimer(rel);
+  } else {
+    tonnetz.gamme.ajouter(rel);
+  }
+
+  tonnetz.updateNodesFromGamme();
 }
+
 
 
 
@@ -209,9 +214,7 @@ function mouseWheel(event) {
 }
 
 function mouseDragged() {
-  console.log(
-    `mouseDragged → left:${mouseButton.left}, right:${mouseButton.right}, center:${mouseButton.center}, movedX:${movedX}, movedY:${movedY}`
-  );
+
 
   if (mouseButton.right || (mouseButton.left && keyIsDown(SHIFT))) {
     tonnetz.pan(movedX, movedY);

@@ -37,7 +37,7 @@ draw(g, active, isTonic, isRoot, inGamme, zoom, gamme)
   // recupération du label de degré si dans la gamme
   let degreeLabel = null;
   if (inGamme && gamme) {
-    degreeLabel = gamme.getLabel(this.pc); // ex: "b3", "6", etc.
+    degreeLabel = gamme.getDegreeForPc(this.pc); // ex: "b3", "6", etc.
   }
 
 

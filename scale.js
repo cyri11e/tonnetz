@@ -1,12 +1,12 @@
 // scale.js
 // objet Gamme avec pour donnee de reference une signature type binaire representant la presence de note parmi 12
-// par defaut commence avec une gamme vide
+// par defaut commence avec une gamme vide + une tonique
 // possibilite d ajouter supprimer et deplacer des notes
 // a chaque modification et verifie si gamme mode connu
 
 
 class Gamme {
-  constructor(init = "100000000000", tonicNote = "C") {
+  constructor(init = "100000000000", tonicNote = "G") {
     this.signature = init;
     this.tonicNote = tonicNote;
     this.tonicPc = nameToPc(tonicNote);
@@ -20,16 +20,7 @@ class Gamme {
     this.reconnaitre();
   }
 
-  setSignature(sig) {
-    if (/^[01]{12}$/.test(sig)) {
-      this.signature = sig;
-      this.updateChroma();
-      this.updateDegres();
-      this.reconnaitre();
-    } else {
-      console.error("Signature invalide. Doit être une chaîne binaire de 12 caractères.");
-    }
-  }
+
 
   setTonic(note) {
     if (note === this.tonicNote) return; // pas de changement
@@ -44,10 +35,11 @@ class Gamme {
 
   updateSignatureFromTonic() {
     this.signature = "000000000000".split("");
-    this.chroma.forEach(pc => {
-      const index = (pc - this.tonicPc + 12) % 12;
-      this.signature[index] = '1';
-    });
+    this.pitchClasses.forEach(pc => {
+    const index = (pc - this.tonicPc + 12) % 12;
+    this.signature[index] = '1';
+  });
+
     this.signature = this.signature.join("");
   }
 
@@ -101,6 +93,15 @@ class Gamme {
   getDegres() {
     return this.degres;
   }
+
+
+  getDegreeForPc(pc) {
+    const abs = ((pc % 12) + 12) % 12;        // normalise
+    const idx = this.pitchClasses.indexOf(abs);
+    if (idx === -1) return null;              // pc pas dans la gamme
+    return this.degres[idx] ?? null;          // ex: "1", "b3", "6", etc.
+  }
+
 
   updateIntervalles() {
     const MAJEURE = [0, 2, 4, 5, 7, 9, 11];
@@ -160,6 +161,8 @@ class Gamme {
   }
 
   reconnaitre() {
+    // reconnaissance de la gamme et du mode
+    // a partir de la signature binaire
     this.nomReconnu = null;
     this.modeReconnu = null;
     // retourne -1 si pas trouve
@@ -194,18 +197,10 @@ class Gamme {
     return pos !== -1 ? this.intervalles[pos] : fallback[i] || "?";
   }
 
-  updateNoteLabels() {
-    // Retourne un tableau des labels des notes dans la gamme
-    // en utilisant la tonique + getNextNoteLabel
-
-    const labels = [];
-    let currentLabel = this.tonicNote;
-    for (let i = 0; i < this.chroma.length; i++) {
-      labels.push(currentLabel);
-      currentLabel = getNextNoteLabel(currentLabel, (this.chroma[(i + 1) % this.chroma.length] - this.chroma[i] + 12) % 12);
-    }
-    this.notes = labels;
-  }
+updateNoteLabels() {
+  // Construit names dans le même ordre que pitchClasses
+  this.notes = this.pitchClasses.map(pc => pcToName(pc));
+}
 
   getScaleMode() {
     return this.nomReconnu ? { nom: this.nomReconnu, mode: this.modeReconnu } : null;
