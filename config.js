@@ -7,6 +7,8 @@ const CONFIG = {
   unitX: 18,        // largeur d’une unité horizontale
   unitY: 18,        // hauteur d’une unité verticale
 
+  zoomMin: 0.3,   // zoom minimum
+  zoomMax: 3,     // zoom maximum
   // Propriétés des nœuds
   nodeRadius: 22,   // rayon de chaque nœud (px)
   fontSize: 22,     // taille de police de base pour les étiquettes (px)

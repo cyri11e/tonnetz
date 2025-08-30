@@ -68,7 +68,7 @@ class Tonnetz {
 
   zoomAt(mx, my, factor) {
     let newZoom = this.zoom * factor;
-    newZoom = Math.max(0.6, Math.min(2, newZoom));
+    newZoom = Math.max(CONFIG.zoomMin, Math.min(CONFIG.zoomMax, newZoom));
 
     const worldX = (mx - this.origin.x - this.panX) / this.zoom;
     const worldY = (my - this.origin.y - this.panY) / this.zoom;

@@ -36,15 +36,20 @@ class NetGrid {
 
   // Création des nœuds du réseau
   buildNodes() {
-    this.nodes.clear();
-    for (let s = -this.Vn; s <= this.Vn; s++) {
-      for (let i = -this.H; i <= this.H; i++) {
-        const j = s - i; // Maintient la diagonale constante (i + j = s)
-        const node = new NoteNode(i, j, this.origin, this.startPc);
-        this.nodes.set(this.key(i, j), node);
-      }
+  this.nodes.clear();
+  let count = 0;
+
+  for (let s = -this.Vn; s <= this.Vn; s++) {
+    for (let i = -this.H; i <= this.H; i++) {
+      const j = s - i;
+      const node = new NoteNode(i, j, this.origin, this.startPc);
+      this.nodes.set(this.key(i, j), node);
+      count++;
     }
   }
+  console.log(`🧩 buildNodes → ${count} nœuds créés`);
+}
+
 
   // Création des arêtes entre nœuds voisins
   buildEdges() {
@@ -62,12 +67,14 @@ class NetGrid {
       if (nV) this.edges.push(new IntervalEdge(node, nV, 'm3'));
       if (nQ) this.edges.push(new IntervalEdge(node, nQ, 'P5'));
     }
+    console.log(`🔗 buildEdges → ${this.edges.length} arêtes créées`);
   }
 
   // Détection des triangles formés par des arêtes connectées
   buildTriangles() {
     this.chordTriangle = new ChordTriangle(this.nodes, this.edges, this.get.bind(this), this.gamme);
     this.chordTriangle.build();
+    
   }
 
 }
