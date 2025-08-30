@@ -30,9 +30,11 @@ const CONFIG = {
     grid12: 'rgba(255,255,255,0.12)',
     inactiveNodeStroke: 'rgba(207,207,210,0.3)', // contour des nœuds inactifs
     inactiveNodeLabel:  'rgba(231,231,234,0.3)', // étiquette des nœuds inactifs
-    edgeP5: '#2b5cff',           // bleu profond
-    edgeM3: '#5fa8ff',           // bleu ciel
-    edgem3: '#29d3c2',           // bleu turquoise
+    edgeP5: '#2b5cff',           // bleu profond pour les liens P5
+    edgeM3: '#5fa8ff',           // bleu ciel pour les liens M3
+    edgem3: '#29d3c2',           // bleu turquoise les liens m3
+    triangleMajor: '#5fa8ff', // bleu clair
+    triangleMinor: '#29d3c2', // bleu foncé
     selectedNodeFill:   '#2a2a2a',         // fond gris pour notes dans la gamme
     selectedNodeStroke: '#60b4feff',         // contour animé pour notes dans la gamme
     playedStroke:     '#ffd400',         // contour animé pour notes jouées

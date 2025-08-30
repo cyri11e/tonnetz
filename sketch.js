@@ -31,10 +31,7 @@ function setup() {
 function draw() {
   background(CONFIG.colors.bg);
 
-  tonnetz.drawGrid(this);
-  tonnetz.drawTriangles(this);
-  tonnetz.drawEdges(this);
-  tonnetz.drawNodes(this);
+  tonnetz.draw(this);
 
   const activeNotes = tonnetz.getActiveNotes();
   const chords = activeNotes.length >= 3 ? tonnetz.getDetectedChords() : [];
@@ -179,6 +176,8 @@ function displayFPS(g) {
   g.textAlign(RIGHT, TOP);
   g.textSize(22);
   g.text(`FPS: ${Math.round(frameRate())}`, width - 80, 10);
+  g.textAlign(LEFT, TOP);
+  g.text(`Zoom: ${Math.round(tonnetz.zoom * 100)}%`, 10, 10);
   g.pop();
 }
 
@@ -244,7 +243,10 @@ function keyPressed() {
     tonnetz.rotateMode();
     return false;
   }
-
+  if (key === 'r') {
+    tonnetz.relativeTranspose();
+    return false;
+  }
 
 }
 

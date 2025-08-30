@@ -74,19 +74,19 @@ class Tonnetz {
     }
   } // nouvelle version avec NoteNode.js
   
-buildEdges() {
-  this.edges = [];
-  for (const [, node] of this.nodes) {
-    const { i, j } = node;
-    const nU = this.get(i + 1, j);
-    const nV = this.get(i, j + 1);
-    const nQ = this.get(i + 1, j - 1);
+  buildEdges() {
+    this.edges = [];
+    for (const [, node] of this.nodes) {
+      const { i, j } = node;
+      const nU = this.get(i + 1, j);
+      const nV = this.get(i, j + 1);
+      const nQ = this.get(i + 1, j - 1);
 
-    if (nU) this.edges.push(new IntervalEdge(node, nU, 'M3'));
-    if (nV) this.edges.push(new IntervalEdge(node, nV, 'm3'));
-    if (nQ) this.edges.push(new IntervalEdge(node, nQ, 'P5'));
+      if (nU) this.edges.push(new IntervalEdge(node, nU, 'M3'));
+      if (nV) this.edges.push(new IntervalEdge(node, nV, 'm3'));
+      if (nQ) this.edges.push(new IntervalEdge(node, nQ, 'P5'));
+    }
   }
-}
 
 
   buildTriangles() {
@@ -177,27 +177,27 @@ zoomAt(mx, my, factor) {
 }
 
 
-  resize(width, height) {
-    this.origin.x = width / 2;
-    this.origin.y = height / 2;
-    this.updateNodePositions();
-  }
-
-drawGrid(g) {
-  g.strokeWeight(1);
-  const cols = Math.ceil(this.canvas.width / CONFIG.unitX / this.zoom) + 2;
-  for (let xu = -cols; xu <= cols; xu++) {
-    const pc = mod12(this.startPc + xu); // ← pitch class de cette colonne
-
-    // 💡 Afficher uniquement si le pc est dans la gamme
-    if (!this.gamme.pitchClasses.includes(pc)) continue;
-
-    const x = this.origin.x + this.panX + xu * CONFIG.unitX * this.zoom;
-    const is12 = mod12(xu) === 0;
-    g.stroke(is12 ? CONFIG.colors.grid12 : CONFIG.colors.grid);
-    g.line(x, 0, x, this.canvas.height);
-  }
+resize(width, height) {
+  this.origin.x = width / 2;
+  this.origin.y = height / 2;
+  this.updateNodePositions();
 }
+
+  drawGrid(g) {
+    g.strokeWeight(1);
+    const cols = Math.ceil(this.canvas.width / CONFIG.unitX / this.zoom) + 2;
+    for (let xu = -cols; xu <= cols; xu++) {
+      const pc = mod12(this.startPc + xu); // ← pitch class de cette colonne
+
+      // 💡 Afficher uniquement si le pc est dans la gamme
+      if (!this.gamme.pitchClasses.includes(pc)) continue;
+
+      const x = this.origin.x + this.panX + xu * CONFIG.unitX * this.zoom;
+      const is12 = mod12(xu) === 0;
+      g.stroke(is12 ? CONFIG.colors.grid12 : CONFIG.colors.grid);
+      g.line(x, 0, x, this.canvas.height);
+    }
+  }
 
 
   drawEdges(g) {
@@ -216,31 +216,121 @@ drawGrid(g) {
     }
   }
 
+  // affichage des triangles représentant les accords majeurs et mineurs
+drawTriangles(g) {
+  g.push();
+  for (const tri of this.triangles) {
+    if (!tri || tri.length !== 3) continue;
+    const [a, b, c] = tri;
 
-  drawTriangles(g) {
-    g.noStroke();
-    g.fill(CONFIG.colors.triangleFill);
-    for (const [a, b, c] of this.triangles) {
-      if (this.selectedPcs.has(a.pc) && this.selectedPcs.has(b.pc) && this.selectedPcs.has(c.pc)) {
-        g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
-      }
+    const inGamme =
+      this.gamme.pitchClasses.includes(a.pc) &&
+      this.gamme.pitchClasses.includes(b.pc) &&
+      this.gamme.pitchClasses.includes(c.pc);
+
+    if (!inGamme) continue;
+
+    const ys = [a.py, b.py, c.py].sort((a, b) => a - b);
+    const isUpward = ys[1] < (ys[0] + ys[2]) / 2;
+
+    const baseColor = isUpward
+      ? CONFIG.colors.edgem3
+      : CONFIG.colors.edgeM3;
+
+    const col = g.color(baseColor);
+    col.setAlpha(100);
+    g.fill(col);
+    g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
+
+    this.drawChordLabel(g, tri); // ← affichage du label séparé
+  }
+  g.pop();
+}
+
+drawChordLabel(g, tri) {
+  const [a, b, c] = tri;
+
+  const inGamme =
+    this.gamme.pitchClasses.includes(a.pc) &&
+    this.gamme.pitchClasses.includes(b.pc) &&
+    this.gamme.pitchClasses.includes(c.pc);
+
+  if (!inGamme) return;
+
+  const ys = [a.py, b.py, c.py].sort((a, b) => a - b);
+  const isUpward = ys[1] < (ys[0] + ys[2]) / 2;
+  const type = isUpward ? 'min' : 'maj';
+
+  const leftmost = [a, b, c].reduce((min, node) =>
+    node.px < min.px ? node : min
+  );
+  const others = [a, b, c].filter(n => n !== leftmost);
+  const rightmost = others.reduce((max, node) =>
+    node.px > max.px ? node : max
+  );
+
+  const baseX = (leftmost.px + rightmost.px) / 2;
+  const baseY = (leftmost.py + rightmost.py) / 2;
+  const verticalOffset = CONFIG.fontSize * (type === 'min' ? 0.5 : -0.4) * this.zoom;
+  const labelX = baseX;
+  const labelY = baseY + verticalOffset;
+
+  let displayName = leftmost.name;
+  if (this.gamme && typeof this.gamme.getNoteName === 'function') {
+    displayName = this.gamme.getNoteName(leftmost.pc) ?? leftmost.name;
+  }
+
+  let labelText = '';
+  if (this.zoom < 0.7) {
+    labelText = '';
+  } else if (this.zoom < 1) {
+    labelText = `${displayName[0]}${type === 'min' ? 'm' : 'M'}`;
+  } else if (this.zoom < 1.2) {
+    labelText = `${displayName}${type === 'min' ? 'm' : 'M'}`;
+  } else {
+    labelText = `${displayName} ${type === 'min' ? 'min' : 'MAJ'}`;
+  }
+
+  if (labelText) {
+    const baseColor = isUpward
+      ? CONFIG.colors.edgem3
+      : CONFIG.colors.edgeM3;
+
+    g.fill(baseColor);
+    g.textAlign(CENTER, CENTER);
+    g.textSize(CONFIG.fontSize * 0.75 * this.zoom);
+    g.text(labelText, labelX, labelY);
+  }
+}
+
+
+  drawNodes(g) {
+    for (const [, node] of this.nodes) {
+      const isActive = node.isActive(this.selectedPcs);
+      const isTonic  = node.pc === this.keyPc;
+      const isRoot   = this.isRoot(node);
+      const inGamme  = this.gamme?.pitchClasses.includes(node.pc) || false;
+
+      const zoom     = this.zoom;
+
+      // On transmet le contexte et tous les états
+      node.draw(g, isActive, isTonic, isRoot, inGamme, zoom, this.gamme);
+
     }
   }
 
- drawNodes(g) {
-  for (const [, node] of this.nodes) {
-    const isActive = node.isActive(this.selectedPcs);
-    const isTonic  = node.pc === this.keyPc;
-    const isRoot   = this.isRoot(node);
-const inGamme  = this.gamme?.pitchClasses.includes(node.pc) || false;
+  // draw principal 
+  draw(g) {
+    g.push();
+    g.background(CONFIG.colors.bg);
 
-    const zoom     = this.zoom;
+    this.drawGrid(g);
+    this.drawTriangles(g);
+    this.drawEdges(g);
+    this.drawNodes(g);
 
-    // On transmet le contexte et tous les états
-    node.draw(g, isActive, isTonic, isRoot, inGamme, zoom, this.gamme);
-
+    g.pop();
   }
-}
 
 
   findNodeAt(mx, my) {
@@ -282,7 +372,34 @@ const inGamme  = this.gamme?.pitchClasses.includes(node.pc) || false;
     this.setKey(this.gamme.tonicNote);
   }
 
-  rotateMode() {
+// Dans la classe Tonnetz
+rotateMode() {
+  const g = this.gamme;
+  if (!g || !g.signature) return;
+
+  const sig = g.signature;
+  const n = sig.length;
+
+  // Liste des décalages à tester : quinte juste (7), quinte diminuée (6)
+  const offsets = [7, 6];
+
+  for (let offset of offsets) {
+    // Décalage circulaire vers la gauche
+    const rotated = sig.slice(offset) + sig.slice(0, offset);
+
+    // On ne touche pas à la tonique → signature doit commencer par '1'
+    if (rotated[0] === '1') {
+      g.setSignature(rotated);
+      return;
+    }
+  }
+
+  // Si aucune rotation valide trouvée, ne fait rien
+}
+
+
+
+  relativeTranspose() {
     if (!this.gamme || !this.gamme.pitchClasses || this.gamme.pitchClasses.length < 2) return;
 
     const currentPc = this.gamme.tonicPc;
