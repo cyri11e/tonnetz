@@ -277,3 +277,20 @@ function  getNextNoteLabel(currentLabel, semiTones = 1 ) {
     return '?'; // pas trouvé
   }
 
+  function getRomanNumeral(degreeLabel, type) {
+    // Sépare l’altération et le chiffre
+    const match = degreeLabel.match(/^([b#♯♭]?)([1-7])$/i);
+    if (!match) return '?';
+
+    const alt = match[1];       // 'b', '#', '♯', etc.
+    const num = parseInt(match[2]);
+
+    const romanMap = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+    const roman = romanMap[num - 1];
+
+    // Minuscule pour mineur, majuscule pour majeur
+    const formatted = type === 'min' ? roman.toLowerCase() : roman;
+
+    return alt + formatted;
+  }
+

@@ -26,6 +26,8 @@ class Tonnetz {
     this.nodes = new Map();
     this.edges = [];
     this.triangles = [];
+    this.specialSegments = [];
+
 
     this.buildNodes();
     this.buildEdges();
@@ -89,32 +91,107 @@ class Tonnetz {
   }
 
 
-  buildTriangles() {
-    this.triangles = [];
-    const seen = new Set();
-    const idOf = (n) => this.key(n.i, n.j);
-    const pushTri = (a, b, c) => {
-      const k = [idOf(a), idOf(b), idOf(c)].sort().join('|');
-      if (!seen.has(k)) { seen.add(k); this.triangles.push([a, b, c]); }
-    };
-    const areNeighbors = (n1, n2) =>
-      this.edges.some(e => (e.a === n1 && e.b === n2) || (e.a === n2 && e.b === n1));
+  // buildTriangles() {
+  //   this.triangles = [];
+  //   const seen = new Set();
+  //   const idOf = (n) => this.key(n.i, n.j);
+  //   const pushTri = (a, b, c) => {
+  //     const k = [idOf(a), idOf(b), idOf(c)].sort().join('|');
+  //     if (!seen.has(k)) { seen.add(k); this.triangles.push([a, b, c]); }
+  //   };
+  //   const areNeighbors = (n1, n2) =>
+  //     this.edges.some(e => (e.a === n1 && e.b === n2) || (e.a === n2 && e.b === n1));
 
-    for (const [, node] of this.nodes) {
-      const { i, j } = node;
-      const nU = this.get(i + 1, j);
-      const nV = this.get(i, j + 1);
-      const nQ = this.get(i + 1, j - 1);
-      const pU = this.get(i - 1, j);
-      const pV = this.get(i, j - 1);
-      const pQ = this.get(i - 1, j + 1);
+  //   for (const [, node] of this.nodes) {
+  //     const { i, j } = node;
+  //     const nU = this.get(i + 1, j);
+  //     const nV = this.get(i, j + 1);
+  //     const nQ = this.get(i + 1, j - 1);
+  //     const pU = this.get(i - 1, j);
+  //     const pV = this.get(i, j - 1);
+  //     const pQ = this.get(i - 1, j + 1);
 
-      if (nU && nQ && areNeighbors(node, nU) && areNeighbors(node, nQ) && areNeighbors(nU, nQ)) pushTri(node, nU, nQ);
-      if (nV && nQ && areNeighbors(node, nV) && areNeighbors(node, nQ) && areNeighbors(nV, nQ)) pushTri(node, nV, nQ);
-      if (pU && pQ && areNeighbors(node, pU) && areNeighbors(node, pQ) && areNeighbors(pU, pQ)) pushTri(node, pU, pQ);
-      if (pV && pQ && areNeighbors(node, pV) && areNeighbors(node, pQ) && areNeighbors(pV, pQ)) pushTri(node, pV, pQ);
+  //     if (nU && nQ && areNeighbors(node, nU) && areNeighbors(node, nQ) && areNeighbors(nU, nQ)) pushTri(node, nU, nQ);
+  //     if (nV && nQ && areNeighbors(node, nV) && areNeighbors(node, nQ) && areNeighbors(nV, nQ)) pushTri(node, nV, nQ);
+  //     if (pU && pQ && areNeighbors(node, pU) && areNeighbors(node, pQ) && areNeighbors(pU, pQ)) pushTri(node, pU, pQ);
+  //     if (pV && pQ && areNeighbors(node, pV) && areNeighbors(node, pQ) && areNeighbors(pV, pQ)) pushTri(node, pV, pQ);
+  //   }
+  // }
+
+buildTriangles() {
+  this.triangles = [];
+  this.specialSegments = [];
+
+  const seenTri = new Set();
+  const seenSeg = new Set();
+  const idOf = (n) => this.key(n.i, n.j);
+  const pushTri = (a, b, c) => {
+    const k = [idOf(a), idOf(b), idOf(c)].sort().join('|');
+    if (!seenTri.has(k)) {
+      seenTri.add(k);
+      this.triangles.push([a, b, c]);
+
+      // Vérifie si les 3 nœuds sont dans la gamme
+      const inGamme =
+        this.gamme.pitchClasses.includes(a.pc) &&
+        this.gamme.pitchClasses.includes(b.pc) &&
+        this.gamme.pitchClasses.includes(c.pc);
+
+      if (inGamme) {
+        // Teste les 3 arêtes du triangle
+        const pairs = [
+          [a, b],
+          [b, c],
+          [a, c]
+        ];
+
+        for (const [n1, n2] of pairs) {
+          const di = n2.i - n1.i;
+          const dj = n2.j - n1.j;
+          const n3 = this.get(n2.i + di, n2.j + dj);
+          if (!n3) continue;
+
+          // Vérifie que n3 est dans la gamme
+          if (!this.gamme.pitchClasses.includes(n3.pc)) continue;
+
+          // Vérifie que les 3 nœuds forment une diagonale descendante
+          const isDescending =
+            n1.px < n2.px && n2.px < n3.px &&
+            n1.py < n2.py && n2.py < n3.py;
+
+          if (!isDescending) continue;
+
+          // Dédoublonnage
+          const ordered = [n1, n2, n3].sort((p, q) => p.py - q.py || p.px - q.px);
+          const key = `${ordered[0].i},${ordered[0].j}|${ordered[1].i},${ordered[1].j}|${ordered[2].i},${ordered[2].j}`;
+          if (!seenSeg.has(key)) {
+            seenSeg.add(key);
+            this.specialSegments.push({ a: ordered[0], b: ordered[1], c: ordered[2] });
+          }
+        }
+      }
     }
+  };
+
+  const areNeighbors = (n1, n2) =>
+    this.edges.some(e => (e.a === n1 && e.b === n2) || (e.a === n2 && e.b === n1));
+
+  for (const [, node] of this.nodes) {
+    const { i, j } = node;
+    const nU = this.get(i + 1, j);
+    const nV = this.get(i, j + 1);
+    const nQ = this.get(i + 1, j - 1);
+    const pU = this.get(i - 1, j);
+    const pV = this.get(i, j - 1);
+    const pQ = this.get(i - 1, j + 1);
+
+    if (nU && nQ && areNeighbors(node, nU) && areNeighbors(node, nQ) && areNeighbors(nU, nQ)) pushTri(node, nU, nQ);
+    if (nV && nQ && areNeighbors(node, nV) && areNeighbors(node, nQ) && areNeighbors(nV, nQ)) pushTri(node, nV, nQ);
+    if (pU && pQ && areNeighbors(node, pU) && areNeighbors(node, pQ) && areNeighbors(pU, pQ)) pushTri(node, pU, pQ);
+    if (pV && pQ && areNeighbors(node, pV) && areNeighbors(node, pQ) && areNeighbors(pV, pQ)) pushTri(node, pV, pQ);
   }
+}
+
 
   updateNodePositions() {
     for (const [, n] of this.nodes) {
@@ -243,9 +320,13 @@ drawTriangles(g) {
     g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
 
     this.drawChordLabel(g, tri); // ← affichage du label séparé
+    this.displayRomanNumeral(g, tri); // ← affichage du chiffre romain
+    //this.drawSpecialChords(g, tri); // ← affichage des accords spéciaux
+
   }
   g.pop();
 }
+
 
 drawChordLabel(g, tri) {
   const [a, b, c] = tri;
@@ -319,16 +400,56 @@ drawChordLabel(g, tri) {
     }
   }
 
+displayRomanNumeral(g, tri) {
+  const [a, b, c] = tri;
+  const gamme = this.gamme;
+  if (!gamme || !gamme.chroma || !gamme.degres) return;
+
+  // Nœud fondamental = le plus à gauche
+  const root = [a, b, c].reduce((min, node) =>
+    node.px < min.px ? node : min
+  );
+
+  // Chroma relatif de la fondamentale
+  const relChroma = mod12(root.pc - gamme.tonicPc);
+  const degreeLabel = gamme.getLabel(relChroma); // ex: "1", "b3", "5"
+
+  // Détection du type d’accord
+  const ys = [a.py, b.py, c.py].sort((a, b) => a - b);
+  const isUpward = ys[1] < (ys[0] + ys[2]) / 2;
+  const type = isUpward ? 'min' : 'maj';
+
+  // Conversion en chiffre romain avec altération
+  const numeral = getRomanNumeral(degreeLabel, type);
+
+  // Centre horizontal du triangle
+  const cx = (a.px + b.px + c.px) / 3;
+
+  // Ligne médiane horizontale : moyenne des hauteurs
+  const minY = Math.min(a.py, b.py, c.py);
+  const maxY = Math.max(a.py, b.py, c.py);
+  const cy = (minY + maxY) / 2;
+
+  // Affichage
+  g.push();
+  g.textFont('Times New Roman');
+  g.textAlign(CENTER, CENTER);
+  g.textSize(CONFIG.fontSize * 1.5 * this.zoom);
+  g.fill(CONFIG.colors.selectedNodeFill);
+  g.text(numeral, cx, cy);
+  g.pop();
+}
+
+
+
   // draw principal 
   draw(g) {
     g.push();
     g.background(CONFIG.colors.bg);
-
     this.drawGrid(g);
     this.drawTriangles(g);
     this.drawEdges(g);
-    this.drawNodes(g);
-
+    this.drawNodes(g); 
     g.pop();
   }
 
@@ -395,6 +516,46 @@ rotateMode() {
   }
 
   // Si aucune rotation valide trouvée, ne fait rien
+}
+
+
+drawSpecialChords(g) {
+  if (!this.specialSegments?.length) return;
+
+  g.push();
+  g.textFont('Times New Roman');
+  g.textAlign(CENTER, CENTER);
+  g.textSize(CONFIG.fontSize * 0.8 * this.zoom);
+  g.noStroke();
+
+  g.pop();
+}
+
+
+
+
+
+drawSpecialSegment(g, seg) {
+  const { losange, label, midX, midY, angle } = seg;
+
+  const col = g.color(CONFIG.colors.edgem3);
+  col.setAlpha(80);
+  g.noStroke();
+  g.fill(col);
+
+  g.beginShape();
+  for (const p of losange) g.vertex(p.x, p.y);
+  g.endShape(CLOSE);
+
+  g.push();
+  g.translate(midX, midY);
+  g.rotate(angle);
+  g.textAlign(CENTER, CENTER);
+  g.textFont('Times New Roman');
+  g.textSize(CONFIG.fontSize * 0.8 * this.zoom);
+  g.fill(255);
+  g.text(label, 0, 0);
+  g.pop();
 }
 
 
