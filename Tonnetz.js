@@ -6,7 +6,7 @@ class Tonnetz {
     this.canvas = canvas;
     this.debug = debug;
 
-    this.keyNote = 'G';
+    this.keyNote = 'D#';
     this.keyPc = nameToPc(this.keyNote);
 
     this.gamme = new Gamme(this.keyNote);

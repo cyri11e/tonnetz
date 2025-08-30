@@ -224,11 +224,11 @@ function parseNoteName(noteName) {
 
 // Noms de notes selon le style d'altération
 const ENHARMONIC_MAPS = {
-              sharp : ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'],
-              flat  : ['C','D♭','D','E♭','E','F','G♭','G','A♭','A','B♭','B'],
-              mixed : ['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'],
-        doubleSharp : ['B♯','C𝄪','D♯','D𝄪','E♯','F♯','F𝄪','G♯','G𝄪','A♯','A𝄪'],
-        doubleFlat  : ['D','D♭','E𝄫','E♭','F♭','G𝄫','G♭','A𝄫','A♭','B𝄫','C♭']
+              sharp : ['C' ,'C♯','D' ,'D♯','E' ,'F' ,'F♯','G' ,'G♯','A' ,'A♯','B'],
+              flat  : ['C' ,'D♭','D' ,'E♭','E' ,'F' ,'G♭','G' ,'A♭','A' ,'B♭','B'],
+              mixed : ['C' ,'D♭','D' ,'E♭','E' ,'F' ,'F♯','G' ,'A♭','A' ,'B♭','B'],
+        doubleSharp : ['B♯','B𝄪','C𝄪' ,'D♯','D𝄪','E♯','F♯','F𝄪','G♯','G𝄪' ,'A♯','A𝄪'],
+        doubleFlat  : ['D𝄫','D♭','E𝄫','E♭','F♭','G𝄫','G♭','A𝄫','A♭','B♭','B𝄫','C♭']
       };
 
 // Style actif (par défaut : mixte)
