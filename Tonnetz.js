@@ -25,7 +25,7 @@ class Tonnetz {
 
     this.nodes = new Map();
     this.edges = [];
-    this.triangles = [];
+    // this.triangles = [];
     this.specialSegments = [];
     this.netGrid = new NetGrid({
       H: this.H,
@@ -38,8 +38,6 @@ class Tonnetz {
     // Références directes pour compatibilité avec le reste du code
     this.nodes = this.netGrid.nodes;
     this.edges = this.netGrid.edges;
-    this.triangles = this.netGrid.triangles;
-
     this.updateNodePositions();
   }
 
@@ -122,40 +120,6 @@ resize(width, height) {
       g.line(e.a.px, e.a.py, e.b.px, e.b.py);
     }
   }
-
-  // affichage des triangles représentant les accords majeurs et mineurs
-drawTriangles(g) {
-  g.push();
-  for (const tri of this.triangles) {
-    if (!tri || tri.length !== 3) continue;
-    const [a, b, c] = tri;
-
-    const inGamme =
-      this.gamme.pitchClasses.includes(a.pc) &&
-      this.gamme.pitchClasses.includes(b.pc) &&
-      this.gamme.pitchClasses.includes(c.pc);
-
-    if (!inGamme) continue;
-
-    const ys = [a.py, b.py, c.py].sort((a, b) => a - b);
-    const isUpward = ys[1] < (ys[0] + ys[2]) / 2;
-
-    const baseColor = isUpward
-      ? CONFIG.colors.edgem3
-      : CONFIG.colors.edgeM3;
-
-    const col = g.color(baseColor);
-    col.setAlpha(100);
-    g.fill(col);
-    g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
-
-    this.drawChordLabel(g, tri); // ← affichage du label séparé
-    this.displayRomanNumeral(g, tri); // ← affichage du chiffre romain
-    //this.drawSpecialChords(g, tri); // ← affichage des accords spéciaux
-
-  }
-  g.pop();
-}
 
 
 drawChordLabel(g, tri) {
@@ -277,7 +241,11 @@ displayRomanNumeral(g, tri) {
     g.push();
     g.background(CONFIG.colors.bg);
     this.drawGrid(g);
-    this.drawTriangles(g);
+    //this.drawTriangles(g);
+    if (this.netGrid.chordTriangle) {
+      this.netGrid.chordTriangle.draw(g, this.zoom, this.gamme);
+    }
+
     this.drawEdges(g);
     this.drawNodes(g); 
     g.pop();

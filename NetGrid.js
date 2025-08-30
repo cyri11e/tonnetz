@@ -66,9 +66,8 @@ class NetGrid {
 
   // Détection des triangles formés par des arêtes connectées
   buildTriangles() {
-    const triBuilder = new ChordTriangle(this.nodes, this.edges, this.get.bind(this));
-    triBuilder.build();
-    this.triangles = triBuilder.triangles;
-    }
+    this.chordTriangle = new ChordTriangle(this.nodes, this.edges, this.get.bind(this), this.gamme);
+    this.chordTriangle.build();
+  }
 
 }
