@@ -35,10 +35,15 @@ draw(g, active, isTonic, isRoot, inGamme, zoom, gamme)
   const radius     = CONFIG.nodeRadius * zoom;
 
   // recupération du label de degré si dans la gamme
-  let degreeLabel = null;
-  if (inGamme && gamme) {
-    degreeLabel = gamme.getLabel(this.pc); // ex: "b3", "6", etc.
-  }
+
+let degreeLabel = null;
+if (inGamme && gamme) {
+  // absolu → relatif
+  const rel = mod12(this.pc - gamme.tonicPc);
+  const idx = gamme.chroma.indexOf(rel);
+  degreeLabel = (idx !== -1) ? gamme.degres[idx] : null;
+}
+
 
 
   // --- Cercle de base ---

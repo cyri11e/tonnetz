@@ -182,7 +182,10 @@ setTonic(note) {
   // -------------------------
   // Modification : ajout de note
   // -------------------------
-  ajouter(index) {
+  ajouter(pc) {
+    console.log("Gamme.ajouter(",pc,")");
+    const index = mod12(pc - this.tonicPc  ); // convertit en relatif
+    console.log(`✅ Ajouté pc=${index} → pitchClasses:`,index);
     if (this.signature[index] === '0') {
       this.signature =
         this.signature.slice(0, index) + '1' + this.signature.slice(index + 1);
@@ -193,8 +196,11 @@ setTonic(note) {
   // -------------------------
   // Modification : suppression de note (protège tonique)
   // -------------------------
-  supprimer(index) {
-    if (index === this.tonicPc) return; // Tonique intouchable
+  supprimer(pc) {
+    console.log("Gamme.supprimer(",pc,")");
+    const index = mod12(pc - this.tonicPc); // convertit en relatif
+    console.log(`✅ Supprimé pc=${index} → pitchClasses:`,index);
+    if (pc === this.tonicPc) return; // Tonique intouchable
     if (this.signature[index] === '1') {
       this.signature =
         this.signature.slice(0, index) + '0' + this.signature.slice(index + 1);

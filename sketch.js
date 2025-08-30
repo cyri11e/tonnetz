@@ -13,7 +13,7 @@ function setup() {
   background(CONFIG.colors.bg);
 
   tonnetz = new Tonnetz({
-    startNote: 'C',
+    startNote: 'G',
     H: 9,
     Vn: 7,
     canvas
@@ -131,6 +131,8 @@ function draw() {
 
 function mousePressed() {
   const node = tonnetz.findNodeAt(mouseX, mouseY);
+  console.log(`🖱️ Clic détecté sur node: ${node.name} (pc=${node.pc}) [i=${node.i}, j=${node.j}]`);
+
   if (!node) return;
 
   const pc = node.pc;
@@ -152,11 +154,12 @@ function mousePressed() {
     }
 
     // Clic simple → toggle dans la gamme
-    if (tonnetz.gamme.chroma.includes(pc)) {
-      tonnetz.gamme.supprimer(pc);
-    } else {
-      tonnetz.gamme.ajouter(pc);
-    }
+if (tonnetz.gamme.pitchClasses.includes(pc)) {
+  tonnetz.gamme.supprimer(pc);
+} else {
+  tonnetz.gamme.ajouter(pc);
+}
+
   }
 }
 

@@ -1,12 +1,12 @@
 class Tonnetz {
-  constructor({ startNote = 'C', H = 8, Vn = 6, canvas, debug = true }) {
+  constructor({ startNote ='G', H = 8, Vn = 6, canvas, debug = true }) {
     this.startPc = nameToPc(startNote);
     this.H = H;
     this.Vn = Vn;
     this.canvas = canvas;
     this.debug = debug;
 
-    this.keyNote = 'C';
+    this.keyNote = 'G';
     this.keyPc = nameToPc(this.keyNote);
 
     this.gamme = new Gamme(this.keyNote);
@@ -226,7 +226,8 @@ zoomAt(mx, my, factor) {
     const isActive = node.isActive(this.selectedPcs);
     const isTonic  = node.pc === this.keyPc;
     const isRoot   = this.isRoot(node);
-    const inGamme  = this.gamme?.chroma.includes(node.pc) || false;
+const inGamme  = this.gamme?.pitchClasses.includes(node.pc) || false;
+
     const zoom     = this.zoom;
 
     // On transmet le contexte et tous les états
