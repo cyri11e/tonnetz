@@ -27,11 +27,19 @@ class Tonnetz {
     this.edges = [];
     this.triangles = [];
     this.specialSegments = [];
+    this.netGrid = new NetGrid({
+      H: this.H,
+      Vn: this.Vn,
+      origin: this.origin,
+      startPc: this.startPc,
+      gamme: this.gamme
+    });
 
+    // Références directes pour compatibilité avec le reste du code
+    this.nodes = this.netGrid.nodes;
+    this.edges = this.netGrid.edges;
+    this.triangles = this.netGrid.triangles;
 
-    this.buildNodes();
-    this.buildEdges();
-    this.buildTriangles();
     this.updateNodePositions();
   }
 
@@ -44,153 +52,6 @@ class Tonnetz {
     this.gamme.setTonic(noteName);
     console.log(`🎯 Tonique changée : ${this.keyNote} (pc=${this.keyPc})`);
   }
-
-  // buildNodes() {
-  //   this.nodes.clear();
-  //   for (let s = -this.Vn; s <= this.Vn; s++) {
-  //     for (let i = -this.H; i <= this.H; i++) {
-  //       const j = s - i;
-  //       const xu = i * U.x + j * V.x;
-  //       const yu = i * U.y + j * V.y;
-  //       const pc = mod12(this.startPc + xu);
-  //       const node = {
-  //         i, j, xu, yu, pc,
-  //         name: pcToName(pc),
-  //         manualSelected: false,
-  //         lastActiveTime: 0,
-  //         px: 0, py: 0
-  //       };
-  //       this.nodes.set(this.key(i, j), node);
-  //     }
-  //   }
-  // } ancienne version qui gereait pas les methodes de NoteNode mais un objet literal
-
-  buildNodes() {
-    this.nodes.clear();
-    for (let s = -this.Vn; s <= this.Vn; s++) {
-      for (let i = -this.H; i <= this.H; i++) {
-        const j = s - i;
-        const node = new NoteNode(i, j, this.origin, this.startPc);
-        this.nodes.set(this.key(i, j), node);
-      }
-    }
-  } // nouvelle version avec NoteNode.js
-  
-  buildEdges() {
-    this.edges = [];
-    for (const [, node] of this.nodes) {
-      const { i, j } = node;
-      const nU = this.get(i + 1, j);
-      const nV = this.get(i, j + 1);
-      const nQ = this.get(i + 1, j - 1);
-
-      if (nU) this.edges.push(new IntervalEdge(node, nU, 'M3'));
-      if (nV) this.edges.push(new IntervalEdge(node, nV, 'm3'));
-      if (nQ) this.edges.push(new IntervalEdge(node, nQ, 'P5'));
-    }
-  }
-
-
-  // buildTriangles() {
-  //   this.triangles = [];
-  //   const seen = new Set();
-  //   const idOf = (n) => this.key(n.i, n.j);
-  //   const pushTri = (a, b, c) => {
-  //     const k = [idOf(a), idOf(b), idOf(c)].sort().join('|');
-  //     if (!seen.has(k)) { seen.add(k); this.triangles.push([a, b, c]); }
-  //   };
-  //   const areNeighbors = (n1, n2) =>
-  //     this.edges.some(e => (e.a === n1 && e.b === n2) || (e.a === n2 && e.b === n1));
-
-  //   for (const [, node] of this.nodes) {
-  //     const { i, j } = node;
-  //     const nU = this.get(i + 1, j);
-  //     const nV = this.get(i, j + 1);
-  //     const nQ = this.get(i + 1, j - 1);
-  //     const pU = this.get(i - 1, j);
-  //     const pV = this.get(i, j - 1);
-  //     const pQ = this.get(i - 1, j + 1);
-
-  //     if (nU && nQ && areNeighbors(node, nU) && areNeighbors(node, nQ) && areNeighbors(nU, nQ)) pushTri(node, nU, nQ);
-  //     if (nV && nQ && areNeighbors(node, nV) && areNeighbors(node, nQ) && areNeighbors(nV, nQ)) pushTri(node, nV, nQ);
-  //     if (pU && pQ && areNeighbors(node, pU) && areNeighbors(node, pQ) && areNeighbors(pU, pQ)) pushTri(node, pU, pQ);
-  //     if (pV && pQ && areNeighbors(node, pV) && areNeighbors(node, pQ) && areNeighbors(pV, pQ)) pushTri(node, pV, pQ);
-  //   }
-  // }
-
-buildTriangles() {
-  this.triangles = [];
-  this.specialSegments = [];
-
-  const seenTri = new Set();
-  const seenSeg = new Set();
-  const idOf = (n) => this.key(n.i, n.j);
-  const pushTri = (a, b, c) => {
-    const k = [idOf(a), idOf(b), idOf(c)].sort().join('|');
-    if (!seenTri.has(k)) {
-      seenTri.add(k);
-      this.triangles.push([a, b, c]);
-
-      // Vérifie si les 3 nœuds sont dans la gamme
-      const inGamme =
-        this.gamme.pitchClasses.includes(a.pc) &&
-        this.gamme.pitchClasses.includes(b.pc) &&
-        this.gamme.pitchClasses.includes(c.pc);
-
-      if (inGamme) {
-        // Teste les 3 arêtes du triangle
-        const pairs = [
-          [a, b],
-          [b, c],
-          [a, c]
-        ];
-
-        for (const [n1, n2] of pairs) {
-          const di = n2.i - n1.i;
-          const dj = n2.j - n1.j;
-          const n3 = this.get(n2.i + di, n2.j + dj);
-          if (!n3) continue;
-
-          // Vérifie que n3 est dans la gamme
-          if (!this.gamme.pitchClasses.includes(n3.pc)) continue;
-
-          // Vérifie que les 3 nœuds forment une diagonale descendante
-          const isDescending =
-            n1.px < n2.px && n2.px < n3.px &&
-            n1.py < n2.py && n2.py < n3.py;
-
-          if (!isDescending) continue;
-
-          // Dédoublonnage
-          const ordered = [n1, n2, n3].sort((p, q) => p.py - q.py || p.px - q.px);
-          const key = `${ordered[0].i},${ordered[0].j}|${ordered[1].i},${ordered[1].j}|${ordered[2].i},${ordered[2].j}`;
-          if (!seenSeg.has(key)) {
-            seenSeg.add(key);
-            this.specialSegments.push({ a: ordered[0], b: ordered[1], c: ordered[2] });
-          }
-        }
-      }
-    }
-  };
-
-  const areNeighbors = (n1, n2) =>
-    this.edges.some(e => (e.a === n1 && e.b === n2) || (e.a === n2 && e.b === n1));
-
-  for (const [, node] of this.nodes) {
-    const { i, j } = node;
-    const nU = this.get(i + 1, j);
-    const nV = this.get(i, j + 1);
-    const nQ = this.get(i + 1, j - 1);
-    const pU = this.get(i - 1, j);
-    const pV = this.get(i, j - 1);
-    const pQ = this.get(i - 1, j + 1);
-
-    if (nU && nQ && areNeighbors(node, nU) && areNeighbors(node, nQ) && areNeighbors(nU, nQ)) pushTri(node, nU, nQ);
-    if (nV && nQ && areNeighbors(node, nV) && areNeighbors(node, nQ) && areNeighbors(nV, nQ)) pushTri(node, nV, nQ);
-    if (pU && pQ && areNeighbors(node, pU) && areNeighbors(node, pQ) && areNeighbors(pU, pQ)) pushTri(node, pU, pQ);
-    if (pV && pQ && areNeighbors(node, pV) && areNeighbors(node, pQ) && areNeighbors(pV, pQ)) pushTri(node, pV, pQ);
-  }
-}
 
 
   updateNodePositions() {
