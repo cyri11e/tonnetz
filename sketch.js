@@ -7,7 +7,7 @@ let lastChordTime = 0;
 
 function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
-  canvas.elt.oncontextmenu = () => false; // bloque menu clic droit
+  canvas.elt.oncontextmenu = () => false;
   textFont(CONFIG.fontFamily);
   textStyle(CONFIG.fontWeight);
   background(CONFIG.colors.bg);
@@ -29,19 +29,13 @@ function setup() {
 }
 
 function draw() {
-
-  const scaleInfo = tonnetz.gamme.getScaleMode(); // { nom: "Majeure", mode: 5 } ou null
-  const tonicName = tonnetz.keyNote;              // ex: "A", "F#", etc.
-
   background(CONFIG.colors.bg);
 
-  // Dessin direct (px/py déjà calculés)
   tonnetz.drawGrid(this);
   tonnetz.drawTriangles(this);
   tonnetz.drawEdges(this);
   tonnetz.drawNodes(this);
 
-  // Détection accords
   const activeNotes = tonnetz.getActiveNotes();
   const chords = activeNotes.length >= 3 ? tonnetz.getDetectedChords() : [];
   const chordIsActive = chords.length > 0;
@@ -59,7 +53,6 @@ function draw() {
 
   piano.draw(this, rootNote);
 
-  // Liste accords détectés
   if (chords.length > 0) {
     push();
     fill(255);
@@ -73,114 +66,139 @@ function draw() {
     pop();
   }
 
-  // Affichage central avec fondu
-  let alphaValue = chordIsActive
-    ? 65
-    : 65 * getFadeFactor(lastChordTime);
+  displayChord(this);
+  displayScaleLabel(this);
+  displayNoteList(this);
+  displayFPS(this);
+}
 
-  if (alphaValue > 0 && lastChordText) {
-    push();
-    textAlign(CENTER, CENTER);
-    textStyle(BOLD);
+function displayChord(g) {
+  const alphaValue = lastChordText
+    ? 65 * getFadeFactor(lastChordTime)
+    : 0;
 
-    const targetWidth = width * 0.8;
-    const baseSize = height / 3;
-    let fontSize = baseSize;
-    textSize(fontSize);
-    let tw = textWidth(lastChordText);
-    if (tw > targetWidth) {
-      fontSize *= targetWidth / tw;
-      textSize(fontSize);
-    }
+  if (alphaValue <= 0 || !lastChordText) return;
 
-    const c = color(CONFIG.colors.chordDisplay);
-    c.setAlpha(alphaValue);
+  g.push();
+  g.textAlign(CENTER, CENTER);
+  g.textStyle(BOLD);
 
-    strokeWeight(fontSize / 16);
-    const outline = color(255);
-    outline.setAlpha(30 * (alphaValue / 255));
-    stroke(outline);
-
-    fill(c);
-    text(lastChordText, width / 2, height / 2);
-
-    noStroke();
-    fill(c);
-    text(lastChordText, width / 2, height / 2);
-    pop();
-
-
+  const targetWidth = width * 0.8;
+  const baseSize = height / 3;
+  let fontSize = baseSize;
+  g.textSize(fontSize);
+  let tw = g.textWidth(lastChordText);
+  if (tw > targetWidth) {
+    fontSize *= targetWidth / tw;
+    g.textSize(fontSize);
   }
-    if (scaleInfo) {
-    const tonicName = tonnetz.gamme.tonicNote;
-    const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
-    const scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
 
-    push();
-    stroke(CONFIG.colors.selectedNodeStroke);
-    noFill();
-    strokeWeight(0.5);
-    textAlign(CENTER, TOP);
-    textStyle(BOLD);
+  const c = color(CONFIG.colors.chordDisplay);
+  c.setAlpha(alphaValue);
 
-    // 🔠 Taille adaptative
-    const targetWidth = width * 0.9;
-    let fontSize = 50;
-    textSize(fontSize);
-    let tw = textWidth(scaleText);
-    if (tw > targetWidth) {
-      fontSize *= targetWidth / tw;
-      textSize(fontSize);
-    }
+  const outline = color(255);
+  outline.setAlpha(30 * (alphaValue / 255));
+  g.strokeWeight(fontSize / 16);
+  g.stroke(outline);
+  g.fill(c);
+  g.text(lastChordText, width / 2, height / 2);
+  g.noStroke();
+  g.text(lastChordText, width / 2, height / 2);
+  g.pop();
+}
 
-    text(scaleText, width / 2, 10);
-    pop();
+function displayScaleLabel(g) {
+  const scaleInfo = tonnetz.gamme.getScaleMode();
+  if (!scaleInfo) return;
+
+  const tonicName = tonnetz.gamme.tonicNote;
+  const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
+  const scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
+
+  const targetWidth = width * 0.9;
+  let fontSize = 50;
+  g.textSize(fontSize);
+  let tw = g.textWidth(scaleText);
+  if (tw > targetWidth) {
+    fontSize *= targetWidth / tw;
+    g.textSize(fontSize);
   }
-push();
-  fill(255);
-  noStroke();
-  textAlign(RIGHT, TOP);
-  textSize(22); 
-text(`FPS: ${Math.round(frameRate())}`, width - 80, 10);
-pop();
 
+  g.push();
+  g.stroke(CONFIG.colors.selectedNodeStroke);
+  g.noFill();
+  g.strokeWeight(0.5);
+  g.textAlign(CENTER, TOP);
+  g.textStyle(BOLD);
+  g.text(scaleText, width / 2, 10);
+  g.pop();
+}
+
+function displayNoteList(g) {
+  const pcs = tonnetz.gamme.pitchClasses;
+  const tonicPc = tonnetz.gamme.tonicPc;
+  const style = tonnetz.noteStyle;
+
+  const orderedPcs = pcs
+    .map(pc => ({ pc, off: mod12(pc - tonicPc) }))
+    .sort((a, b) => a.off - b.off)
+    .map(({ pc }) => pc);
+
+  const notesText = buildScaleLine(orderedPcs, style);
+
+  g.push();
+  g.fill(255);
+  g.noStroke();
+  g.textAlign(CENTER, TOP);
+  g.textStyle(NORMAL);
+  g.textSize(20);
+  g.text(notesText, width / 2, 70);
+  g.pop();
+}
+
+function buildScaleLine(pcs, style) {
+  if (!pcs || pcs.length === 0) return '';
+  let s = pcToName(pcs[0], style);
+  for (let i = 0; i < pcs.length; i++) {
+    const cur = pcs[i];
+    const nxt = pcs[(i + 1) % pcs.length];
+    const delta = mod12(nxt - cur);
+    const dashes = Math.max(0, delta - 1);
+    s += '-'.repeat(dashes) + pcToName(nxt, style);
+  }
+  return s;
+}
+
+function displayFPS(g) {
+  g.push();
+  g.fill(255);
+  g.noStroke();
+  g.textAlign(RIGHT, TOP);
+  g.textSize(22);
+  g.text(`FPS: ${Math.round(frameRate())}`, width - 80, 10);
+  g.pop();
 }
 
 function mousePressed() {
   const node = tonnetz.findNodeAt(mouseX, mouseY);
-  console.log(`🖱️ Clic détecté sur node: ${node.name} (pc=${node.pc}) [i=${node.i}, j=${node.j}]`);
-
   if (!node) return;
 
   const pc = node.pc;
 
   if (keyIsDown(SHIFT)) {
-    // Shift + clic → changer la tonique
     tonnetz.setKey(node.name);
-
-    // 🔒 Ajout automatique de la tonique si absente
     if (!tonnetz.gamme.chroma.includes(tonnetz.keyPc)) {
       tonnetz.gamme.ajouter(tonnetz.keyPc);
     }
-
   } else {
-    // 🚫 Empêcher de retirer la tonique active
-    if (pc === tonnetz.keyPc) {
-      console.log("Impossible de retirer la tonique actuelle. Choisissez-en une autre avant.");
-      return;
+    if (pc === tonnetz.keyPc) return;
+    if (tonnetz.gamme.pitchClasses.includes(pc)) {
+      tonnetz.gamme.supprimer(pc);
+    } else {
+      tonnetz.gamme.ajouter(pc);
     }
-
-    // Clic simple → toggle dans la gamme
-if (tonnetz.gamme.pitchClasses.includes(pc)) {
-  tonnetz.gamme.supprimer(pc);
-} else {
-  tonnetz.gamme.ajouter(pc);
-}
-
   }
 }
-
-
 
 function keyPressed() {
   const pianoSizes = { '2': 25, '4': 49, '6': 61, '7': 76, '8': 88 };
@@ -189,19 +207,15 @@ function keyPressed() {
     return;
   }
 
+  if (key === ' ') {
+    tonnetz.gamme = new Gamme();
+    tonnetz.activeMidiNums.forEach(num => {
+      const pc = num % 12;
+      tonnetz.gamme.ajouter(pc);
+    });
+    return false;
+  }
 
-
-if (key === ' ') {
-  console.log('Space pressed');
-  // Barre espace → remplacer la gamme par les notes jouées
-  tonnetz.gamme = new Gamme(); // Réinitialise la gamme
-  tonnetz.activeMidiNums.forEach(num => {
-    const pc = num % 12;
-    tonnetz.gamme.ajouter(pc);
-  });
-  return false; // Empêche le scroll de la page
-}
-  
   if (key === 'Tab') {
     const styles = ['sharp', 'flat', 'mixed'];
     const currentIndex = styles.indexOf(tonnetz.noteStyle);
@@ -224,19 +238,12 @@ function windowResized() {
 function mouseWheel(event) {
   const factor = event.delta > 0 ? 0.95 : 1.05;
   tonnetz.zoomAt(mouseX, mouseY, factor);
-  console.log(`Zoom actuel : ${tonnetz.zoom.toFixed(2)}`);
   return false;
 }
 
 function mouseDragged() {
-  console.log(
-    `mouseDragged → left:${mouseButton.left}, right:${mouseButton.right}, center:${mouseButton.center}, movedX:${movedX}, movedY:${movedY}`
-  );
-
   if (mouseButton.right || (mouseButton.left && keyIsDown(SHIFT))) {
     tonnetz.pan(movedX, movedY);
     return false;
   }
 }
-
-
