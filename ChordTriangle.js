@@ -101,6 +101,7 @@ class ChordTriangle {
 
     if (labelText) {
       g.fill(baseColor);
+      g.textFont(CONFIG.fontFamily);
       g.textAlign(CENTER, CENTER);
       g.textSize(CONFIG.fontSize * 0.75 * zoom);
       g.text(labelText, baseX, baseY + verticalOffset);
@@ -114,7 +115,7 @@ class ChordTriangle {
     const cx = (a.px + b.px + c.px) / 3;
     const cy = (Math.min(a.py, b.py, c.py) + Math.max(a.py, b.py, c.py)) / 2;
 
-    g.textFont('Times New Roman');
+    g.textFont(CONFIG.fontFamilyRoman);
     g.textAlign(CENTER, CENTER);
     g.textSize(CONFIG.fontSize * 1.5 * zoom);
     g.fill(CONFIG.colors.selectedNodeFill);

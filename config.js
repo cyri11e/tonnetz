@@ -20,6 +20,7 @@ const CONFIG = {
   fontFamily: 'Arial Unicode MS',  // nom de la police
   fontWeight: 'bold',               // style/poids (normal, bold, etc.)
 
+  fontFamilyRoman: 'Times New Roman', // police avec empattement pour les accords
   // Palette de couleurs centralisée
   colors: {
     bg:                 '#0f0f10',         // couleur de fond du canvas
