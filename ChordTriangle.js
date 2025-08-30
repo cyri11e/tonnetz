@@ -70,81 +70,141 @@ class ChordTriangle {
   }
 
   // Affichage des triangles (visuel + texte)
-  draw(g, zoom, gamme) {
-    if (gamme && gamme !== this.gamme) this.setGamme(gamme);
+ draw(g, zoom, gamme, activePcs) {
+  g.push();
 
-    g.push();
-    for (const tri of this.triangles) {
-      const [a, b, c] = tri;
+  for (const tri of this.trianglesAll) {
+    const [a, b, c] = tri;
 
-      // Détection de l’orientation (haut = mineur, bas = majeur)
-      const ys = [a.py, b.py, c.py].sort((a, b) => a - b);
-      const isUpward = ys[1] < (ys[0] + ys[2]) / 2;
-      const type = isUpward ? 'min' : 'maj';
+    // État harmonique
+    const inGamme = gamme?.pitchClasses?.includes(a.pc) &&
+                    gamme?.pitchClasses?.includes(b.pc) &&
+                    gamme?.pitchClasses?.includes(c.pc);
 
-      // Couleur de fond selon le type d’accord
-      const baseColor = isUpward ? CONFIG.colors.triangleMinor : CONFIG.colors.triangleMajor;
-      const col = g.color(baseColor);
-      col.setAlpha(100);
-      g.fill(col);
+    const active = activePcs?.has(a.pc) &&
+                   activePcs?.has(b.pc) &&
+                   activePcs?.has(c.pc);
+
+    if (!inGamme && !active) continue;
+
+    // Orientation du triangle
+    const ys = [a.py, b.py, c.py].sort((a, b) => a - b);
+    const isUpward = ys[1] < (ys[0] + ys[2]) / 2;
+    const type = isUpward ? 'min' : 'maj';
+
+    // Couleur de base
+    const baseColor = isUpward
+      ? CONFIG.colors.triangleMinor
+      : CONFIG.colors.triangleMajor;
+
+    const col = g.color(baseColor);
+    col.setAlpha(active ? 180 : 100);
+    g.fill(col);
+    g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
+
+    // Fond animé si actif hors gamme
+    if (active && !inGamme) {
+      g.push();
+      const bg = g.color(CONFIG.colors.bg);
+      bg.setAlpha(100);
+      g.fill(bg);
+      g.noStroke();
       g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
+      g.pop();
+    }
 
-      // Détermination de la fondamentale graphique
-      const leftmost = [a, b, c].reduce((min, node) => node.px < min.px ? node : min);
-      const others = [a, b, c].filter(n => n !== leftmost);
-      const rightmost = others.reduce((max, node) => node.px > max.px ? node : max);
+    // Position du label
+    const leftmost = [a, b, c].reduce((min, node) => node.px < min.px ? node : min);
+    const others = [a, b, c].filter(n => n !== leftmost);
+    const rightmost = others.reduce((max, node) => node.px > max.px ? node : max);
 
-      const baseX = (leftmost.px + rightmost.px) / 2;
-      const baseY = (leftmost.py + rightmost.py) / 2;
-      const verticalOffset = CONFIG.fontSize * (type === 'min' ? 0.5 : -0.4) * zoom;
+    const baseX = (leftmost.px + rightmost.px) / 2;
+    const baseY = (leftmost.py + rightmost.py) / 2;
+    const verticalOffset = CONFIG.fontSize * (type === 'min' ? 0.5 : -0.4) * zoom;
 
-      // Nom d’accord (avec gestion enharmonique)
-      let displayName = leftmost.name;
-      if (typeof this.gamme.getNoteName === 'function') {
-        displayName = this.gamme.getNoteName(leftmost.pc) ?? leftmost.name;
-      }
+    // Nom de la fondamentale (recalculé via gamme)
+    let displayName = leftmost.name;
+    if (typeof gamme?.getNoteName === 'function') {
+      displayName = gamme.getNoteName(leftmost.pc) ?? leftmost.name;
+    }
 
-      // Texte du label selon le niveau de zoom
-      let labelText = '';
-      if (zoom < 0.7) {
-        labelText = '';
-      } else if (zoom < 1) {
-        labelText = `${displayName[0]}${type === 'min' ? 'm' : 'M'}`;
-      } else if (zoom < 1.2) {
-        labelText = `${displayName}${type === 'min' ? 'm' : 'M'}`;
-      } else {
-        labelText = `${displayName} ${type === 'min' ? 'min' : 'MAJ'}`;
-      }
+    // Texte du label selon zoom
+    let labelText = '';
+    if (zoom < 0.7) {
+      labelText = '';
+    } else if (zoom < 1) {
+      labelText = `${displayName[0]}${type === 'min' ? 'm' : 'M'}`;
+    } else if (zoom < 1.2) {
+      labelText = `${displayName}${type === 'min' ? 'm' : 'M'}`;
+    } else {
+      labelText = `${displayName} ${type === 'min' ? 'min' : 'MAJ'}`;
+    }
 
-      // Affichage du label d’accord
-      if (labelText) {
-        g.push();
-        g.fill(CONFIG.colors.chordDisplay);
-        g.textAlign(CENTER, CENTER);
-        g.textSize(CONFIG.fontSize * 0.75 * zoom);
-        g.textFont(CONFIG.fontFamily); // ← police principale
-        g.text(labelText, baseX, baseY + verticalOffset);
-        g.pop();
-      }
+    // Chiffre romain (fonction tonale)
+    let numeral = '';
+    if (inGamme && gamme) {
+      const relChroma = mod12(leftmost.pc - gamme.tonicPc);
+      const degreeLabel = gamme.getLabel(relChroma);
+      numeral = getRomanNumeral(degreeLabel, type);
+    }
 
-      // Chiffre romain (fonction tonale)
-      const relChroma = mod12(leftmost.pc - this.gamme.tonicPc);
-      const degreeLabel = this.gamme.getLabel(relChroma);
-      const numeral = getRomanNumeral(degreeLabel, type);
+    const cx = (a.px + b.px + c.px) / 3;
+    const cy = (Math.min(a.py, b.py, c.py) + Math.max(a.py, b.py, c.py)) / 2;
 
-      const cx = (a.px + b.px + c.px) / 3;
-      const cy = (Math.min(a.py, b.py, c.py) + Math.max(a.py, b.py, c.py)) / 2;
+    // Affichage du label
+    if (labelText) {
+      g.push();
+      g.textAlign(CENTER, CENTER);
+      g.textSize(CONFIG.fontSize * 0.75 * zoom);
+      g.textFont(CONFIG.fontFamily);
+      g.fill(CONFIG.colors.chordDisplay);
+      g.text(labelText, baseX, baseY + verticalOffset);
+      g.pop();
+    }
 
+    // Affichage du chiffre romain
+    if (numeral) {
       g.push();
       g.textAlign(CENTER, CENTER);
       g.textSize(CONFIG.fontSize * 1.5 * zoom);
-      g.textFont(CONFIG.fontFamilyRoman); // ← police avec empattement
-      g.fill(CONFIG.colors.degreeLabel);
+      g.textFont(CONFIG.fontFamilyRoman);
+      g.textStyle(BOLD)
+      g.fill(CONFIG.colors.bg);
+      g.text(numeral, cx, cy + CONFIG.fontSize * 0.6 * zoom);
+      //drawRomanNumeral(g, numeral, cx + zoom * ( type === 'min' ? 0.9 : 1 ), cy + CONFIG.fontSize * 0.6 * zoom * ( type === 'min' ? 0.4 : 1 ), zoom);
+
+      g.pop();
+    }
+
+    // Réaffichage dynamique si actif
+    if (active) {
+      g.push();
+      g.textAlign(CENTER, CENTER);
+      g.textFont(CONFIG.fontFamily);
+      g.textSize(CONFIG.fontSize * 0.75 * zoom);
+      const labelColor = g.color(CONFIG.colors.nodeLabel);
+      labelColor.setAlpha(200);
+      g.fill(labelColor);
+      g.noStroke();
+      g.text(labelText, baseX, baseY + verticalOffset);
+      g.pop();
+
+      g.push();
+      g.textAlign(CENTER, CENTER);
+      g.textFont(CONFIG.fontFamilyRoman);
+      g.textSize(CONFIG.fontSize * 1.5 * zoom);
+      const romanColor = g.color(CONFIG.colors.degreeLabel);
+      romanColor.setAlpha(200);
+      g.fill(romanColor);
+      g.noStroke();
       g.text(numeral, cx, cy);
       g.pop();
     }
-    g.pop();
   }
+
+  g.pop();
+}
+
 
   isInGamme(tri, gamme) {
   if (!gamme || !Array.isArray(gamme.pitchClasses)) return false;

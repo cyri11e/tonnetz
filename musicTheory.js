@@ -277,20 +277,44 @@ function  getNextNoteLabel(currentLabel, semiTones = 1 ) {
     return '?'; // pas trouvé
   }
 
-  function getRomanNumeral(degreeLabel, type) {
-    // Sépare l’altération et le chiffre
-    const match = degreeLabel.match(/^([b#♯♭]?)([1-7])$/i);
-    if (!match) return '?';
+function getRomanNumeral(degreeLabel, type) {
+  // Extrait l’altération et le degré (1 à 7)
+  const match = degreeLabel.match(/^(𝄫|♭|𝄪|♯|bb|b|##|#|♮)?([1-7])$/);
+  if (!match) return '?';
 
-    const alt = match[1];       // 'b', '#', '♯', etc.
-    const num = parseInt(match[2]);
+  const rawAlt = match[1] ?? '';
+  const num = parseInt(match[2]);
 
-    const romanMap = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
-    const roman = romanMap[num - 1];
+  // Normalise l’altération en Unicode
+  const alt = toUnicodeAlteration(rawAlt);
 
-    // Minuscule pour mineur, majuscule pour majeur
-    const formatted = type === 'min' ? roman.toLowerCase() : roman;
+  // Carte des chiffres romains
+  const romanMap = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+  const roman = romanMap[num - 1];
 
-    return alt + formatted;
+  // Minuscule pour mineur, majuscule pour majeur
+  const formatted = type === 'min' ? roman.toLowerCase() : roman;
+
+  return `${alt}${formatted}`;
+}
+
+function drawRomanNumeral(g, degreeLabel, x, y, zoom) {
+  const match = degreeLabel.match(/^([𝄫♭𝄪♯♮b#]{0,2})([ivIV]+)$/);
+  if (!match) {
+    g.text('?');
+    return;
   }
 
+  const alt = toUnicodeAlteration(match[1] ?? '');
+  const roman = match[2];
+
+  const altWidth = g.textWidth(roman) / 2;
+  const overlap = 5 * zoom;
+
+  g.textFont(CONFIG.fontFamilyRoman);
+  g.textStyle(NORMAL);
+  g.textSize(CONFIG.fontSize * 1.5 * zoom);
+
+  g.text(alt, x  - altWidth , y);
+  g.text(roman, x + altWidth / 5 , y);
+}

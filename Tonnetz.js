@@ -143,7 +143,7 @@ class Tonnetz {
     this.drawGrid(g);
     //this.drawTriangles(g);
     if (this.netGrid.chordTriangle) {
-      this.netGrid.chordTriangle.draw(g, this.zoom, this.gamme);
+      this.netGrid.chordTriangle.draw(g, this.zoom, this.gamme, this.activePcs);
     }
 
     this.drawEdges(g);
