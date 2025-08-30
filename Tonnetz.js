@@ -200,40 +200,10 @@ buildTriangles() {
     }
   }
 
-clampPan() {
-  // 1. Trouver les coordonnées extrêmes des nœuds (après zoom, sans pan)
-  let minX = Infinity, maxX = -Infinity;
-  let minY = Infinity, maxY = -Infinity;
-
-  for (const [, n] of this.nodes) {
-    const px = (n.xu * CONFIG.unitX) * this.zoom;
-    const py = (-n.yu * CONFIG.unitY) * this.zoom;
-    if (px < minX) minX = px;
-    if (px > maxX) maxX = px;
-    if (py < minY) minY = py;
-    if (py > maxY) maxY = py;
-  }
-
-  // 2. Calculer les limites de pan pour que le parallélogramme reste dans l'écran
-  const viewW = this.canvas.width;
-  const viewH = this.canvas.height;
-
-  const minPanX = viewW - (this.origin.x + maxX);
-  const maxPanX = this.origin.x - minX;
-  const minPanY = viewH - (this.origin.y + maxY);
-  const maxPanY = this.origin.y - minY;
-
-  // 3. Appliquer les limites
-  this.panX = Math.max(minPanX, Math.min(maxPanX, this.panX));
-  this.panY = Math.max(minPanY, Math.min(maxPanY, this.panY));
-}
-
-
 
 pan(dx, dy) {
   this.panX += dx;
   this.panY += dy;
-  this.clampPan();
   this.updateNodePositions();
 }
 
@@ -249,7 +219,6 @@ zoomAt(mx, my, factor) {
   this.panX = mx - this.origin.x - worldX * this.zoom;
   this.panY = my - this.origin.y - worldY * this.zoom;
 
-  this.clampPan();
   this.updateNodePositions();
 }
 
