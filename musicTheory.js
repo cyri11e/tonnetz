@@ -27,7 +27,7 @@ const GAMMES = [
   },
   { 
     nom: "Mineure harmonique", 
-    signature: "101011001101",
+    signature: "101101011001",
     modes: ["Mineur harmonique", "Locrien ♮6", "Ionien #5", "Dorien #4", "Phrygien dominant", "Lydien #2", "Superlocrien bb7"]
   },
   { 
