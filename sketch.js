@@ -112,20 +112,31 @@ function draw() {
 
   }
   if (scaleInfo) {
+  const tonicName = tonnetz.gamme.tonicNote;
+  const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
+  const scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
+
   push();
   stroke(CONFIG.colors.selectedNodeStroke);
   noFill();
   strokeWeight(0.5);
   textAlign(CENTER, TOP);
   textStyle(BOLD);
-  textSize(50);
 
-  const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
-  const scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
+  // 🔠 Taille adaptative
+  const targetWidth = width * 0.9;
+  let fontSize = 50;
+  textSize(fontSize);
+  let tw = textWidth(scaleText);
+  if (tw > targetWidth) {
+    fontSize *= targetWidth / tw;
+    textSize(fontSize);
+  }
 
-  text(scaleText, width / 2, 10); // Position haute centrale
+  text(scaleText, width / 2, 10);
   pop();
 }
+
 
 }
 
