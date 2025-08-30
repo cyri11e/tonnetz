@@ -183,16 +183,22 @@ zoomAt(mx, my, factor) {
     this.updateNodePositions();
   }
 
-  drawGrid(g) {
-    g.strokeWeight(1);
-    const cols = Math.ceil(this.canvas.width / CONFIG.unitX / this.zoom) + 2;
-    for (let xu = -cols; xu <= cols; xu++) {
-      const x = this.origin.x + this.panX + xu * CONFIG.unitX * this.zoom;
-      const is12 = mod12(xu) === 0;
-      g.stroke(is12 ? CONFIG.colors.grid12 : CONFIG.colors.grid);
-      g.line(x, 0, x, this.canvas.height);
-    }
+drawGrid(g) {
+  g.strokeWeight(1);
+  const cols = Math.ceil(this.canvas.width / CONFIG.unitX / this.zoom) + 2;
+  for (let xu = -cols; xu <= cols; xu++) {
+    const pc = mod12(this.startPc + xu); // ← pitch class de cette colonne
+
+    // 💡 Afficher uniquement si le pc est dans la gamme
+    if (!this.gamme.pitchClasses.includes(pc)) continue;
+
+    const x = this.origin.x + this.panX + xu * CONFIG.unitX * this.zoom;
+    const is12 = mod12(xu) === 0;
+    g.stroke(is12 ? CONFIG.colors.grid12 : CONFIG.colors.grid);
+    g.line(x, 0, x, this.canvas.height);
   }
+}
+
 
   drawEdges(g) {
     for (const e of this.edges) {

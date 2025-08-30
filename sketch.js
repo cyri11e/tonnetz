@@ -8,8 +8,8 @@ let lastChordTime = 0;
 function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
   canvas.elt.oncontextmenu = () => false; // bloque menu clic droit
-  textFont('Arial Unicode MS');
-  textStyle(BOLD);
+  textFont(CONFIG.fontFamily);
+  textStyle(CONFIG.fontWeight);
   background(CONFIG.colors.bg);
 
   tonnetz = new Tonnetz({
@@ -111,32 +111,38 @@ function draw() {
 
 
   }
-  if (scaleInfo) {
-  const tonicName = tonnetz.gamme.tonicNote;
-  const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
-  const scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
+    if (scaleInfo) {
+    const tonicName = tonnetz.gamme.tonicNote;
+    const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
+    const scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
 
-  push();
-  stroke(CONFIG.colors.selectedNodeStroke);
-  noFill();
-  strokeWeight(0.5);
-  textAlign(CENTER, TOP);
-  textStyle(BOLD);
+    push();
+    stroke(CONFIG.colors.selectedNodeStroke);
+    noFill();
+    strokeWeight(0.5);
+    textAlign(CENTER, TOP);
+    textStyle(BOLD);
 
-  // 🔠 Taille adaptative
-  const targetWidth = width * 0.9;
-  let fontSize = 50;
-  textSize(fontSize);
-  let tw = textWidth(scaleText);
-  if (tw > targetWidth) {
-    fontSize *= targetWidth / tw;
+    // 🔠 Taille adaptative
+    const targetWidth = width * 0.9;
+    let fontSize = 50;
     textSize(fontSize);
+    let tw = textWidth(scaleText);
+    if (tw > targetWidth) {
+      fontSize *= targetWidth / tw;
+      textSize(fontSize);
+    }
+
+    text(scaleText, width / 2, 10);
+    pop();
   }
-
-  text(scaleText, width / 2, 10);
-  pop();
-}
-
+push();
+  fill(255);
+  noStroke();
+  textAlign(RIGHT, TOP);
+  textSize(22); 
+text(`FPS: ${Math.round(frameRate())}`, width - 80, 10);
+pop();
 
 }
 
