@@ -255,6 +255,14 @@ setTonic(note) {
     const pos = this.chroma.indexOf(i);
     return pos !== -1 ? this.degres[pos] : "♪";
   }
+  // -------------------------
+  // Nom de note pour un pitch class absolu
+  // -------------------------
+  getNoteName(pc) {
+    const index = this.pitchClasses.indexOf(pc);
+    if (index === -1) return null;
+    return this.notes[index];
+  }
 
   // -------------------------
   // Intervalle pour un chroma relatif

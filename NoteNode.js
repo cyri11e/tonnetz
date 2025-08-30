@@ -30,8 +30,15 @@ draw(g, active, isTonic, isRoot, inGamme, zoom, gamme)
   if (active) this.lastActiveTime = millis();
   const fadeFactor = getFadeFactor(this.lastActiveTime);
 
-  const letter     = this.name[0];
-  const accidental = this.name.slice(1);
+  let displayName = this.name;
+  if (inGamme && gamme && typeof gamme.getNoteName === 'function') {
+    displayName = gamme.getNoteName(this.pc) ?? this.name;
+  }
+  const letter     = displayName[0];
+  const accidental = displayName.slice(1);
+
+
+
   const radius     = CONFIG.nodeRadius * zoom;
 
   // recupération du label de degré si dans la gamme
