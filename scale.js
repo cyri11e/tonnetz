@@ -321,4 +321,12 @@ updateNoteLabels() {
       ? `Gamme reconnue : ${this.nomReconnu} (mode ${this.modeReconnu})`
       : `Gamme non reconnue : ${this.signature}`;
   }
+
+  transpose(offset) {
+    this.tonicPc = mod12(this.tonicPc + offset);
+    this.tonicNote = pcToName(this.tonicPc);
+    this.pitchClasses = this.pitchClasses.map(pc => mod12(pc + offset));
+    this.refreshAll();
+  }
+
 }

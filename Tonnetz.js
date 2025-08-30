@@ -272,6 +272,29 @@ const inGamme  = this.gamme?.pitchClasses.includes(node.pc) || false;
     this.selectedPcs.has(pc) ? this.selectedPcs.delete(pc) : this.selectedPcs.add(pc);
   }
 
+  transposeGamme(offset) {
+    if (!this.gamme) return;
+
+    // Transpose la gamme
+    this.gamme.transpose(offset);
+
+    // Met à jour la tonique du Tonnetz pour rester synchronisé
+    this.setKey(this.gamme.tonicNote);
+  }
+
+  rotateMode() {
+    if (!this.gamme || !this.gamme.pitchClasses || this.gamme.pitchClasses.length < 2) return;
+
+    const currentPc = this.gamme.tonicPc;
+    const pcs = this.gamme.pitchClasses;
+    const index = pcs.indexOf(currentPc);
+    const nextPc = pcs[(index + 1) % pcs.length];
+
+    this.gamme.setTonic(pcToName(nextPc));
+    this.setKey(pcToName(nextPc)); // synchronise la tonique visuelle
+  }
+
+
   getActiveNotes() {
     const activeNotes = [];
     for (const [, node] of this.nodes) {

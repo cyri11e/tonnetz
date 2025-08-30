@@ -135,16 +135,18 @@ function displayScaleLabel(g) {
 }
 
 function displayNoteList(g) {
-  const pcs = tonnetz.gamme.pitchClasses;
-  const tonicPc = tonnetz.gamme.tonicPc;
-  const style = tonnetz.noteStyle;
+  const gamme = tonnetz.gamme;
+  if (!gamme || !gamme.notes || gamme.notes.length === 0) return;
 
-  const orderedPcs = pcs
-    .map(pc => ({ pc, off: mod12(pc - tonicPc) }))
-    .sort((a, b) => a.off - b.off)
-    .map(({ pc }) => pc);
-
-  const notesText = buildScaleLine(orderedPcs, style);
+  // Construit la chaîne avec tirets selon les intervalles
+  let s = gamme.notes[0];
+  for (let i = 0; i < gamme.notes.length; i++) {
+    const curPc = gamme.pitchClasses[i];
+    const nextPc = gamme.pitchClasses[(i + 1) % gamme.pitchClasses.length];
+    const delta = mod12(nextPc - curPc);
+    const dashes = Math.max(0, delta - 1);
+    s += '-'.repeat(dashes) + gamme.notes[(i + 1) % gamme.notes.length];
+  }
 
   g.push();
   g.fill(255);
@@ -152,9 +154,10 @@ function displayNoteList(g) {
   g.textAlign(CENTER, TOP);
   g.textStyle(NORMAL);
   g.textSize(20);
-  g.text(notesText, width / 2, 70);
+  g.text(s, width / 2, 70);
   g.pop();
 }
+
 
 function buildScaleLine(pcs, style) {
   if (!pcs || pcs.length === 0) return '';
@@ -228,6 +231,21 @@ function keyPressed() {
   if (pc !== null) {
     tonnetz.togglePc(pc);
   }
+
+  if (key === '+' || key === '=') {
+    tonnetz.transposeGamme(+1); // monte d’un demi-ton
+    return false;
+  }
+  if (key === '-') {
+    tonnetz.transposeGamme(-1); // descend d’un demi-ton
+    return false;
+  }
+  if (key === 'm') {
+    tonnetz.rotateMode();
+    return false;
+  }
+
+
 }
 
 function windowResized() {
