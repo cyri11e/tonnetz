@@ -121,64 +121,6 @@ class Tonnetz {
     }
   }
 
-
-  drawChordLabel(g, tri) {
-    const [a, b, c] = tri;
-
-    const inGamme =
-      this.gamme.pitchClasses.includes(a.pc) &&
-      this.gamme.pitchClasses.includes(b.pc) &&
-      this.gamme.pitchClasses.includes(c.pc);
-
-    if (!inGamme) return;
-
-    const ys = [a.py, b.py, c.py].sort((a, b) => a - b);
-    const isUpward = ys[1] < (ys[0] + ys[2]) / 2;
-    const type = isUpward ? 'min' : 'maj';
-
-    const leftmost = [a, b, c].reduce((min, node) =>
-      node.px < min.px ? node : min
-    );
-    const others = [a, b, c].filter(n => n !== leftmost);
-    const rightmost = others.reduce((max, node) =>
-      node.px > max.px ? node : max
-    );
-
-    const baseX = (leftmost.px + rightmost.px) / 2;
-    const baseY = (leftmost.py + rightmost.py) / 2;
-    const verticalOffset = CONFIG.fontSize * (type === 'min' ? 0.5 : -0.4) * this.zoom;
-    const labelX = baseX;
-    const labelY = baseY + verticalOffset;
-
-    let displayName = leftmost.name;
-    if (this.gamme && typeof this.gamme.getNoteName === 'function') {
-      displayName = this.gamme.getNoteName(leftmost.pc) ?? leftmost.name;
-    }
-
-    let labelText = '';
-    if (this.zoom < 0.7) {
-      labelText = '';
-    } else if (this.zoom < 1) {
-      labelText = `${displayName[0]}${type === 'min' ? 'm' : 'M'}`;
-    } else if (this.zoom < 1.2) {
-      labelText = `${displayName}${type === 'min' ? 'm' : 'M'}`;
-    } else {
-      labelText = `${displayName} ${type === 'min' ? 'min' : 'MAJ'}`;
-    }
-
-    if (labelText) {
-      const baseColor = isUpward
-        ? CONFIG.colors.edgem3
-        : CONFIG.colors.edgeM3;
-
-      g.fill(baseColor);
-      g.textAlign(CENTER, CENTER);
-      g.textSize(CONFIG.fontSize * 0.75 * this.zoom);
-      g.text(labelText, labelX, labelY);
-    }
-  }
-
-
   drawNodes(g) {
     for (const [, node] of this.nodes) {
       const isActive = node.isActive(this.selectedPcs);
@@ -193,48 +135,6 @@ class Tonnetz {
 
     }
   }
-
-  displayRomanNumeral(g, tri) {
-    const [a, b, c] = tri;
-    const gamme = this.gamme;
-    if (!gamme || !gamme.chroma || !gamme.degres) return;
-
-    // Nœud fondamental = le plus à gauche
-    const root = [a, b, c].reduce((min, node) =>
-      node.px < min.px ? node : min
-    );
-
-    // Chroma relatif de la fondamentale
-    const relChroma = mod12(root.pc - gamme.tonicPc);
-    const degreeLabel = gamme.getLabel(relChroma); // ex: "1", "b3", "5"
-
-    // Détection du type d’accord
-    const ys = [a.py, b.py, c.py].sort((a, b) => a - b);
-    const isUpward = ys[1] < (ys[0] + ys[2]) / 2;
-    const type = isUpward ? 'min' : 'maj';
-
-    // Conversion en chiffre romain avec altération
-    const numeral = getRomanNumeral(degreeLabel, type);
-
-    // Centre horizontal du triangle
-    const cx = (a.px + b.px + c.px) / 3;
-
-    // Ligne médiane horizontale : moyenne des hauteurs
-    const minY = Math.min(a.py, b.py, c.py);
-    const maxY = Math.max(a.py, b.py, c.py);
-    const cy = (minY + maxY) / 2;
-
-    // Affichage
-    g.push();
-    g.textFont('Times New Roman');
-    g.textAlign(CENTER, CENTER);
-    g.textSize(CONFIG.fontSize * 1.5 * this.zoom);
-    g.fill(CONFIG.colors.selectedNodeFill);
-    g.text(numeral, cx, cy);
-    g.pop();
-  }
-
-
 
   // draw principal 
   draw(g) {
