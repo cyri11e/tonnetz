@@ -213,11 +213,11 @@ class ChordTriangle {
          gamme.pitchClasses.includes(b.pc) &&
          gamme.pitchClasses.includes(c.pc);
 }
-isActive(tri, selectedPcs) {
+isActive(tri, activePcs) {
   const [a, b, c] = tri;
-  return selectedPcs.has(a.pc) &&
-         selectedPcs.has(b.pc) &&
-         selectedPcs.has(c.pc);
+  return activePcs.has(a.pc) &&
+         activePcs.has(b.pc) &&
+         activePcs.has(c.pc);
 }
 
 }

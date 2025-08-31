@@ -17,7 +17,7 @@ class Tonnetz {
     this.panX = 0;
     this.panY = 0;
 
-    this.selectedPcs = new Set();
+    this.activePcs = new Set();
     this.activeMidiNums = [];
     this.chordDetector = new ChordDetector();
     this.noteStyle = 'mixed';
@@ -107,7 +107,7 @@ class Tonnetz {
 
   drawEdges(g) {
     for (const e of this.edges) {
-      const active = this.selectedPcs.has(e.a.pc) && this.selectedPcs.has(e.b.pc);
+      const active = this.activePcs.has(e.a.pc) && this.activePcs.has(e.b.pc);
       let col = active
         ? g.color(
           e.interval === 'P5' ? CONFIG.colors.edgeP5 :
@@ -123,7 +123,7 @@ class Tonnetz {
 
   drawNodes(g) {
     for (const [, node] of this.nodes) {
-      const isActive = node.isActive(this.selectedPcs);
+      const isActive = node.isActive(this.activePcs);
       const isTonic = node.pc === this.keyPc;
       const isRoot = this.isRoot(node);
       const inGamme = this.gamme?.pitchClasses.includes(node.pc) || false;
@@ -178,7 +178,7 @@ class Tonnetz {
   }
 
   togglePc(pc) {
-    this.selectedPcs.has(pc) ? this.selectedPcs.delete(pc) : this.selectedPcs.add(pc);
+    this.activePcs.has(pc) ? this.activePcs.delete(pc) : this.activePcs.add(pc);
   }
 
   transposeGamme(offset) {
@@ -231,7 +231,7 @@ class Tonnetz {
   getActiveNotes() {
     const activeNotes = [];
     for (const [, node] of this.nodes) {
-      if (this.selectedPcs.has(node.pc)) activeNotes.push(node.name);
+      if (this.activePcs.has(node.pc)) activeNotes.push(node.name);
     }
     return [...new Set(activeNotes)];
   }
@@ -240,8 +240,8 @@ class Tonnetz {
     const signature = (midiNums || []).slice().sort((a, b) => a - b).join(',');
     if (signature === this.lastMidiSignature) return;
     this.lastMidiSignature = signature;
-    this.selectedPcs.clear();
-    (notes || []).forEach(note => this.selectedPcs.add(nameToPc(note)));
+    this.activePcs.clear();
+    (notes || []).forEach(note => this.activePcs.add(nameToPc(note)));
     this.activeMidiNums = midiNums || [];
     this.lastDetectedChords = this.chordDetector.detect(notes || [], midiNums || []);
   }

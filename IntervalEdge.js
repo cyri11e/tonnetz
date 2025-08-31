@@ -6,8 +6,8 @@ class IntervalEdge {
     this.lastActiveTime = 0;
   }
 
-  isActive(selectedPcs) {
-    return this.a.isActive(selectedPcs) && this.b.isActive(selectedPcs);
+  isActive(activePcs) {
+    return this.a.isActive(activePcs) && this.b.isActive(activePcs);
   }
 
   color() {

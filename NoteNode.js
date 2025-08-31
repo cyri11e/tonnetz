@@ -13,8 +13,8 @@ class NoteNode {
     this.lastActiveTime = 0;
   }
 
-  isActive(selectedPcs) {
-    return this.manualSelected || selectedPcs.has(this.pc);
+  isActive(activePcs) {
+    return this.manualSelected || activePcs.has(this.pc);
   }
 
   contains(mx, my) {
