@@ -20,7 +20,7 @@ function setup() {
   });
 
   midiInput = new MidiInput((notes, midiNums) => {
-    tonnetz.setMidiNotes(notes, midiNums);
+    tonnetz.updateFromMidi(midiNums);
     piano.setMidiNotes(midiNums);
   });
   midiInput.init();
@@ -142,7 +142,7 @@ function displayNoteList(g) {
     const nextPc = gamme.pitchClasses[(i + 1) % gamme.pitchClasses.length];
     const delta = mod12(nextPc - curPc);
     const dashes = Math.max(0, delta - 1);
-    s += '-'.repeat(dashes) + gamme.notes[(i + 1) % gamme.notes.length];
+    s += ' - '.repeat(dashes) + gamme.notes[(i + 1) % gamme.notes.length];
   }
 
   g.push();

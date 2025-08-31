@@ -236,15 +236,27 @@ class Tonnetz {
     return [...new Set(activeNotes)];
   }
 
-  setMidiNotes(notes, midiNums) {
+  updateFromMidi(midiNums) {
     const signature = (midiNums || []).slice().sort((a, b) => a - b).join(',');
     if (signature === this.lastMidiSignature) return;
+
     this.lastMidiSignature = signature;
-    this.activePcs.clear();
-    (notes || []).forEach(note => this.activePcs.add(nameToPc(note)));
     this.activeMidiNums = midiNums || [];
-    this.lastDetectedChords = this.chordDetector.detect(notes || [], midiNums || []);
+
+    // 1. Met à jour les pitch classes actives
+    this.activePcs = new Set(this.activeMidiNums.map(n => mod12(n)));
+
+    // 2. Reconstruit les noms de notes à partir des nœuds si possible
+    const activeNames = this.activeMidiNums.map(n => {
+      const pc = mod12(n);
+      const node = [...this.nodes.values()].find(nd => nd.pc === pc);
+      return node?.name ?? pcToName(pc, this.noteStyle); // ← priorité au nom du nœud
+    });
+
+    // 3. Détection des accords
+    this.lastDetectedChords = this.chordDetector.detect(activeNames, midiNums || []);
   }
+
 
   getDetectedChords() {
     return this.lastDetectedChords || [];
