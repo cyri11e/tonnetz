@@ -4,6 +4,13 @@ let piano;
 
 let lastChordText = '';
 let lastChordTime = 0;
+let noteListView;
+
+let draggedNode = null;
+let draggedBubble = null;
+let dragStartPc = null;
+
+
 
 function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
@@ -24,6 +31,13 @@ function setup() {
     piano.setMidiNotes(midiNums);
   });
   midiInput.init();
+
+  noteListView = new NoteListView({
+    gamme: tonnetz.gamme,
+    tonicPc: tonnetz.keyPc,
+    style: tonnetz.noteStyle
+  });
+
 
   piano = new Piano(61);
 }
@@ -64,7 +78,9 @@ function draw() {
   }
 
   displayChord(this);
-  displayNoteList(this);
+
+  noteListView.update(tonnetz.gamme, tonnetz.keyPc);
+  noteListView.draw(this, width, tonnetz.zoom);
   displayScaleLabel(this);
   displayFPS(this);
 }
@@ -104,6 +120,33 @@ function displayChord(g) {
   g.pop();
 }
 
+
+
+function buildScaleLine(pcs, style) {
+  if (!pcs || pcs.length === 0) return '';
+  let s = pcToName(pcs[0], style);
+  for (let i = 0; i < pcs.length; i++) {
+    const cur = pcs[i];
+    const nxt = pcs[(i + 1) % pcs.length];
+    const delta = mod12(nxt - cur);
+    const dashes = Math.max(0, delta - 1);
+    s += '-'.repeat(dashes) + pcToName(nxt, style);
+  }
+  return s;
+}
+
+function displayFPS(g) {
+  g.push();
+  g.fill(255);
+  g.noStroke();
+  g.textAlign(RIGHT, TOP);
+  g.textSize(12);
+  g.text(`FPS: ${Math.round(frameRate())}`, width - 80, 10);
+  g.textAlign(LEFT, TOP);
+  g.text(`Zoom: ${Math.round(tonnetz.zoom * 100)}%`, 10, 10);
+  g.pop();
+}
+
 function displayScaleLabel(g) {
   const gamme = tonnetz.gamme;
   const scaleInfo = gamme?.getScaleMode();
@@ -137,155 +180,36 @@ function displayScaleLabel(g) {
   g.pop();
 }
 
+function mouseReleased() {
+  if (draggedBubble) {
+    for (const target of noteListView.bubbles) {
+      const dx = mouseX - target.x;
+      const dy = mouseY - target.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= target.radius + 2 && target.pc !== dragStartPc) {
+        const fromPc = dragStartPc;
+        const toPc = target.pc;
 
-function displayNoteList(g) {
-  const gamme = tonnetz.gamme;
-  if (!gamme || !Array.isArray(gamme.pitchClasses)) return;
-
-  const tonicPc = gamme.tonicPc;
-  const pcs = [...Array(12).keys()].map(i => mod12(tonicPc + i));
-  pcs.push(tonicPc); // tonique à l’octave
-
-  const bubbleCount = pcs.length;
-  const targetWidth = width * 0.9;
-
-  // Taille de bulle initiale
-  let radius = CONFIG.nodeRadius ;
-  let spacing = radius * 2.1;
-  let totalWidth = spacing * bubbleCount;
-
-  // Ajuste dynamiquement si trop large
-  if (totalWidth > targetWidth) {
-    const scaleFactor = targetWidth / totalWidth;
-    radius *= scaleFactor;
-    spacing = radius * 2.1;
-    totalWidth = spacing * bubbleCount;
-  }
-
-  const startX = (width - totalWidth) / 2 + radius;
-  const baseY = 30 + CONFIG.fontSize * 2.2; // aligné sous le label de gamme
-
-  g.push();
-  g.textAlign(CENTER, CENTER);
-  g.textFont(CONFIG.fontFamily);
-  g.textStyle(CONFIG.fontWeight);
-  g.textSize(radius); // taille fixe
-
-  // avant les bulles on dessine une ligne epaisse 
-  // du centre de la 1ere bulle au centre de la derniere
-
-  // extremites de la ligne arrondies type ROUND
-  g.strokeCap(ROUND);
-  // effet flou
-
-  const bgColor = g.color(CONFIG.colors.bg);
-  bgColor.setAlpha(200);
-  g.fill(bgColor);
-  g.stroke(CONFIG.colors.bg);
-  g.strokeWeight(radius * 2.6);
-  g.line(startX, baseY, startX + (bubbleCount - 1) * spacing, baseY);
-  g.noStroke();
-  
-  //effet ombre 
-  const shadowColor = g.color(0, 0, 0, 50); // ombre noire semi-transparente
-  const shadowOffset = 2;
-
-  for (let i = 0; i < 3; i++) {
-    g.stroke(shadowColor);
-    g.strokeWeight(radius * 2.6 + i * 2); // plus large à chaque couche
-    g.line(startX, baseY + shadowOffset + i, startX + (bubbleCount - 1) * spacing, baseY + shadowOffset + i);
-  }
-
-  for (let i = 0; i < bubbleCount; i++) {
-    const pc = pcs[i];
-    const name = gamme.getNoteName(pc) ?? pcToName(pc, tonnetz.noteStyle);
-    const degrees = gamme.getLabel(i);
-    const isTonic = pc === tonicPc && i === 0;
-    const isOctave = pc === tonicPc && i === 12;
-    const inGamme = gamme.pitchClasses.includes(pc);
-
-    const x = startX + i * spacing;
-    const y = baseY;
-
-    // Cercle
-    g.strokeWeight(1);
-    g.stroke(CONFIG.colors.inactiveNodeStroke);
-
-    if (isTonic) {
-      g.fill(CONFIG.colors.tonicFillLight);
-      g.stroke(CONFIG.colors.selectedNodeStroke);
-      g.strokeWeight(2);
-    } else if (inGamme) {
-      g.fill(CONFIG.colors.selectedNodeFill);
-      g.stroke(CONFIG.colors.selectedNodeStroke);
-      g.strokeWeight(1);
-    } else {
-      g.noFill();
-      g.stroke(CONFIG.colors.inactiveNodeStroke);
+        if (tonnetz.gamme.pitchClasses.includes(fromPc)) {
+          tonnetz.gamme.supprimer(fromPc);
+        }
+        if (!tonnetz.gamme.pitchClasses.includes(toPc)) {
+          tonnetz.gamme.ajouter(toPc);
+        }
+        break;
+      }
     }
-
-    g.circle(x, y, radius * 2);
-
-    // Texte
-    g.fill(isTonic ? CONFIG.colors.tonicTextDark : CONFIG.colors.inactiveNodeLabel);
-    g.noStroke();
-    const letter = name[0];
-    const accidental = name.slice(1);
-
-    g.text(letter, x, y);
-
-    if (accidental) {
-      g.textSize(radius * 0.75);
-      const angle = -60 * Math.PI / 180;
-      const r = radius * 0.6;
-      g.text(accidental, x + Math.cos(angle) * r, y + Math.sin(angle) * r);
-      g.textSize(radius); // reset
-    }
-
-    // Texte secondaire (degré)
-    if (degrees) {
-      g.textSize(radius * 0.5);
-      g.fill(isTonic ? CONFIG.colors.tonicTextDark : CONFIG.colors.inactiveNodeLabel);
-      g.text(degrees, x, y + radius * 0.6);
-      g.textSize(radius); // reset
-    }
-
-
-//
+    draggedBubble = null;
+    dragStartPc = null;
   }
-
-  g.pop();
 }
 
 
-
-
-function buildScaleLine(pcs, style) {
-  if (!pcs || pcs.length === 0) return '';
-  let s = pcToName(pcs[0], style);
-  for (let i = 0; i < pcs.length; i++) {
-    const cur = pcs[i];
-    const nxt = pcs[(i + 1) % pcs.length];
-    const delta = mod12(nxt - cur);
-    const dashes = Math.max(0, delta - 1);
-    s += '-'.repeat(dashes) + pcToName(nxt, style);
-  }
-  return s;
-}
-
-function displayFPS(g) {
-  g.push();
-  g.fill(255);
-  g.noStroke();
-  g.textAlign(RIGHT, TOP);
-  g.textSize(22);
-  g.text(`FPS: ${Math.round(frameRate())}`, width - 80, 10);
-  g.textAlign(LEFT, TOP);
-  g.text(`Zoom: ${Math.round(tonnetz.zoom * 100)}%`, 10, 10);
-  g.pop();
-}
 
 function mousePressed() {
+  // 👇 D'abord, on teste le clic sur la liste de notes
+  if (noteListView && noteListView.handleClick(mouseX, mouseY)) return;
+
   const node = tonnetz.findNodeAt(mouseX, mouseY);
   if (!node) return;
 
@@ -305,6 +229,7 @@ function mousePressed() {
     }
   }
 }
+
 
 function keyPressed() {
   const pianoSizes = { '2': 25, '4': 49, '6': 61, '7': 76, '8': 88 };
@@ -374,6 +299,10 @@ function mouseWheel(event) {
 }
 
 function mouseDragged() {
+
+
+
+  // pan du Tonnetz
   if (mouseButton.right || (mouseButton.left && keyIsDown(SHIFT))) {
     tonnetz.pan(movedX, movedY);
     return false;

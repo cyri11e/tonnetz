@@ -49,6 +49,21 @@ const GAMMES = [
     nom: "Chromatique", 
     signature: "111111111111",
     modes: ["Chromatique"]
+  },
+  { 
+    nom: "Par ton", 
+    signature: "101010101010",
+    modes: ["Par ton"]
+  },
+  { 
+    nom: "hexatonique", 
+    signature: "101011101010",  
+    modes: ["Hexatonique"]
+  },
+  { 
+    nom: "octatonique (demi-ton/ton)",
+    signature: "101010101011",  
+    modes: ["Octatonique (demi-ton/ton)"]
   }
 ];
 
