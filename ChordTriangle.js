@@ -98,7 +98,7 @@ class ChordTriangle {
       : CONFIG.colors.triangleMajor;
 
     const col = g.color(baseColor);
-    col.setAlpha(active ? 180 : 100);
+    col.setAlpha(active ? 200 : 80);
     g.fill(col);
     g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
 
