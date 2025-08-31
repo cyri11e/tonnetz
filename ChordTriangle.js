@@ -170,7 +170,7 @@ class ChordTriangle {
       g.textFont(CONFIG.fontFamilyRoman);
       g.textStyle(BOLD)
       g.fill(CONFIG.colors.bg);
-      g.text(numeral, cx, cy + CONFIG.fontSize * 0.6 * zoom);
+      g.text(numeral, cx, cy);
       //drawRomanNumeral(g, numeral, cx + zoom * ( type === 'min' ? 0.9 : 1 ), cy + CONFIG.fontSize * 0.6 * zoom * ( type === 'min' ? 0.4 : 1 ), zoom);
 
       g.pop();
@@ -183,7 +183,7 @@ class ChordTriangle {
       g.textFont(CONFIG.fontFamily);
       g.textSize(CONFIG.fontSize * 0.75 * zoom);
       const labelColor = g.color(CONFIG.colors.nodeLabel);
-      labelColor.setAlpha(200);
+      labelColor.setAlpha(250);
       g.fill(labelColor);
       g.noStroke();
       g.text(labelText, baseX, baseY + verticalOffset);
@@ -193,8 +193,8 @@ class ChordTriangle {
       g.textAlign(CENTER, CENTER);
       g.textFont(CONFIG.fontFamilyRoman);
       g.textSize(CONFIG.fontSize * 1.5 * zoom);
-      const romanColor = g.color(CONFIG.colors.degreeLabel);
-      romanColor.setAlpha(200);
+      const romanColor = g.color(CONFIG.colors.nodeLabel);
+      romanColor.setAlpha(250);
       g.fill(romanColor);
       g.noStroke();
       g.text(numeral, cx, cy);
