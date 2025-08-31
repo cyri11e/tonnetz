@@ -209,6 +209,14 @@ function keyPressed() {
     return;
   }
 
+  if (key === BACKSPACE) {
+    tonnetz.gamme = new Gamme('C'); // ← recrée la gamme
+    tonnetz.setKey('C');            // ← synchronise la tonique
+    tonnetz.selectedPcs.clear();
+    tonnetz.activePcs.clear();
+    console.log('🔄 Gamme recréée sur C');
+  }
+
   if (key === ' ') {
     tonnetz.gamme = new Gamme();
     tonnetz.activeMidiNums.forEach(num => {

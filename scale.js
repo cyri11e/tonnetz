@@ -16,7 +16,7 @@ class Gamme {
   // -------------------------
   // Constructeur
   // -------------------------
-  constructor( tonicNote = "C", init = "101011010101") {
+  constructor( tonicNote = "C", init = "100000000000") {
     this.signature = init;                      // Signature binaire de 12 caractères
     this.tonicNote = tonicNote;                 // Nom de la tonique (ex: 'C', 'D#')
     this.tonicPc = nameToPc(tonicNote);          // Pitch class absolu de la tonique
