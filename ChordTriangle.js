@@ -142,7 +142,8 @@ class ChordTriangle {
 
     // Chiffre romain (fonction tonale)
     let numeral = '';
-    if (inGamme && gamme) {
+    //if (inGamme && gamme) {
+    if (gamme) {
       const relChroma = mod12(leftmost.pc - gamme.tonicPc);
       const degreeLabel = gamme.getLabel(relChroma);
       numeral = getRomanNumeral(degreeLabel, type);
