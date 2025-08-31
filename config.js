@@ -22,7 +22,8 @@ const CONFIG = {
   fontFamily: 'Arial Unicode MS',  // nom de la police
   fontWeight: 'bold',               // style/poids (normal, bold, etc.)
 
-  fontFamilyRoman: 'EB Garamond', // police avec empattement pour les accords
+  //fontFamilyRoman: 'EB Garamond', // police avec empattement pour les accords
+  fontFamilyRoman: 'Arial Unicode MS',
   // Palette de couleurs centralisée
   colors: {
     bg:                 '#0f0f10',         // couleur de fond du canvas

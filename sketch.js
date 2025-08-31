@@ -64,8 +64,8 @@ function draw() {
   }
 
   displayChord(this);
-  displayScaleLabel(this);
   displayNoteList(this);
+  displayScaleLabel(this);
   displayFPS(this);
 }
 
@@ -105,15 +105,21 @@ function displayChord(g) {
 }
 
 function displayScaleLabel(g) {
-  const scaleInfo = tonnetz.gamme.getScaleMode();
-  if (!scaleInfo) return;
+  const gamme = tonnetz.gamme;
+  const scaleInfo = gamme?.getScaleMode();
 
-  const tonicName = tonnetz.gamme.tonicNote;
-  const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
-  const scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
+  const tonicName = gamme?.tonicNote ?? '—';
+  let scaleText;
+
+  if (scaleInfo && scaleInfo.nom) {
+    const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
+    scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
+  } else {
+    scaleText = `${tonicName} Gamme inconnue`;
+  }
 
   const targetWidth = width * 0.9;
-  let fontSize = 50;
+  let fontSize = CONFIG.fontSize * 2;
   g.textSize(fontSize);
   let tw = g.textWidth(scaleText);
   if (tw > targetWidth) {
@@ -131,29 +137,127 @@ function displayScaleLabel(g) {
   g.pop();
 }
 
+
 function displayNoteList(g) {
   const gamme = tonnetz.gamme;
-  if (!gamme || !gamme.notes || gamme.notes.length === 0) return;
+  if (!gamme || !Array.isArray(gamme.pitchClasses)) return;
 
-  // Construit la chaîne avec tirets selon les intervalles
-  let s = gamme.notes[0];
-  for (let i = 0; i < gamme.notes.length; i++) {
-    const curPc = gamme.pitchClasses[i];
-    const nextPc = gamme.pitchClasses[(i + 1) % gamme.pitchClasses.length];
-    const delta = mod12(nextPc - curPc);
-    const dashes = Math.max(0, delta - 1);
-    s += ' - '.repeat(dashes) + gamme.notes[(i + 1) % gamme.notes.length];
+  const tonicPc = gamme.tonicPc;
+  const pcs = [...Array(12).keys()].map(i => mod12(tonicPc + i));
+  pcs.push(tonicPc); // tonique à l’octave
+
+  const bubbleCount = pcs.length;
+  const targetWidth = width * 0.9;
+
+  // Taille de bulle initiale
+  let radius = CONFIG.nodeRadius ;
+  let spacing = radius * 2.1;
+  let totalWidth = spacing * bubbleCount;
+
+  // Ajuste dynamiquement si trop large
+  if (totalWidth > targetWidth) {
+    const scaleFactor = targetWidth / totalWidth;
+    radius *= scaleFactor;
+    spacing = radius * 2.1;
+    totalWidth = spacing * bubbleCount;
   }
 
+  const startX = (width - totalWidth) / 2 + radius;
+  const baseY = 30 + CONFIG.fontSize * 2.2; // aligné sous le label de gamme
+
   g.push();
-  g.fill(255);
+  g.textAlign(CENTER, CENTER);
+  g.textFont(CONFIG.fontFamily);
+  g.textStyle(CONFIG.fontWeight);
+  g.textSize(radius); // taille fixe
+
+  // avant les bulles on dessine une ligne epaisse 
+  // du centre de la 1ere bulle au centre de la derniere
+
+  // extremites de la ligne arrondies type ROUND
+  g.strokeCap(ROUND);
+  // effet flou
+
+  const bgColor = g.color(CONFIG.colors.bg);
+  bgColor.setAlpha(200);
+  g.fill(bgColor);
+  g.stroke(CONFIG.colors.bg);
+  g.strokeWeight(radius * 2.6);
+  g.line(startX, baseY, startX + (bubbleCount - 1) * spacing, baseY);
   g.noStroke();
-  g.textAlign(CENTER, TOP);
-  g.textStyle(NORMAL);
-  g.textSize(20);
-  g.text(s, width / 2, 70);
+  
+  //effet ombre 
+  const shadowColor = g.color(0, 0, 0, 50); // ombre noire semi-transparente
+  const shadowOffset = 2;
+
+  for (let i = 0; i < 3; i++) {
+    g.stroke(shadowColor);
+    g.strokeWeight(radius * 2.6 + i * 2); // plus large à chaque couche
+    g.line(startX, baseY + shadowOffset + i, startX + (bubbleCount - 1) * spacing, baseY + shadowOffset + i);
+  }
+
+  for (let i = 0; i < bubbleCount; i++) {
+    const pc = pcs[i];
+    const name = gamme.getNoteName(pc) ?? pcToName(pc, tonnetz.noteStyle);
+    const degrees = gamme.getLabel(i);
+    const isTonic = pc === tonicPc && i === 0;
+    const isOctave = pc === tonicPc && i === 12;
+    const inGamme = gamme.pitchClasses.includes(pc);
+
+    const x = startX + i * spacing;
+    const y = baseY;
+
+    // Cercle
+    g.strokeWeight(1);
+    g.stroke(CONFIG.colors.inactiveNodeStroke);
+
+    if (isTonic) {
+      g.fill(CONFIG.colors.tonicFillLight);
+      g.stroke(CONFIG.colors.selectedNodeStroke);
+      g.strokeWeight(2);
+    } else if (inGamme) {
+      g.fill(CONFIG.colors.selectedNodeFill);
+      g.stroke(CONFIG.colors.selectedNodeStroke);
+      g.strokeWeight(1);
+    } else {
+      g.noFill();
+      g.stroke(CONFIG.colors.inactiveNodeStroke);
+    }
+
+    g.circle(x, y, radius * 2);
+
+    // Texte
+    g.fill(isTonic ? CONFIG.colors.tonicTextDark : CONFIG.colors.inactiveNodeLabel);
+    g.noStroke();
+    const letter = name[0];
+    const accidental = name.slice(1);
+
+    g.text(letter, x, y);
+
+    if (accidental) {
+      g.textSize(radius * 0.75);
+      const angle = -60 * Math.PI / 180;
+      const r = radius * 0.6;
+      g.text(accidental, x + Math.cos(angle) * r, y + Math.sin(angle) * r);
+      g.textSize(radius); // reset
+    }
+
+    // Texte secondaire (degré)
+    if (degrees) {
+      g.textSize(radius * 0.5);
+      g.fill(isTonic ? CONFIG.colors.tonicTextDark : CONFIG.colors.inactiveNodeLabel);
+      g.text(degrees, x, y + radius * 0.6);
+      g.textSize(radius); // reset
+    }
+
+
+//
+  }
+
   g.pop();
 }
+
+
 
 
 function buildScaleLine(pcs, style) {
