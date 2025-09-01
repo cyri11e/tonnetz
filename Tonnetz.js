@@ -23,10 +23,7 @@ class Tonnetz {
     this.noteStyle = 'mixed';
     NOTE_NAMES = ENHARMONIC_MAPS[this.noteStyle];
 
-    this.nodes = new Map();
-    this.edges = [];
-    // this.triangles = [];
-    this.specialSegments = [];
+
     this.netGrid = new NetGrid({
       H: this.H,
       Vn: this.Vn,
@@ -36,24 +33,31 @@ class Tonnetz {
     });
 
     // Références directes pour compatibilité avec le reste du code
-    this.nodes = this.netGrid.nodes;
-    this.edges = this.netGrid.edges;
     this.updateNodePositions();
   }
 
   key(i, j) { return `${i},${j}`; }
-  get(i, j) { return this.nodes.get(this.key(i, j)); }
+  get(i, j) { return this.netGrid.nodes.get(this.key(i, j)); }
 
-  setKey(noteName) {
-    this.keyNote = noteName;
-    this.keyPc = nameToPc(noteName);
-    this.gamme.setTonic(noteName);
-    console.log(`🎯 Tonique changée : ${this.keyNote} (pc=${this.keyPc})`);
+  setKey(noteName) { // affecte gamme 
+    if (noteName === this.keyNote){
+      this.netGrid.chordTriangle.build(); 
+      return; 
+    }
+    else {
+      // Met à jour la tonique et synchronise avec la gamme
+      this.keyNote = noteName;
+      this.keyPc = nameToPc(noteName);
+      this.gamme.setTonic(noteName);
+      this.netGrid.chordTriangle.build();
+      console.log(`🎯 Tonique changée : ${this.keyNote} (pc=${this.keyPc})`);
+    }
   }
 
 
-  updateNodePositions() {
-    for (const [, n] of this.nodes) {
+  updateNodePositions() { //affecte NetGrid
+    // Met à jour les positions px, py de chaque nœud en fonction du zoom et du pan
+    for (const [, n] of this.netGrid.nodes) {
       n.px = this.origin.x + this.panX + (n.xu * CONFIG.unitX) * this.zoom;
       n.py = this.origin.y + this.panY - (n.yu * CONFIG.unitY) * this.zoom;
     }
@@ -106,7 +110,7 @@ class Tonnetz {
 
 
   drawEdges(g) {
-    for (const e of this.edges) {
+    for (const e of this.netGrid.edges) {
       const active = this.activePcs.has(e.a.pc) && this.activePcs.has(e.b.pc);
       let col = active
         ? g.color(
@@ -122,7 +126,7 @@ class Tonnetz {
   }
 
   drawNodes(g) {
-    for (const [, node] of this.nodes) {
+    for (const [, node] of this.netGrid.nodes) {
       const isActive = node.isActive(this.activePcs);
       const isTonic = node.pc === this.keyPc;
       const isRoot = this.isRoot(node);
@@ -141,7 +145,6 @@ class Tonnetz {
     g.push();
     g.background(CONFIG.colors.bg);
     this.drawGrid(g);
-    //this.drawTriangles(g);
     if (this.netGrid.chordTriangle) {
       this.netGrid.chordTriangle.draw(g, this.zoom, this.gamme, this.activePcs);
     }
@@ -153,9 +156,11 @@ class Tonnetz {
 
 
   findNodeAt(mx, my) {
+    // interaction souris
+    // renvoie le nœud le plus proche de la position (mx, my)
     let nearestNode = null;
     let minDist = CONFIG.nodeRadius * this.zoom + 2;
-    for (const [, n] of this.nodes) {
+    for (const [, n] of this.netGrid.nodes) {
       const dx = mx - n.px;
       const dy = my - n.py;
       const dist = Math.hypot(dx, dy);
@@ -168,20 +173,46 @@ class Tonnetz {
   }
 
   setNoteStyle(style) {
+    // Met à jour le style d'affichage des notes (noms enharmoniques)
+    // style : 'sharp', 'flat', 'mixed'
+    // styles par défaut hors contexte 
+    // mais si une gamme est définie, on prend directement les noms de notes de la gamme
     if (ENHARMONIC_MAPS[style]) {
       this.noteStyle = style;
       NOTE_NAMES = ENHARMONIC_MAPS[style];
-      for (const [, n] of this.nodes) {
+      for (const [, n] of this.netGrid.nodes) {
         n.name = pcToName(n.pc);
       }
     }
   }
 
   togglePc(pc) {
+    // Ne jamais retirer la tonique
+    if (pc === this.keyPc) return;
+
+    if (this.gamme.pitchClasses.includes(pc)) {
+      this.gamme.supprimer(pc);
+    } else {
+      this.gamme.ajouter(pc);
+    }
+
+    // Recalcule les triangles
+    if (this.netGrid.chordTriangle) {
+      this.netGrid.chordTriangle.setGamme(this.gamme);
+      this.netGrid.chordTriangle.build();
+    }
+  }
+
+
+  toggleActivePc(pc) {
     this.activePcs.has(pc) ? this.activePcs.delete(pc) : this.activePcs.add(pc);
+    // mise a jour des triangles
+     // Met à jour la tonique du Tonnetz pour rester synchronisé
+    this.setKey(this.gamme.tonicNote);    
   }
 
   transposeGamme(offset) {
+    // transposition absolue de la gamme
     if (!this.gamme) return;
 
     // Transpose la gamme
@@ -193,6 +224,10 @@ class Tonnetz {
 
   // Dans la classe Tonnetz
   rotateMode() {
+    // interaction touche T
+    // fait tourner les modes de la gamme
+    // saut par quinte pour aller dans l'ordre de "clarte"
+    // 
     const g = this.gamme;
     if (!g || !g.signature) return;
 
@@ -216,6 +251,10 @@ class Tonnetz {
   }
 
   relativeTranspose() {
+    // interaction touche R 
+    // affecte une nouvelle tonique dans la gamme = transposition relative
+    // C maj ionien / A min eolien / G mixolydian / F lydian ...
+
     if (!this.gamme || !this.gamme.pitchClasses || this.gamme.pitchClasses.length < 2) return;
 
     const currentPc = this.gamme.tonicPc;
@@ -229,8 +268,10 @@ class Tonnetz {
 
 
   getActiveNotes() {
+    // Renvoie les noms des notes actives, sans doublons
+    // utilisé par sketch.js
     const activeNotes = [];
-    for (const [, node] of this.nodes) {
+    for (const [, node] of this.netGrid.nodes) {
       if (this.activePcs.has(node.pc)) activeNotes.push(node.name);
     }
     return [...new Set(activeNotes)];
@@ -249,7 +290,7 @@ class Tonnetz {
     // 2. Reconstruit les noms de notes à partir des nœuds si possible
     const activeNames = this.activeMidiNums.map(n => {
       const pc = mod12(n);
-      const node = [...this.nodes.values()].find(nd => nd.pc === pc);
+      const node = [...this.netGrid.nodes.values()].find(nd => nd.pc === pc);
       return node?.name ?? pcToName(pc, this.noteStyle); // ← priorité au nom du nœud
     });
 
@@ -259,10 +300,12 @@ class Tonnetz {
 
 
   getDetectedChords() {
+    // Renvoie le dernier résultat de détection d'accords
     return this.lastDetectedChords || [];
   }
 
   isRoot(node) {
+    // Vérifie si la note est la fondamentale d'un des accords détectés
     const chords = this.getDetectedChords();
     return chords.length && chords[0].root === node.name;
   }

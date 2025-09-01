@@ -14,7 +14,7 @@ class ChordTriangle {
   // Mise à jour de la gamme active
   setGamme(gamme) {
     this.gamme = gamme;
-    this.filterByScale(); // met à jour les triangles filtrés
+    this.filterByScale();
   }
 
   // Détection des triangles harmoniques dans le réseau
@@ -59,70 +59,60 @@ class ChordTriangle {
 
   // Filtrage des triangles selon la gamme active
   filterByScale() {
-    if (!this.gamme || !Array.isArray(this.gamme.pitchClasses)) {
-      this.triangles = this.trianglesAll.slice();
-      return;
-    }
-    const pcs = this.gamme.pitchClasses;
-    this.triangles = this.trianglesAll.filter(([a, b, c]) =>
-      pcs.includes(a.pc) && pcs.includes(b.pc) && pcs.includes(c.pc)
-    );
+    console.log("🎼 Filtrage des triangles selon gamme:", this.gamme.pitchClasses);
+console.log("Avant filtrage:", this.trianglesAll.length);
+this.triangles = this.trianglesAll.filter(([a, b, c]) =>
+  this.gamme.pitchClasses.includes(a.pc) &&
+  this.gamme.pitchClasses.includes(b.pc) &&
+  this.gamme.pitchClasses.includes(c.pc)
+);
+console.log("Après filtrage:", this.triangles.length);
+
   }
 
   // Affichage des triangles (visuel + texte)
- draw(g, zoom, gamme, activePcs) {
+// Version sans filtrage dynamique : on dessine uniquement this.triangles
+draw(g, zoom, gamme, activePcs) {
   g.push();
 
-  for (const tri of this.trianglesAll) {
+  const tris = this.triangles || [];
+  for (const tri of tris) {
     const [a, b, c] = tri;
 
-    // État harmonique
-    const inGamme = gamme?.pitchClasses?.includes(a.pc) &&
-                    gamme?.pitchClasses?.includes(b.pc) &&
-                    gamme?.pitchClasses?.includes(c.pc);
+    // État actif (ne filtre pas, sert juste au style)
+    const isActive =
+      !!activePcs &&
+      activePcs.has(a.pc) &&
+      activePcs.has(b.pc) &&
+      activePcs.has(c.pc);
 
-    const active = activePcs?.has(a.pc) &&
-                   activePcs?.has(b.pc) &&
-                   activePcs?.has(c.pc);
-
-    if (!inGamme && !active) continue;
-
-    // Orientation du triangle
-    const ys = [a.py, b.py, c.py].sort((a, b) => a - b);
+    // Orientation du triangle → type accord
+    const ys = [a.py, b.py, c.py].sort((y1, y2) => y1 - y2);
     const isUpward = ys[1] < (ys[0] + ys[2]) / 2;
     const type = isUpward ? 'min' : 'maj';
 
-    // Couleur de base
+    // Couleur
     const baseColor = isUpward
       ? CONFIG.colors.triangleMinor
       : CONFIG.colors.triangleMajor;
 
     const col = g.color(baseColor);
-    col.setAlpha(active ? 200 : 80);
+    col.setAlpha(isActive ? 200 : 80);
+
+    g.noStroke();
     g.fill(col);
     g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
 
-    // Fond animé si actif hors gamme
-    if (active && !inGamme) {
-      g.push();
-      const bg = g.color(CONFIG.colors.bg);
-      bg.setAlpha(100);
-      g.fill(bg);
-      g.noStroke();
-      g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
-      g.pop();
-    }
-
-    // Position du label
-    const leftmost = [a, b, c].reduce((min, node) => node.px < min.px ? node : min);
+    // Positionnement du label (milieu de la base)
+    const leftmost = [a, b, c].reduce((min, n) => (n.px < min.px ? n : min));
     const others = [a, b, c].filter(n => n !== leftmost);
-    const rightmost = others.reduce((max, node) => node.px > max.px ? node : max);
+    const rightmost = others.reduce((max, n) => (n.px > max.px ? n : max));
 
     const baseX = (leftmost.px + rightmost.px) / 2;
     const baseY = (leftmost.py + rightmost.py) / 2;
     const verticalOffset = CONFIG.fontSize * (type === 'min' ? 0.5 : -0.4) * zoom;
 
-    // Nom de la fondamentale (recalculé via gamme)
+    // Nom de fondamentale (priorité à la gamme si dispo)
     let displayName = leftmost.name;
     if (typeof gamme?.getNoteName === 'function') {
       displayName = gamme.getNoteName(leftmost.pc) ?? leftmost.name;
@@ -140,19 +130,19 @@ class ChordTriangle {
       labelText = `${displayName} ${type === 'min' ? 'min' : 'MAJ'}`;
     }
 
-    // Chiffre romain (fonction tonale)
+    // Chiffre romain (si gamme fournie)
     let numeral = '';
-    //if (inGamme && gamme) {
     if (gamme) {
       const relChroma = mod12(leftmost.pc - gamme.tonicPc);
       const degreeLabel = gamme.getLabel(relChroma);
       numeral = getRomanNumeral(degreeLabel, type);
     }
 
+    // Centre visuel du triangle (pour le chiffre romain)
     const cx = (a.px + b.px + c.px) / 3;
     const cy = (Math.min(a.py, b.py, c.py) + Math.max(a.py, b.py, c.py)) / 2;
 
-    // Affichage du label
+    // Label
     if (labelText) {
       g.push();
       g.textAlign(CENTER, CENTER);
@@ -163,22 +153,20 @@ class ChordTriangle {
       g.pop();
     }
 
-    // Affichage du chiffre romain
+    // Chiffre romain
     if (numeral) {
       g.push();
       g.textAlign(CENTER, CENTER);
       g.textSize(CONFIG.fontSize * 1.5 * zoom);
       g.textFont(CONFIG.fontFamilyRoman);
-      g.textStyle(BOLD)
+      g.textStyle(BOLD);
       g.fill(CONFIG.colors.bg);
       g.text(numeral, cx, cy);
-      //drawRomanNumeral(g, numeral, cx + zoom * ( type === 'min' ? 0.9 : 1 ), cy + CONFIG.fontSize * 0.6 * zoom * ( type === 'min' ? 0.4 : 1 ), zoom);
-
       g.pop();
     }
 
-    // Réaffichage dynamique si actif
-    if (active) {
+    // Réaccentuation si actif
+    if (isActive) {
       g.push();
       g.textAlign(CENTER, CENTER);
       g.textFont(CONFIG.fontFamily);
@@ -187,24 +175,27 @@ class ChordTriangle {
       labelColor.setAlpha(250);
       g.fill(labelColor);
       g.noStroke();
-      g.text(labelText, baseX, baseY + verticalOffset);
+      if (labelText) g.text(labelText, baseX, baseY + verticalOffset);
       g.pop();
 
-      g.push();
-      g.textAlign(CENTER, CENTER);
-      g.textFont(CONFIG.fontFamilyRoman);
-      g.textSize(CONFIG.fontSize * 1.5 * zoom);
-      const romanColor = g.color(CONFIG.colors.nodeLabel);
-      romanColor.setAlpha(250);
-      g.fill(romanColor);
-      g.noStroke();
-      g.text(numeral, cx, cy);
-      g.pop();
+      if (numeral) {
+        g.push();
+        g.textAlign(CENTER, CENTER);
+        g.textFont(CONFIG.fontFamilyRoman);
+        g.textSize(CONFIG.fontSize * 1.5 * zoom);
+        const romanColor = g.color(CONFIG.colors.nodeLabel);
+        romanColor.setAlpha(250);
+        g.fill(romanColor);
+        g.noStroke();
+        g.text(numeral, cx, cy);
+        g.pop();
+      }
     }
   }
 
   g.pop();
 }
+
 
 
   isInGamme(tri, gamme) {

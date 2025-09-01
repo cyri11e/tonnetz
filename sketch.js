@@ -207,12 +207,14 @@ function mouseReleased() {
 
 
 function mousePressed() {
-  // 👇 D'abord, on teste le clic sur la liste de notes
   if (noteListView && noteListView.handleClick(mouseX, mouseY)) return;
 
   const node = tonnetz.findNodeAt(mouseX, mouseY);
   if (!node) return;
+  handleTonnetzClick(node);
+}
 
+function handleTonnetzClick(node) {
   const pc = node.pc;
 
   if (keyIsDown(SHIFT)) {
@@ -221,12 +223,7 @@ function mousePressed() {
       tonnetz.gamme.ajouter(tonnetz.keyPc);
     }
   } else {
-    if (pc === tonnetz.keyPc) return;
-    if (tonnetz.gamme.pitchClasses.includes(pc)) {
-      tonnetz.gamme.supprimer(pc);
-    } else {
-      tonnetz.gamme.ajouter(pc);
-    }
+    tonnetz.togglePc(pc);
   }
 }
 
@@ -265,7 +262,7 @@ function keyPressed() {
 
   const pc = keyToPc(key);
   if (pc !== null) {
-    tonnetz.togglePc(pc);
+    tonnetz.toggleActivePc(pc);
   }
 
   if (key === '+' || key === '=') {
@@ -299,9 +296,6 @@ function mouseWheel(event) {
 }
 
 function mouseDragged() {
-
-
-
   // pan du Tonnetz
   if (mouseButton.right || (mouseButton.left && keyIsDown(SHIFT))) {
     tonnetz.pan(movedX, movedY);
