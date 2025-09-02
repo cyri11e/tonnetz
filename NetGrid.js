@@ -51,24 +51,30 @@ class NetGrid {
 }
 
 
-  // Création des arêtes entre nœuds voisins
-  buildEdges() {
-    this.edges = [];
-    for (const [, node] of this.nodes) {
-      const { i, j } = node;
+buildEdges() {
+  this.edges = [];
 
-      // Voisins dans les trois directions musicales
-      const nU = this.get(i + 1, j);     // Tierce majeure (M3)
-      const nV = this.get(i, j + 1);     // Tierce mineure (m3)
-      const nQ = this.get(i + 1, j - 1); // Quinte juste (P5)
+  for (const [, node] of this.nodes) {
+    const { i, j } = node;
 
-      // Création des arêtes si le voisin existe
-      if (nU) this.edges.push(new IntervalEdge(node, nU, 'M3'));
-      if (nV) this.edges.push(new IntervalEdge(node, nV, 'm3'));
-      if (nQ) this.edges.push(new IntervalEdge(node, nQ, 'P5'));
+    const directions = [
+      { ni: i + 1, nj: j, type: 'M3' },
+      { ni: i,     nj: j + 1, type: 'm3' },
+      { ni: i + 1, nj: j - 1, type: 'P5' }
+    ];
+
+    for (const { ni, nj, type } of directions) {
+      const neighbor = this.get(ni, nj);
+      if (!neighbor) continue;
+
+      const edge = IntervalEdge.build(node, neighbor, type);
+      if (edge) this.edges.push(edge);
     }
-    console.log(`🔗 buildEdges → ${this.edges.length} arêtes créées`);
   }
+
+  console.log(`🔗 buildEdges → ${this.edges.length} arêtes créées`);
+}
+
 
   // Détection des triangles formés par des arêtes connectées
   buildTriangles() {
