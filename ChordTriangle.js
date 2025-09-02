@@ -159,7 +159,26 @@ class ChordTriangle {
                     if (seen.has(key)) continue;
                     seen.add(key);
 
-                    const tri = this.buildSpecialChord(other1, shared, other2, typeLabel === 'M3' ? 'aug' : 'dim');
+const type = typeLabel === 'M3' ? 'aug' : 'dim';
+const allNodes = [other1, shared, other2];
+
+// Détermine la racine géométrique
+const root = allNodes.reduce((best, n) => {
+  if (n.px < best.px) return n;
+  if (n.px === best.px) {
+    if (type === 'dim' && n.py < best.py) return n; // plus haut
+    if (type === 'aug' && n.py > best.py) return n; // plus bas
+  }
+  return best;
+}, allNodes[0]);
+
+// Réordonne les nœuds avec root en premier
+const nodesOrdered = [root, ...allNodes.filter(n => n !== root)];
+
+const tri = this.buildSpecialChord(...nodesOrdered, type);
+
+
+                    //const tri = this.buildSpecialChord(other1, shared, other2, typeLabel === 'M3' ? 'aug' : 'dim');
                     if (tri) {
                         this.trianglesAll.push(tri);
                         //console.log(`✓ Triangle plat détecté: ${tri.label} [${idOf(other1)} - ${idOf(shared)} - ${idOf(other2)}]`);
@@ -209,6 +228,7 @@ class ChordTriangle {
         }, a);
 
 
+
         let displayName = root.name;
         if (typeof this.gamme?.getNoteName === 'function') {
             displayName = this.gamme.getNoteName(root.pc) ?? root.name;
@@ -226,12 +246,28 @@ class ChordTriangle {
         return {
             nodes,
             type,               // 'aug' | 'dim'
-            isUpward: null,     // triangle plat
+            isUpward: 'dim' ? false : true,     // triangle plat
             center,
             baseMidpoint,
             label,
             numeral
         };
+    }
+
+    drawSpecialChordLabel(g, tri, zoom) {
+        const root = tri.nodes[0]; // déjà trié dans buildSpecialChord()
+        const offsetX = CONFIG.fontSize * 0.6 * zoom;
+        const offsetY = CONFIG.fontSize * 0.3 * zoom;
+
+        g.push();
+        g.textAlign(LEFT, CENTER);
+        g.textFont(CONFIG.fontFamily);
+        g.textSize(CONFIG.fontSize * zoom);
+        g.fill(CONFIG.colors.chordDisplay);
+        g.noStroke();
+
+        g.text(tri.label, root.px + offsetX, root.py + offsetY);
+        g.pop();
     }
 
 
@@ -332,89 +368,118 @@ class ChordTriangle {
 
     // Affichage des triangles (visuel + texte)
     // Version sans filtrage dynamique : on dessine uniquement this.triangles
-    draw(g, zoom, gamme, activePcs) {
-        g.push();
+draw(g, zoom, gamme, activePcs) {
+    g.push();
 
-        for (const tri of this.triangles) {
-            const [a, b, c] = tri.nodes;
+    for (const tri of this.triangles) {
+        const [a, b, c] = tri.nodes;
 
-            const isActive =
-                !!activePcs &&
-                activePcs.has(a.pc) &&
-                activePcs.has(b.pc) &&
-                activePcs.has(c.pc);
+        const isActive =
+            !!activePcs &&
+            activePcs.has(a.pc) &&
+            activePcs.has(b.pc) &&
+            activePcs.has(c.pc);
 
-            // Couleur selon type
-            const baseColor = tri.type === 'min'
-                ? CONFIG.colors.triangleMinor
-                : CONFIG.colors.triangleMajor;
+        // Couleur selon type
+        const baseColor = tri.type === 'min'
+            ? CONFIG.colors.triangleMinor
+            : CONFIG.colors.triangleMajor;
 
-            const col = g.color(baseColor);
-            col.setAlpha(isActive ? 200 : 80);
+        const col = g.color(baseColor);
+        col.setAlpha(isActive ? 200 : 80);
 
+        g.noStroke();
+        g.fill(col);
+        g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
+
+        // Label texte (nom de l’accord)
+        const verticalOffset = CONFIG.fontSize * (tri.type === 'min' ? 0.5 : -0.4) * zoom;
+        const labelText = zoom < 0.7 ? '' :
+            zoom < 1 ? tri.label.slice(0, 2) :
+                zoom < 1.2 ? tri.label :
+                    `${tri.label}`;
+
+        if (labelText) {
+            g.push();
+            g.textAlign(CENTER, CENTER);
+            g.textSize(CONFIG.fontSize * 0.75 * zoom);
+            g.textFont(CONFIG.fontFamily);
+            g.fill(CONFIG.colors.chordDisplay);
+            g.text(labelText, tri.baseMidpoint.x, tri.baseMidpoint.y + verticalOffset);
+            g.pop();
+        }
+
+        // Chiffre romain
+        if (tri.numeral) {
+            g.push();
+            g.textAlign(CENTER, CENTER);
+            g.textSize(CONFIG.fontSize * 1.5 * zoom);
+            g.textFont(CONFIG.fontFamilyRoman);
+            g.textStyle(BOLD);
+            g.fill(CONFIG.colors.bg);
+            g.text(tri.numeral, tri.center.x, tri.center.y);
+            g.pop();
+        }
+
+        // Réaccentuation si actif
+        if (isActive) {
+            g.push();
+            g.textAlign(CENTER, CENTER);
+            g.textFont(CONFIG.fontFamily);
+            g.textSize(CONFIG.fontSize * 0.75 * zoom);
+            const labelColor = g.color(CONFIG.colors.nodeLabel);
+            labelColor.setAlpha(250);
+            g.fill(labelColor);
             g.noStroke();
-            g.fill(col);
-            g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
+            if (labelText) g.text(labelText, tri.baseMidpoint.x, tri.baseMidpoint.y + verticalOffset);
+            g.pop();
 
-            // Label texte (nom de l’accord)
-            const verticalOffset = CONFIG.fontSize * (tri.type === 'min' ? 0.5 : -0.4) * zoom;
-            const labelText = zoom < 0.7 ? '' :
-                zoom < 1 ? tri.label.slice(0, 2) :
-                    zoom < 1.2 ? tri.label :
-                        `${tri.label}`;
-
-            if (labelText) {
-                g.push();
-                g.textAlign(CENTER, CENTER);
-                g.textSize(CONFIG.fontSize * 0.75 * zoom);
-                g.textFont(CONFIG.fontFamily);
-                g.fill(CONFIG.colors.chordDisplay);
-                g.text(labelText, tri.baseMidpoint.x, tri.baseMidpoint.y + verticalOffset);
-                g.pop();
-            }
-
-            // Chiffre romain
             if (tri.numeral) {
                 g.push();
                 g.textAlign(CENTER, CENTER);
-                g.textSize(CONFIG.fontSize * 1.5 * zoom);
                 g.textFont(CONFIG.fontFamilyRoman);
-                g.textStyle(BOLD);
-                g.fill(CONFIG.colors.bg);
+                g.textSize(CONFIG.fontSize * 1.5 * zoom);
+                const romanColor = g.color(CONFIG.colors.nodeLabel);
+                romanColor.setAlpha(250);
+                g.fill(romanColor);
+                g.noStroke();
                 g.text(tri.numeral, tri.center.x, tri.center.y);
                 g.pop();
             }
-
-            // Réaccentuation si actif
-            if (isActive) {
-                g.push();
-                g.textAlign(CENTER, CENTER);
-                g.textFont(CONFIG.fontFamily);
-                g.textSize(CONFIG.fontSize * 0.75 * zoom);
-                const labelColor = g.color(CONFIG.colors.nodeLabel);
-                labelColor.setAlpha(250);
-                g.fill(labelColor);
-                g.noStroke();
-                if (labelText) g.text(labelText, tri.baseMidpoint.x, tri.baseMidpoint.y + verticalOffset);
-                g.pop();
-
-                if (tri.numeral) {
-                    g.push();
-                    g.textAlign(CENTER, CENTER);
-                    g.textFont(CONFIG.fontFamilyRoman);
-                    g.textSize(CONFIG.fontSize * 1.5 * zoom);
-                    const romanColor = g.color(CONFIG.colors.nodeLabel);
-                    romanColor.setAlpha(250);
-                    g.fill(romanColor);
-                    g.noStroke();
-                    g.text(tri.numeral, tri.center.x, tri.center.y);
-                    g.pop();
-                }
-            }
         }
+    }
 
+    // 🔸 Affichage des accords spéciaux (aug/dim)
+    for (const tri of this.triangles) {
+        if (tri.type !== 'aug' && tri.type !== 'dim') continue;
+
+        const root = tri.nodes[0];
+        const labelText = zoom < 0.7 ? '' :
+            zoom < 1 ? tri.label.slice(0, 2) :
+                zoom < 1.2 ? tri.label :
+                    `${tri.label}`;
+
+        if (!labelText) continue;
+
+        const offsetX = CONFIG.fontSize * 0.6 * zoom;
+        const offsetY = CONFIG.fontSize * 0.3 * zoom;
+
+        const labelColor = tri.type === 'dim'
+            ? CONFIG.colors.triangleMinor
+            : CONFIG.colors.triangleMajor;
+
+        g.push();
+        g.textAlign(LEFT, CENTER);
+        g.textSize(CONFIG.fontSize * 0.75 * zoom);
+        g.textFont(CONFIG.fontFamily);
+        g.fill(labelColor);
+        g.noStroke();
+        g.text(labelText, root.px + offsetX, root.py + offsetY);
         g.pop();
     }
+
+    g.pop();
+}
 
 
 
