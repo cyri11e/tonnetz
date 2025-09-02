@@ -16,7 +16,6 @@ class NetGrid {
     // Structures principales
     this.nodes = new Map();     // Tous les nœuds du réseau
     this.edges = [];            // Connexions entre nœuds (M3, m3, P5)
-    this.triangles = [];        // Triangles formés par les arêtes
 
     // Construction initiale
     this.buildNodes();
