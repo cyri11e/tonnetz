@@ -251,10 +251,29 @@ setTonic(note) {
   // -------------------------
   // Degré pour un chroma relatif
   // -------------------------
-  getLabel(i) {
-    const pos = this.chroma.indexOf(i);
-    return pos !== -1 ? this.degres[pos] : "♪";
+getDegreeLabel(i) {
+  const pos = this.chroma.indexOf(i);
+  if (pos !== -1) return this.degres[pos];
+
+  // Fallback : calcule un degré relatif cohérent
+  const MAJEURE = [0, 2, 4, 5, 7, 9, 11];
+  const labels  = ["1", "2", "3", "4", "5", "6", "7"];
+
+  // Trouve le degré le plus proche dans la gamme majeure
+  let closest = 0;
+  let minDist = Infinity;
+  for (let j = 0; j < MAJEURE.length; j++) {
+    const dist = Math.abs(i - MAJEURE[j]);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = j;
+    }
   }
+
+  const alt = getAlteration(i, MAJEURE[closest]); // ex: ♯, ♭, etc.
+  return alt + labels[closest]; // ex: ♯4, b6, etc.
+}
+
   // -------------------------
   // Nom de note pour un pitch class absolu
   // -------------------------

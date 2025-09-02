@@ -56,7 +56,11 @@ class ChordTriangle {
         let numeral = '';
         if (this.gamme) {
             const relChroma = mod12(leftmost.pc - this.gamme.tonicPc);
-            const degreeLabel = this.gamme.getLabel(relChroma);
+            let degreeLabel = this.gamme.getDegreeLabel(relChroma)   ;
+            // Fallback si hors gamme
+            if (degreeLabel=='♪') {
+                degreeLabel = pcToName(leftmost.pc); // ex: "F♯"
+            }
             numeral = getRomanNumeral(degreeLabel, type);
         }
 
@@ -107,7 +111,7 @@ class ChordTriangle {
         let numeral = '';
         if (this.gamme) {
             const relChroma = mod12(root.pc - this.gamme.tonicPc);
-            const degreeLabel = this.gamme.getLabel(relChroma);
+            const degreeLabel = this.gamme.getDegreeLabel(relChroma);
             numeral = getRomanNumeral(degreeLabel, type);
         }
 
@@ -273,10 +277,14 @@ class ChordTriangle {
     draw(g, zoom, activePcs) {
         g.push();
 
-        for (const tri of this.triangles) {
+        for (const tri of this.trianglesAll) {
             const [a, b, c] = tri.nodes;
             const isActive = !!activePcs && tri.nodes.every(n => activePcs.has(n.pc));
+            const isInScale = this.gamme.pitchClasses.includes(a.pc) &&
+                      this.gamme.pitchClasses.includes(b.pc) &&
+                      this.gamme.pitchClasses.includes(c.pc);
             if (isActive) tri.lastActiveTime = millis(); // mise à jour du temps
+                if (!isInScale && !isActive) continue;
             const fadeFactor = getFadeFactor(tri.lastActiveTime); // valeur entre 0 et 1
             
             // Détermine la couleur de fond
