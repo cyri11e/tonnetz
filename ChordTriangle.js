@@ -9,6 +9,7 @@ class ChordTriangle {
         // Stockage des triangles
         this.trianglesAll = [];   // Tous les triangles géométriques détectés
         this.triangles = [];      // Triangles filtrés selon la gamme
+        this.lastActiveTime = 0;
     }
 
     // Méthode principale appelée partout
@@ -275,7 +276,9 @@ class ChordTriangle {
         for (const tri of this.triangles) {
             const [a, b, c] = tri.nodes;
             const isActive = !!activePcs && tri.nodes.every(n => activePcs.has(n.pc));
-
+            if (isActive) tri.lastActiveTime = millis(); // mise à jour du temps
+            const fadeFactor = getFadeFactor(tri.lastActiveTime); // valeur entre 0 et 1
+            
             // Détermine la couleur de fond
             let baseColor;
             switch (tri.type) {
@@ -287,7 +290,7 @@ class ChordTriangle {
             }
 
             const col = g.color(baseColor);
-            col.setAlpha(isActive ? 200 : 80);
+            col.setAlpha(fadeFactor > 0 ? 200 * fadeFactor : 60);
             g.noStroke();
             g.fill(col);
 
@@ -318,46 +321,50 @@ class ChordTriangle {
             }
 
 
-            if (labelText) {
-                if (isActive) {
-                    const labelColor = g.color(CONFIG.colors.nodeLabel);
-                    //labelColor.setAlpha(250);
-                    g.fill(labelColor);
-                } else {
-                    g.fill(CONFIG.colors.chordDisplay);
-                }
+if (labelText) {
+  const labelColor = g.color(
+    fadeFactor > 0
+      ? CONFIG.colors.nodeLabel
+      : CONFIG.colors.chordDisplay
+  );
 
-                g.textFont(CONFIG.fontFamily);
-                g.textAlign(CENTER, CENTER);
+  labelColor.setAlpha(fadeFactor > 0 ? 255 * fadeFactor : 100);
+  g.fill(labelColor);
+  g.textFont(CONFIG.fontFamily);
+  g.textAlign(CENTER, CENTER);
+  g.textSize(tri.type === 'dim' || tri.type === 'aug'
+    ? CONFIG.fontSize * 0.6 * zoom
+    : CONFIG.fontSize * 0.75 * zoom);
 
-                if (tri.type === 'dim' || tri.type === 'aug')
-                    g.textSize(CONFIG.fontSize * 0.6 * zoom);  
-                else
-                    g.textSize(CONFIG.fontSize * 0.75 * zoom);
+  if (tri.type === 'aug' || tri.type === 'dim') {
+    g.push();
+    g.translate(baseMidX, baseMidY);
+    g.rotate(tri.labelAngle);
+    g.text(labelText, 0, 0);
+    g.pop();
+  } else {
+    const verticalOffset = CONFIG.fontSize * (tri.type === 'min' ? 0.5 : -0.4) * zoom;
+    g.text(labelText, baseMidX, baseMidY + verticalOffset);
+  }
+}
 
-                if (tri.type === 'aug' || tri.type === 'dim') {
-                    g.push();
-                    g.translate(baseMidX, baseMidY);
-                    g.rotate(tri.labelAngle);
-                    g.text(labelText, 0, 0);
-                    g.pop();
-                } else {
-                    const verticalOffset = CONFIG.fontSize * (tri.type === 'min' ? 0.5 : -0.4) * zoom;
-                    g.text(labelText, baseMidX, baseMidY + verticalOffset);
-                }
-            }
 
             // Chiffre romain
-            if (tri.numeral && (tri.type === 'min' || tri.type === 'maj')) {
-                const romanColor = g.color(isActive ? CONFIG.colors.nodeLabel : CONFIG.colors.bg);
-                //romanColor.setAlpha(isActive ? 250 : 255);
-                g.fill(romanColor);
-                g.textFont(CONFIG.fontFamilyRoman);
-                g.textStyle(BOLD);
-                g.textAlign(CENTER, CENTER);
-                g.textSize(CONFIG.fontSize * 1.5 * zoom);
-                g.text(tri.numeral, centerX, centerY);
-            }
+if (tri.numeral && (tri.type === 'min' || tri.type === 'maj')) {
+  const romanColor = g.color(
+    fadeFactor > 0
+      ? CONFIG.colors.nodeLabel
+      : CONFIG.colors.bg
+  );
+  romanColor.setAlpha(fadeFactor > 0 ? 255 * fadeFactor : 255);
+  g.fill(romanColor);
+  g.textFont(CONFIG.fontFamilyRoman);
+  g.textStyle(BOLD);
+  g.textAlign(CENTER, CENTER);
+  g.textSize(CONFIG.fontSize * 1.5 * zoom);
+  g.text(tri.numeral, centerX, centerY);
+}
+
         }
 
         g.pop();
