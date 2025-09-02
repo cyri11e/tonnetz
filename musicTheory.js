@@ -307,8 +307,15 @@ function getRomanNumeral(degreeLabel, type) {
   const romanMap = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
   const roman = romanMap[num - 1];
 
-  // Minuscule pour mineur, majuscule pour majeur
-  const formatted = type === 'min' ? roman.toLowerCase() : roman;
+  // Format selon le type d’accord
+  let formatted;
+  switch (type) {
+    case 'min':  formatted = roman.toLowerCase(); break;
+    case 'maj':  formatted = roman; break;
+    case 'dim':  formatted = roman.toLowerCase() + '°'; break;
+    case 'aug':  formatted = roman + '+'; break;
+    default:     formatted = roman; break;
+  }
 
   return `${alt}${formatted}`;
 }

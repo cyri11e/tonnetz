@@ -13,7 +13,7 @@ class ChordTriangle {
 
     // Méthode principale appelée partout
     build() {
-        this.buildFromEdges(); // ← nouvelle version par défaut
+        this.buildFromEdges(); // construit les triangles min maj
         this.buildSpecialFromEdges();   // triangles plats (aug/dim)
         this.filterByScale();
         console.log(`🔺 ChordTriangle: ${this.triangles.length}/${this.trianglesAll.length} triangles dans la gamme`);
@@ -49,7 +49,7 @@ class ChordTriangle {
         }
 
         // Label texte
-        const label = `${displayName} ${type === 'min' ? 'min' : 'MAJ'}`;
+        const label = `${displayName}${type === 'min' ? 'm' : ''}`;
 
         // Chiffre romain
         let numeral = '';
@@ -80,15 +80,12 @@ class ChordTriangle {
         const isUpward = c.py - a.py < 0;
         const type = isUpward ? 'aug' : 'dim';
 
-
-
         // Convention : base = extrémités = [a, c]
         const baseIdx = type == 'aug' ? [0, 1] : [0, 2];
         const n1 = nodes[baseIdx[0]];
         const n2 = nodes[baseIdx[1]];
 
         const labelAngle = Math.atan2(n2.py - n1.py, n2.px - n1.px);
-
 
         // Racine géométrique : le nœud le plus à gauche
         let root = nodes.reduce((best, n) => {
@@ -105,7 +102,7 @@ class ChordTriangle {
             displayName = this.gamme.getNoteName(root.pc) ?? root.name;
         }
 
-        const label = `${displayName} ${type}`;
+        const label = `${displayName}${type}`;
         let numeral = '';
         if (this.gamme) {
             const relChroma = mod12(root.pc - this.gamme.tonicPc);
@@ -272,175 +269,101 @@ class ChordTriangle {
 
     // Affichage des triangles (visuel + texte)
     // Version sans filtrage dynamique : on dessine uniquement this.triangles
-    draw(g, zoom, gamme, activePcs) {
+    draw(g, zoom, activePcs) {
         g.push();
 
         for (const tri of this.triangles) {
-            if (tri.type !== 'min' && tri.type !== 'maj') continue;
-
             const [a, b, c] = tri.nodes;
+            const isActive = !!activePcs && tri.nodes.every(n => activePcs.has(n.pc));
 
-            const isActive =
-                !!activePcs &&
-                activePcs.has(a.pc) &&
-                activePcs.has(b.pc) &&
-                activePcs.has(c.pc);
-
-            // Couleur de fond du triangle
-            const baseColor = tri.type === 'min'
-                ? CONFIG.colors.triangleMinor
-                : CONFIG.colors.triangleMajor;
+            // Détermine la couleur de fond
+            let baseColor;
+            switch (tri.type) {
+                case 'min': baseColor = CONFIG.colors.triangleMinor; break;
+                case 'maj': baseColor = CONFIG.colors.triangleMajor; break;
+                case 'dim': baseColor = CONFIG.colors.triangleMinor; break;
+                case 'aug': baseColor = CONFIG.colors.triangleMajor; break;
+                default: baseColor = CONFIG.colors.chordDisplay; break;
+            }
 
             const col = g.color(baseColor);
             col.setAlpha(isActive ? 200 : 80);
-
             g.noStroke();
             g.fill(col);
-            g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
 
-            // Recalcule la géométrie depuis les px/py ACTUELS
+            // Dessin du triangle (seulement pour maj/min)
+            if (tri.type === 'min' || tri.type === 'maj') {
+                g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
+            }
+
+            // Calculs géométriques
             const centerX = (a.px + b.px + c.px) / 3;
             let centerY = (a.py + b.py + c.py) / 3;
-            // Correction visuelle pour les accords mineurs
-            if (tri.type === 'min') {
-            centerY += CONFIG.fontSize * 0.4 * zoom;
-            }
+            if (tri.type === 'min') centerY += CONFIG.fontSize * 0.4 * zoom;
 
-            let baseMidX, baseMidY;
-            if (tri.baseIdx && tri.baseIdx.length === 2) {
-                // Si l’info sur la base existe, on s’y fie
-                const n1 = tri.nodes[tri.baseIdx[0]];
-                const n2 = tri.nodes[tri.baseIdx[1]];
-                baseMidX = (n1.px + n2.px) / 2;
-                baseMidY = (n1.py + n2.py) / 2;
-            } else {
-                // Sinon, on prend l’arête la plus longue comme base
-                const dAB = (a.px - b.px) ** 2 + (a.py - b.py) ** 2;
-                const dBC = (b.px - c.px) ** 2 + (b.py - c.py) ** 2;
-                const dCA = (c.px - a.px) ** 2 + (c.py - a.py) ** 2;
+            const n1 = tri.nodes[tri.baseIdx[0]];
+            const n2 = tri.nodes[tri.baseIdx[1]];
+            const baseMidX = (n1.px + n2.px) / 2;
+            const baseMidY = (n1.py + n2.py) / 2;
 
-                if (dAB >= dBC && dAB >= dCA) {
-                    baseMidX = (a.px + b.px) / 2; baseMidY = (a.py + b.py) / 2;
-                } else if (dBC >= dAB && dBC >= dCA) {
-                    baseMidX = (b.px + c.px) / 2; baseMidY = (b.py + c.py) / 2;
-                } else {
-                    baseMidX = (c.px + a.px) / 2; baseMidY = (c.py + a.py) / 2;
-                }
-            }
-
-            // Label texte (nom d’accord)
-            const verticalOffset = CONFIG.fontSize * (tri.type === 'min' ? 0.5 : -0.4) * zoom;
-            const labelText = zoom < 0.7 ? '' :
+            // Label text
+            let labelText = zoom < 0.7 ? '' :
                 zoom < 1 ? tri.label.slice(0, 2) :
-                    zoom < 1.2 ? tri.label :
-                        `${tri.label}`;
+                    zoom < 1.2 ? tri.label : tri.label;
+
+            // Ajout du chiffre romain à la volée pour dim/aug
+            if ((tri.type === 'dim' || tri.type === 'aug') && tri.numeral) {
+                labelText += ` ${tri.numeral}`;
+
+            }
+
 
             if (labelText) {
-                g.push();
-                g.textAlign(CENTER, CENTER);
-                g.textSize(CONFIG.fontSize * 0.75 * zoom);
+                if (isActive) {
+                    const labelColor = g.color(CONFIG.colors.nodeLabel);
+                    //labelColor.setAlpha(250);
+                    g.fill(labelColor);
+                } else {
+                    g.fill(CONFIG.colors.chordDisplay);
+                }
+
                 g.textFont(CONFIG.fontFamily);
-                g.fill(CONFIG.colors.chordDisplay);
-                g.text(labelText, baseMidX, baseMidY + verticalOffset);
-                g.pop();
+                g.textAlign(CENTER, CENTER);
+
+                if (tri.type === 'dim' || tri.type === 'aug')
+                    g.textSize(CONFIG.fontSize * 0.6 * zoom);  
+                else
+                    g.textSize(CONFIG.fontSize * 0.75 * zoom);
+
+                if (tri.type === 'aug' || tri.type === 'dim') {
+                    g.push();
+                    g.translate(baseMidX, baseMidY);
+                    g.rotate(tri.labelAngle);
+                    g.text(labelText, 0, 0);
+                    g.pop();
+                } else {
+                    const verticalOffset = CONFIG.fontSize * (tri.type === 'min' ? 0.5 : -0.4) * zoom;
+                    g.text(labelText, baseMidX, baseMidY + verticalOffset);
+                }
             }
 
             // Chiffre romain
-            if (tri.numeral) {
-                g.push();
-                g.textAlign(CENTER, CENTER);
-                g.textSize(CONFIG.fontSize * 1.5 * zoom);
+            if (tri.numeral && (tri.type === 'min' || tri.type === 'maj')) {
+                const romanColor = g.color(isActive ? CONFIG.colors.nodeLabel : CONFIG.colors.bg);
+                //romanColor.setAlpha(isActive ? 250 : 255);
+                g.fill(romanColor);
                 g.textFont(CONFIG.fontFamilyRoman);
                 g.textStyle(BOLD);
-                g.fill(CONFIG.colors.bg);
+                g.textAlign(CENTER, CENTER);
+                g.textSize(CONFIG.fontSize * 1.5 * zoom);
                 g.text(tri.numeral, centerX, centerY);
-                g.pop();
-            }
-
-            // Réaccentuation si actif
-            if (isActive) {
-                if (labelText) {
-                    g.push();
-                    g.textAlign(CENTER, CENTER);
-                    g.textFont(CONFIG.fontFamily);
-                    g.textSize(CONFIG.fontSize * 0.75 * zoom);
-                    const labelColor = g.color(CONFIG.colors.nodeLabel);
-                    labelColor.setAlpha(250);
-                    g.fill(labelColor);
-                    g.noStroke();
-                    g.text(labelText, baseMidX, baseMidY + verticalOffset);
-                    g.pop();
-                }
-
-                if (tri.numeral) {
-                    g.push();
-                    g.textAlign(CENTER, CENTER);
-                    g.textFont(CONFIG.fontFamilyRoman);
-                    g.textSize(CONFIG.fontSize * 1.5 * zoom);
-                    const romanColor = g.color(CONFIG.colors.nodeLabel);
-                    romanColor.setAlpha(250);
-                    g.fill(romanColor);
-                    g.noStroke();
-                    g.text(tri.numeral, centerX, centerY);
-                    g.pop();
-                }
             }
         }
-
-        // 🔸 Accords spéciaux (aug/dim) — déjà OK, on garde l’ancrage sur root.px/root.py
-        for (const tri of this.triangles) {
-            if (tri.type !== 'aug' && tri.type !== 'dim') continue;
-
-            const labelText = zoom < 0.7 ? '' :
-                zoom < 1 ? tri.label.slice(0, 2) :
-                    zoom < 1.2 ? tri.label :
-                        `${tri.label}`;
-
-            if (!labelText) continue;
-
-            const isActive =
-                !!activePcs &&
-                tri.nodes.every(n => activePcs.has(n.pc));
-
-            const labelColor = isActive
-                ? (tri.type === 'dim'
-                    ? CONFIG.colors.triangleMinor
-                    : CONFIG.colors.triangleMajor)
-                : CONFIG.colors.chordDisplay; // couleur neutre comme les accords non actifs
-
-
-            // Milieu de l’arête (baseIdx est [0,2] pour les triangles plats)
-            const n1 = tri.nodes[tri.baseIdx[0]];
-            const n2 = tri.nodes[tri.baseIdx[1]];
-            const n3 = tri.nodes[tri.baseIdx[2]];
-            const midX = (n1.px + n2.px) / 2;
-            const midY = (n1.py + n2.py) / 2;
-
-            g.push();
-            g.translate(midX, midY);
-            g.rotate(tri.labelAngle); // ← rotation selon orientation de la diagonale
-            g.textAlign(CENTER, CENTER);
-            g.textSize(CONFIG.fontSize * 0.75 * zoom);
-            g.textFont(CONFIG.fontFamily);
-            g.fill(labelColor);
-            g.noStroke();
-            g.text(labelText, 0, 0);
-            g.pop();
-        }
-
-
 
         g.pop();
     }
 
 
-    isInGamme(tri, gamme) {
-        if (!gamme || !Array.isArray(gamme.pitchClasses)) return false;
-        const [a, b, c] = tri;
-        return gamme.pitchClasses.includes(a.pc) &&
-            gamme.pitchClasses.includes(b.pc) &&
-            gamme.pitchClasses.includes(c.pc);
-    }
     isActive(tri, activePcs) {
         const [a, b, c] = tri;
         return activePcs.has(a.pc) &&

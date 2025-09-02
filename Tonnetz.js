@@ -145,11 +145,12 @@ class Tonnetz {
     g.push();
     g.background(CONFIG.colors.bg);
     this.drawGrid(g);
+    this.drawEdges(g);    
     if (this.netGrid.chordTriangle) {
-      this.netGrid.chordTriangle.draw(g, this.zoom, this.gamme, this.activePcs);
+      this.netGrid.chordTriangle.draw(g, this.zoom, this.activePcs);
     }
 
-    this.drawEdges(g);
+
     this.drawNodes(g);
     g.pop();
   }
