@@ -1,7 +1,7 @@
 // Configuration globale de l’application
 const CONFIG = {
   // Durée (en ms) du fondu pour l’overlay des notes jouées
-  fadeTime: 200,
+  fadeTime: 300,
 
   // Échelle de la grille Tonnetz (en pixels)
   unitX: 18,        // largeur d’une unité horizontale

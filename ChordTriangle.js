@@ -300,7 +300,11 @@ class ChordTriangle {
 
             // Recalcule la géométrie depuis les px/py ACTUELS
             const centerX = (a.px + b.px + c.px) / 3;
-            const centerY = (a.py + b.py + c.py) / 3;
+            let centerY = (a.py + b.py + c.py) / 3;
+            // Correction visuelle pour les accords mineurs
+            if (tri.type === 'min') {
+            centerY += CONFIG.fontSize * 0.4 * zoom;
+            }
 
             let baseMidX, baseMidY;
             if (tri.baseIdx && tri.baseIdx.length === 2) {
