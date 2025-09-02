@@ -159,23 +159,23 @@ class ChordTriangle {
                     if (seen.has(key)) continue;
                     seen.add(key);
 
-const type = typeLabel === 'M3' ? 'aug' : 'dim';
-const allNodes = [other1, shared, other2];
+                    const type = typeLabel === 'M3' ? 'aug' : 'dim';
+                    const allNodes = [other1, shared, other2];
 
-// Détermine la racine géométrique
-const root = allNodes.reduce((best, n) => {
-  if (n.px < best.px) return n;
-  if (n.px === best.px) {
-    if (type === 'dim' && n.py < best.py) return n; // plus haut
-    if (type === 'aug' && n.py > best.py) return n; // plus bas
-  }
-  return best;
-}, allNodes[0]);
+                    // Détermine la racine géométrique
+                    const root = allNodes.reduce((best, n) => {
+                        if (n.px < best.px) return n;
+                        if (n.px === best.px) {
+                            if (type === 'dim' && n.py < best.py) return n; // plus haut
+                            if (type === 'aug' && n.py > best.py) return n; // plus bas
+                        }
+                        return best;
+                    }, allNodes[0]);
 
-// Réordonne les nœuds avec root en premier
-const nodesOrdered = [root, ...allNodes.filter(n => n !== root)];
+                    // Réordonne les nœuds avec root en premier
+                    const nodesOrdered = [root, ...allNodes.filter(n => n !== root)];
 
-const tri = this.buildSpecialChord(...nodesOrdered, type);
+                    const tri = this.buildSpecialChord(...nodesOrdered, type);
 
 
                     //const tri = this.buildSpecialChord(other1, shared, other2, typeLabel === 'M3' ? 'aug' : 'dim');
@@ -271,88 +271,6 @@ const tri = this.buildSpecialChord(...nodesOrdered, type);
     }
 
 
-    // Détection des triangles harmoniques dans le réseau
-    // buildFromNodes() {
-    //     this.trianglesAll = [];
-    //     const seen = new Set(); // pour éviter les doublons
-
-    //     const idOf = (n) => `${n.i},${n.j}`; // identifiant unique d’un nœud
-    //     const areNeighbors = (n1, n2) =>
-    //         this.edges.some(e => (e.a === n1 && e.b === n2) || (e.a === n2 && e.b === n1));
-
-    //     const pushTri = (a, b, c) => {
-    //         const key = [idOf(a), idOf(b), idOf(c)].sort().join('|');
-    //         if (!seen.has(key)) {
-    //             seen.add(key);
-    //             this.trianglesAll.push([a, b, c]);
-    //         }
-    //     };
-
-    //     // Parcours de tous les nœuds pour détecter les triangles valides
-    //     for (const [, node] of this.nodes) {
-    //         const { i, j } = node;
-
-    //         // Voisins dans les directions musicales
-    //         const nU = this.get(i + 1, j);       // M3
-    //         const nV = this.get(i, j + 1);       // m3
-    //         const nQ = this.get(i + 1, j - 1);   // P5
-    //         const pU = this.get(i - 1, j);       // -M3
-    //         const pV = this.get(i, j - 1);       // -m3
-    //         const pQ = this.get(i - 1, j + 1);   // -P5
-
-    //         // Teste les combinaisons de triangles valides
-    //         if (nU && nQ && areNeighbors(node, nU) && areNeighbors(node, nQ) && areNeighbors(nU, nQ)) pushTri(node, nU, nQ);
-    //         if (nV && nQ && areNeighbors(node, nV) && areNeighbors(node, nQ) && areNeighbors(nV, nQ)) pushTri(node, nV, nQ);
-    //         if (pU && pQ && areNeighbors(node, pU) && areNeighbors(node, pQ) && areNeighbors(pU, pQ)) pushTri(node, pU, pQ);
-    //         if (pV && pQ && areNeighbors(node, pV) && areNeighbors(node, pQ) && areNeighbors(pV, pQ)) pushTri(node, pV, pQ);
-    //     }
-
-    //     this._buildSpecialTriads();
-    //     this.filterByScale(); // applique le filtre de gamme
-    //     console.log(`🔺 ChordTriangle: ${this.triangles.length}/${this.trianglesAll.length} triangles dans la gamme`);
-    // }
-
-    _buildSpecialTriads() {
-        console.log('🔧 Détection des triades spéciales (aug/dim)...');
-
-        const seen = new Set();
-        const idOf = (n) => `${n.i},${n.j}`;
-        let countBefore = this.trianglesAll.length;
-        let countAdded = 0;
-
-        const pushSpecial = (a, b, c, type) => {
-            const key = [idOf(a), idOf(b), idOf(c)].sort().join('|');
-            if (!seen.has(key)) {
-                seen.add(key);
-                this.trianglesAll.push([a, b, c]); // Tu peux enrichir ici avec { nodes: [...], type }
-                countAdded++;
-            }
-        };
-
-        for (const [, node] of this.nodes) {
-            const { i, j } = node;
-
-            // Triade augmentée : M3 + M3
-            const nU = this.get(i + 1, j);
-            const nUU = this.get(i + 2, j);
-            if (nU && nUU) {
-                pushSpecial(node, nU, nUU, 'aug');
-            }
-
-            // Triade diminuée : m3 + m3
-            const nV = this.get(i, j + 1);
-            const nVV = this.get(i, j + 2);
-            if (nV && nVV) {
-                pushSpecial(node, nV, nVV, 'dim');
-            }
-        }
-
-        const countAfter = this.trianglesAll.length;
-        console.log(`🔺 Triades spéciales ajoutées: ${countAdded}`);
-        console.log(`📊 Total triangles après ajout: ${countAfter} (avant: ${countBefore})`);
-    }
-
-
     // Filtrage des triangles selon la gamme active
     filterByScale() {
         console.log("🎼 Filtrage des triangles selon gamme:", this.gamme.pitchClasses);
@@ -368,118 +286,118 @@ const tri = this.buildSpecialChord(...nodesOrdered, type);
 
     // Affichage des triangles (visuel + texte)
     // Version sans filtrage dynamique : on dessine uniquement this.triangles
-draw(g, zoom, gamme, activePcs) {
-    g.push();
+    draw(g, zoom, gamme, activePcs) {
+        g.push();
 
-    for (const tri of this.triangles) {
-        const [a, b, c] = tri.nodes;
+        for (const tri of this.triangles) {
+            const [a, b, c] = tri.nodes;
 
-        const isActive =
-            !!activePcs &&
-            activePcs.has(a.pc) &&
-            activePcs.has(b.pc) &&
-            activePcs.has(c.pc);
+            const isActive =
+                !!activePcs &&
+                activePcs.has(a.pc) &&
+                activePcs.has(b.pc) &&
+                activePcs.has(c.pc);
 
-        // Couleur selon type
-        const baseColor = tri.type === 'min'
-            ? CONFIG.colors.triangleMinor
-            : CONFIG.colors.triangleMajor;
+            // Couleur selon type
+            const baseColor = tri.type === 'min'
+                ? CONFIG.colors.triangleMinor
+                : CONFIG.colors.triangleMajor;
 
-        const col = g.color(baseColor);
-        col.setAlpha(isActive ? 200 : 80);
+            const col = g.color(baseColor);
+            col.setAlpha(isActive ? 200 : 80);
 
-        g.noStroke();
-        g.fill(col);
-        g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
-
-        // Label texte (nom de l’accord)
-        const verticalOffset = CONFIG.fontSize * (tri.type === 'min' ? 0.5 : -0.4) * zoom;
-        const labelText = zoom < 0.7 ? '' :
-            zoom < 1 ? tri.label.slice(0, 2) :
-                zoom < 1.2 ? tri.label :
-                    `${tri.label}`;
-
-        if (labelText) {
-            g.push();
-            g.textAlign(CENTER, CENTER);
-            g.textSize(CONFIG.fontSize * 0.75 * zoom);
-            g.textFont(CONFIG.fontFamily);
-            g.fill(CONFIG.colors.chordDisplay);
-            g.text(labelText, tri.baseMidpoint.x, tri.baseMidpoint.y + verticalOffset);
-            g.pop();
-        }
-
-        // Chiffre romain
-        if (tri.numeral) {
-            g.push();
-            g.textAlign(CENTER, CENTER);
-            g.textSize(CONFIG.fontSize * 1.5 * zoom);
-            g.textFont(CONFIG.fontFamilyRoman);
-            g.textStyle(BOLD);
-            g.fill(CONFIG.colors.bg);
-            g.text(tri.numeral, tri.center.x, tri.center.y);
-            g.pop();
-        }
-
-        // Réaccentuation si actif
-        if (isActive) {
-            g.push();
-            g.textAlign(CENTER, CENTER);
-            g.textFont(CONFIG.fontFamily);
-            g.textSize(CONFIG.fontSize * 0.75 * zoom);
-            const labelColor = g.color(CONFIG.colors.nodeLabel);
-            labelColor.setAlpha(250);
-            g.fill(labelColor);
             g.noStroke();
-            if (labelText) g.text(labelText, tri.baseMidpoint.x, tri.baseMidpoint.y + verticalOffset);
-            g.pop();
+            g.fill(col);
+            g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
 
+            // Label texte (nom de l’accord)
+            const verticalOffset = CONFIG.fontSize * (tri.type === 'min' ? 0.5 : -0.4) * zoom;
+            const labelText = zoom < 0.7 ? '' :
+                zoom < 1 ? tri.label.slice(0, 2) :
+                    zoom < 1.2 ? tri.label :
+                        `${tri.label}`;
+
+            if (labelText) {
+                g.push();
+                g.textAlign(CENTER, CENTER);
+                g.textSize(CONFIG.fontSize * 0.75 * zoom);
+                g.textFont(CONFIG.fontFamily);
+                g.fill(CONFIG.colors.chordDisplay);
+                g.text(labelText, tri.baseMidpoint.x, tri.baseMidpoint.y + verticalOffset);
+                g.pop();
+            }
+
+            // Chiffre romain
             if (tri.numeral) {
                 g.push();
                 g.textAlign(CENTER, CENTER);
-                g.textFont(CONFIG.fontFamilyRoman);
                 g.textSize(CONFIG.fontSize * 1.5 * zoom);
-                const romanColor = g.color(CONFIG.colors.nodeLabel);
-                romanColor.setAlpha(250);
-                g.fill(romanColor);
-                g.noStroke();
+                g.textFont(CONFIG.fontFamilyRoman);
+                g.textStyle(BOLD);
+                g.fill(CONFIG.colors.bg);
                 g.text(tri.numeral, tri.center.x, tri.center.y);
                 g.pop();
             }
+
+            // Réaccentuation si actif
+            if (isActive) {
+                g.push();
+                g.textAlign(CENTER, CENTER);
+                g.textFont(CONFIG.fontFamily);
+                g.textSize(CONFIG.fontSize * 0.75 * zoom);
+                const labelColor = g.color(CONFIG.colors.nodeLabel);
+                labelColor.setAlpha(250);
+                g.fill(labelColor);
+                g.noStroke();
+                if (labelText) g.text(labelText, tri.baseMidpoint.x, tri.baseMidpoint.y + verticalOffset);
+                g.pop();
+
+                if (tri.numeral) {
+                    g.push();
+                    g.textAlign(CENTER, CENTER);
+                    g.textFont(CONFIG.fontFamilyRoman);
+                    g.textSize(CONFIG.fontSize * 1.5 * zoom);
+                    const romanColor = g.color(CONFIG.colors.nodeLabel);
+                    romanColor.setAlpha(250);
+                    g.fill(romanColor);
+                    g.noStroke();
+                    g.text(tri.numeral, tri.center.x, tri.center.y);
+                    g.pop();
+                }
+            }
         }
-    }
 
-    // 🔸 Affichage des accords spéciaux (aug/dim)
-    for (const tri of this.triangles) {
-        if (tri.type !== 'aug' && tri.type !== 'dim') continue;
+        // 🔸 Affichage des accords spéciaux (aug/dim)
+        for (const tri of this.triangles) {
+            if (tri.type !== 'aug' && tri.type !== 'dim') continue;
 
-        const root = tri.nodes[0];
-        const labelText = zoom < 0.7 ? '' :
-            zoom < 1 ? tri.label.slice(0, 2) :
-                zoom < 1.2 ? tri.label :
-                    `${tri.label}`;
+            const root = tri.nodes[0];
+            const labelText = zoom < 0.7 ? '' :
+                zoom < 1 ? tri.label.slice(0, 2) :
+                    zoom < 1.2 ? tri.label :
+                        `${tri.label}`;
 
-        if (!labelText) continue;
+            if (!labelText) continue;
 
-        const offsetX = CONFIG.fontSize * 0.6 * zoom;
-        const offsetY = CONFIG.fontSize * 0.3 * zoom;
+            const offsetX = CONFIG.fontSize * 0.6 * zoom;
+            const offsetY = CONFIG.fontSize * 0.3 * zoom;
 
-        const labelColor = tri.type === 'dim'
-            ? CONFIG.colors.triangleMinor
-            : CONFIG.colors.triangleMajor;
+            const labelColor = tri.type === 'dim'
+                ? CONFIG.colors.triangleMinor
+                : CONFIG.colors.triangleMajor;
 
-        g.push();
-        g.textAlign(LEFT, CENTER);
-        g.textSize(CONFIG.fontSize * 0.75 * zoom);
-        g.textFont(CONFIG.fontFamily);
-        g.fill(labelColor);
-        g.noStroke();
-        g.text(labelText, root.px + offsetX, root.py + offsetY);
+            g.push();
+            g.textAlign(LEFT, CENTER);
+            g.textSize(CONFIG.fontSize * 0.75 * zoom);
+            g.textFont(CONFIG.fontFamily);
+            g.fill(labelColor);
+            g.noStroke();
+            g.text(labelText, root.px + offsetX, root.py + offsetY);
+            g.pop();
+        }
+
         g.pop();
     }
-
-    g.pop();
-}
 
 
 
