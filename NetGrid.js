@@ -79,7 +79,7 @@ buildEdges() {
   // Détection des triangles formés par des arêtes connectées
   buildTriangles() {
     this.chordTriangle = new ChordTriangle(this.nodes, this.edges, this.get.bind(this), this.gamme);
-    this.chordTriangle.build();
+    this.chordTriangle.buildFromEdges();
     
   }
 
