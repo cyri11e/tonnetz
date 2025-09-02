@@ -384,38 +384,45 @@ class ChordTriangle {
         }
 
         // 🔸 Accords spéciaux (aug/dim) — déjà OK, on garde l’ancrage sur root.px/root.py
-for (const tri of this.triangles) {
-  if (tri.type !== 'aug' && tri.type !== 'dim') continue;
+        for (const tri of this.triangles) {
+            if (tri.type !== 'aug' && tri.type !== 'dim') continue;
 
-  const labelText = zoom < 0.7 ? '' :
-    zoom < 1 ? tri.label.slice(0, 2) :
-    zoom < 1.2 ? tri.label :
-    `${tri.label}`;
+            const labelText = zoom < 0.7 ? '' :
+                zoom < 1 ? tri.label.slice(0, 2) :
+                    zoom < 1.2 ? tri.label :
+                        `${tri.label}`;
 
-  if (!labelText) continue;
+            if (!labelText) continue;
 
-  const labelColor = tri.type === 'dim'
-    ? CONFIG.colors.triangleMinor
-    : CONFIG.colors.triangleMajor;
+            const isActive =
+                !!activePcs &&
+                tri.nodes.every(n => activePcs.has(n.pc));
 
-  // Milieu de l’arête (baseIdx est [0,2] pour les triangles plats)
-  const n1 = tri.nodes[tri.baseIdx[0]];
-  const n2 = tri.nodes[tri.baseIdx[1]];
-  const n3 = tri.nodes[tri.baseIdx[2]];
-  const midX = (n1.px + n2.px) / 2;
-  const midY = (n1.py + n2.py) / 2;
+            const labelColor = isActive
+                ? (tri.type === 'dim'
+                    ? CONFIG.colors.triangleMinor
+                    : CONFIG.colors.triangleMajor)
+                : CONFIG.colors.chordDisplay; // couleur neutre comme les accords non actifs
 
-  g.push();
-  g.translate(midX, midY);
-  g.rotate(tri.labelAngle); // ← rotation selon orientation de la diagonale
-  g.textAlign(CENTER, CENTER);
-  g.textSize(CONFIG.fontSize * 0.75 * zoom);
-  g.textFont(CONFIG.fontFamily);
-  g.fill(labelColor);
-  g.noStroke();
-  g.text(labelText, 0, 0);
-  g.pop();
-}
+
+            // Milieu de l’arête (baseIdx est [0,2] pour les triangles plats)
+            const n1 = tri.nodes[tri.baseIdx[0]];
+            const n2 = tri.nodes[tri.baseIdx[1]];
+            const n3 = tri.nodes[tri.baseIdx[2]];
+            const midX = (n1.px + n2.px) / 2;
+            const midY = (n1.py + n2.py) / 2;
+
+            g.push();
+            g.translate(midX, midY);
+            g.rotate(tri.labelAngle); // ← rotation selon orientation de la diagonale
+            g.textAlign(CENTER, CENTER);
+            g.textSize(CONFIG.fontSize * 0.75 * zoom);
+            g.textFont(CONFIG.fontFamily);
+            g.fill(labelColor);
+            g.noStroke();
+            g.text(labelText, 0, 0);
+            g.pop();
+        }
 
 
 
