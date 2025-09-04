@@ -1,6 +1,7 @@
 let tonnetz;
 let midiInput;
 let piano;
+let cof;
 
 let lastChordText = '';
 let lastChordTime = 0;
@@ -26,6 +27,11 @@ function setup() {
     canvas
   });
 
+  //cycle des quintes
+  cof = new CircleOfFifths(tonnetz, CONFIG);
+  cof.build();
+
+
   midiInput = new MidiManager((notes, midiNums) => {
     tonnetz.updateFromMidi(midiNums);
     piano.setMidiNotes(midiNums);
@@ -45,7 +51,8 @@ function setup() {
 function draw() {
   background(CONFIG.colors.bg);
 
-  tonnetz.draw(this);
+  //tonnetz.draw(this);
+  cof.draw(); // au-dessus
 
   const activeNotes = tonnetz.getActiveNotes();
   const chords = activeNotes.length >= 3 ? tonnetz.getDetectedChords() : [];
@@ -322,6 +329,7 @@ function keyPressed() {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   tonnetz.resize(width, height);
+  cof.build();
 }
 
 function mouseWheel(event) {

@@ -16,7 +16,7 @@ class Gamme {
   // -------------------------
   // Constructeur
   // -------------------------
-  constructor( tonicNote = "C", init = "100000000000") {
+  constructor( tonicNote = "C", init = "101011010101") {
     this.signature = init;                      // Signature binaire de 12 caractères
     this.tonicNote = tonicNote;                 // Nom de la tonique (ex: 'C', 'D#')
     this.tonicPc = nameToPc(tonicNote);          // Pitch class absolu de la tonique
@@ -251,15 +251,14 @@ setTonic(note) {
   // -------------------------
   // Degré pour un chroma relatif
   // -------------------------
-getDegreeLabel(i) {
+getDegreeLabel(i, noteStyle = "mixed") {
   const pos = this.chroma.indexOf(i);
   if (pos !== -1) return this.degres[pos];
 
-  // Fallback : calcule un degré relatif cohérent
+  // Fallback : bémols par défaut, sauf triton
   const MAJEURE = [0, 2, 4, 5, 7, 9, 11];
   const labels  = ["1", "2", "3", "4", "5", "6", "7"];
 
-  // Trouve le degré le plus proche dans la gamme majeure
   let closest = 0;
   let minDist = Infinity;
   for (let j = 0; j < MAJEURE.length; j++) {
@@ -270,9 +269,31 @@ getDegreeLabel(i) {
     }
   }
 
-  const alt = getAlteration(i, MAJEURE[closest]); // ex: ♯, ♭, etc.
-  return alt + labels[closest]; // ex: ♯4, b6, etc.
+  const diff = mod12(i - MAJEURE[closest]);
+
+  // Cas spécial : triton
+  if (i === 6) {
+    if (noteStyle === "sharp") return "#4";
+    if (noteStyle === "flat") return "b5";
+    if (noteStyle === "mixed") {
+      const flatsKeys = [5, 10, 3, 8, 1, 6, 11];
+      return flatsKeys.includes(this.tonicPc) ? "b5" : "#4";
+    }
+  }
+
+  // Autres hors gamme → bémols
+  if (diff === 1) {
+    const nextDegree = labels[(closest + 1) % labels.length];
+    return "b" + nextDegree;
+  }
+  if (diff === 11) {
+    return "b" + labels[closest];
+  }
+
+  return labels[closest];
 }
+
+
 
   // -------------------------
   // Nom de note pour un pitch class absolu

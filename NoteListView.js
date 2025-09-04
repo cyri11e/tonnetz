@@ -58,8 +58,8 @@ class NoteListView {
 
     for (let i = 0; i < bubbleCount; i++) {
       const pc = pcs[i];
-      const name = this.gamme.getNoteName(pc) ?? pcToName(pc, this.noteStyle);
-      const degrees = this.gamme.getDegreeLabel(i);
+      const name = this.gamme.getNoteName(pc) ?? pcToName(pc, tonnetz.noteStyle);
+      const degrees = this.gamme.getDegreeLabel(i,tonnetz.noteStyle);
       const isTonic = pc === this.tonicPc && i === 0;
       const isOctave = pc === this.tonicPc && i === 12;
       const inGamme = this.gamme.pitchClasses.includes(pc);

@@ -388,7 +388,7 @@ if (tri.numeral && (tri.type === 'min' || tri.type === 'maj')) {
     }
 contains(tri, mx, my) {
   const [a, b, c] = tri.nodes;
-  return pointInTriangleInner(mx, my, a.px, a.py, b.px, b.py, c.px, c.py, 0.75); // 75% de la surface interne
+  return pointInTriangleInner(mx, my, a.px, a.py, b.px, b.py, c.px, c.py, 0.75); // 75% de la surface
 }
 
 handleHover(mx, my) {
