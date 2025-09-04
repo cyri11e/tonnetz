@@ -124,4 +124,32 @@ class MidiManager {
       }, duration);
     }
   }
+  // Joue un triangle tant que la note est maintenue
+noteOnTriangle(triangle, velocity = 100) {
+  if (!triangle || !triangle.nodes) return;
+  for (const node of triangle.nodes) {
+    this.sendNoteOnPc(node.pc, velocity);
+  }
+}
+
+noteOffTriangle(triangle) {
+  if (!triangle || !triangle.nodes) return;
+  for (const node of triangle.nodes) {
+    this.sendNoteOffPc(node.pc);
+  }
+}
+simulateNoteOnPc(pc, velocity = 100) {
+  const noteNumber = 60 + pc;
+  this.activeMidi.add(noteNumber);
+  this.markHeld(noteNumber);
+  this.emitChange(); // déclenche tonnetz.updateFromMidi(...)
+}
+
+simulateNoteOffPc(pc) {
+  const noteNumber = 60 + pc;
+  this.unmarkHeld(noteNumber);
+  this.activeMidi.delete(noteNumber);
+  this.emitChange();
+}
+
 }

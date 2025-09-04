@@ -186,6 +186,9 @@ function mouseMoved() {
 }
 
 function mouseReleased() {
+
+  tonnetz.netGrid.chordTriangle.handleRelease();
+
   if (draggedBubble) {
     for (const target of noteListView.bubbles) {
       const dx = mouseX - target.x;
@@ -214,10 +217,10 @@ function mouseReleased() {
 function mousePressed() {
   if (noteListView && noteListView.handleClick(mouseX, mouseY)) return;
 
-  // 1. Test clic triangle
-  if (tonnetz.netGrid.chordTriangle.handleClick(mouseX, mouseY)) return;
+  // Test clic triangle momentary
+  if (tonnetz.netGrid.chordTriangle.handlePress(mouseX, mouseY)) return;
 
-  // 2. Test clic nœud
+  // Test clic nœud
   const node = tonnetz.findNodeAt(mouseX, mouseY);
   if (node) {
     handleTonnetzClick(node);

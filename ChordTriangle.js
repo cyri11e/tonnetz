@@ -398,37 +398,46 @@ handleHover(mx, my) {
     }
   }
 }
-
-handleClick(mx, my) {
+handlePress(mx, my) {
   for (const tri of this.trianglesAll) {
     if (this.contains(tri, mx, my)) {
-      console.log("Clicked:", tri.label);
+      console.log("Pressed:", tri.label);
 
-      // Vérifie si tous les nœuds sont déjà actifs
-      const allActive = tri.nodes.every(n => tonnetz.activePcs.has(n.pc));
+      // Active visuellement
+      for (const node of tri.nodes) {
+        tonnetz.activePcs.add(node.pc);
+        node.manualSelected = true;
+        node.lastActiveTime = millis();
 
-      if (allActive) {
-        // 🔹 Release : désactive tous les nœuds
-        for (const node of tri.nodes) {
-          tonnetz.activePcs.delete(node.pc);
-          node.manualSelected = false;
-        }
-      } else {
-        // 🔹 Activation : active tous les nœuds
-        for (const node of tri.nodes) {
-          tonnetz.activePcs.add(node.pc);
-          node.manualSelected = true;
-          node.lastActiveTime = millis();
-        }
-         // Play the chord via MIDI output
-  midiInput.playTriangle(tri); // uses MidiManager
+        // Envoi MIDI réel
+        midiInput.sendNoteOnPc(node.pc);
+        // Simulation entrée interne
+        midiInput.simulateNoteOnPc(node.pc);
       }
 
+      this.currentPressedTriangle = tri;
       return true;
     }
   }
   return false;
 }
+
+handleRelease() {
+  if (this.currentPressedTriangle) {
+    for (const node of this.currentPressedTriangle.nodes) {
+      tonnetz.activePcs.delete(node.pc);
+      node.manualSelected = false;
+
+      // Envoi MIDI réel
+      midiInput.sendNoteOffPc(node.pc);
+      // Simulation entrée interne
+      midiInput.simulateNoteOffPc(node.pc);
+    }
+    this.currentPressedTriangle = null;
+  }
+}
+
+
 
 
 
