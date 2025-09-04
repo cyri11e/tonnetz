@@ -297,6 +297,7 @@ class ChordTriangle {
                 default: baseColor = CONFIG.colors.chordDisplay; break;
             }
 
+
             const col = g.color(baseColor);
             col.setAlpha(fadeFactor > 0 ? 200 * fadeFactor : 60);
             g.noStroke();
@@ -385,5 +386,51 @@ if (tri.numeral && (tri.type === 'min' || tri.type === 'maj')) {
             activePcs.has(b.pc) &&
             activePcs.has(c.pc);
     }
+contains(tri, mx, my) {
+  const [a, b, c] = tri.nodes;
+  return pointInTriangleInner(mx, my, a.px, a.py, b.px, b.py, c.px, c.py, 0.85);
+}
+
+handleHover(mx, my) {
+  for (const tri of this.trianglesAll) {
+    if (this.contains(tri, mx, my)) {
+      console.log("Hovered:", tri.label);
+    }
+  }
+}
+
+handleClick(mx, my) {
+  for (const tri of this.trianglesAll) {
+    if (this.contains(tri, mx, my)) {
+      console.log("Clicked:", tri.label);
+
+      // Vérifie si tous les nœuds sont déjà actifs
+      const allActive = tri.nodes.every(n => tonnetz.activePcs.has(n.pc));
+
+      if (allActive) {
+        // 🔹 Release : désactive tous les nœuds
+        for (const node of tri.nodes) {
+          tonnetz.activePcs.delete(node.pc);
+          node.manualSelected = false;
+        }
+      } else {
+        // 🔹 Activation : active tous les nœuds
+        for (const node of tri.nodes) {
+          tonnetz.activePcs.add(node.pc);
+          node.manualSelected = true;
+          node.lastActiveTime = millis();
+        }
+         // Play the chord via MIDI output
+  midiInput.playTriangle(tri); // uses MidiManager
+      }
+
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
 
 }

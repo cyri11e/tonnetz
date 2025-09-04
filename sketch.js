@@ -26,7 +26,7 @@ function setup() {
     canvas
   });
 
-  midiInput = new MidiInput((notes, midiNums) => {
+  midiInput = new MidiManager((notes, midiNums) => {
     tonnetz.updateFromMidi(midiNums);
     piano.setMidiNotes(midiNums);
   });
@@ -39,7 +39,7 @@ function setup() {
   });
 
 
-  piano = new Piano(61);
+  piano = new Piano(49);
 }
 
 function draw() {
@@ -180,6 +180,11 @@ function displayScaleLabel(g) {
   g.pop();
 }
 
+// pour detecter les hover
+function mouseMoved() {
+  tonnetz.netGrid.chordTriangle.handleHover(mouseX, mouseY);
+}
+
 function mouseReleased() {
   if (draggedBubble) {
     for (const target of noteListView.bubbles) {
@@ -209,10 +214,17 @@ function mouseReleased() {
 function mousePressed() {
   if (noteListView && noteListView.handleClick(mouseX, mouseY)) return;
 
+  // 1. Test clic triangle
+  if (tonnetz.netGrid.chordTriangle.handleClick(mouseX, mouseY)) return;
+
+  // 2. Test clic nœud
   const node = tonnetz.findNodeAt(mouseX, mouseY);
-  if (!node) return;
-  handleTonnetzClick(node);
+  if (node) {
+    handleTonnetzClick(node);
+    return;
+  }
 }
+
 
 function handleTonnetzClick(node) {
   const pc = node.pc;

@@ -1,8 +1,14 @@
-class MidiInput {
+class MidiManager {
   constructor(onNotesChange) {
     this.onNotesChange = onNotesChange;
-    this.activeMidi = new Set();
-    this.sustainActive = false;
+
+    // --- État des notes ---
+    this.activeMidi = new Set();   // notes actives (avec sustain)
+    this.heldNotes = new Set();    // notes physiquement maintenues
+    this.sustainActive = false;    // état de la pédale
+
+    // --- Sortie MIDI ---
+    this.output = null;
   }
 
   async init() {
@@ -13,15 +19,26 @@ class MidiInput {
 
     try {
       const access = await navigator.requestMIDIAccess();
+
+      // Entrées MIDI
       for (let input of access.inputs.values()) {
         input.onmidimessage = (msg) => this.handleMIDIMessage(msg);
       }
+
+      // Sortie MIDI (première trouvée)
+      const outputs = Array.from(access.outputs.values());
+      if (outputs.length > 0) {
+        this.output = outputs[0];
+        console.log("Sortie MIDI prête :", this.output.name);
+      }
+
       console.log("MIDI prêt 🎹");
     } catch (err) {
       console.error("Erreur d'accès MIDI :", err);
     }
   }
 
+  // --- GESTION DES MESSAGES ENTRANTS ---
   handleMIDIMessage(message) {
     if (!message || !message.data) return;
 
@@ -57,12 +74,12 @@ class MidiInput {
     }
   }
 
-  // --- Gestion des notes physiquement maintenues ---
-  heldNotes = new Set();
+  // --- Gestion des notes tenues ---
   markHeld(note) { this.heldNotes.add(note); }
   unmarkHeld(note) { this.heldNotes.delete(note); }
   isHeld(note) { return this.heldNotes.has(note); }
 
+  // --- Callback vers l'app ---
   emitChange() {
     if (this.onNotesChange) {
       this.onNotesChange(
@@ -74,5 +91,37 @@ class MidiInput {
 
   getNoteNames() {
     return Array.from(this.activeMidi).map(n => NOTE_NAMES[n % 12]);
+  }
+
+  // --- SORTIE MIDI ---
+  sendNoteOnPc(pc, velocity = 100, channel = 0) {
+    if (!this.output) return;
+    const noteNumber = 60 + pc; // PC 0 → C4
+    this.output.send([0x90 + channel, noteNumber, velocity]);
+  }
+
+  sendNoteOffPc(pc, channel = 0) {
+    if (!this.output) return;
+    const noteNumber = 60 + pc;
+    this.output.send([0x80 + channel, noteNumber, 0]);
+  }
+
+  // --- Jouer un triangle complet ---
+  playTriangle(triangle, velocity = 100, duration = 500) {
+    if (!triangle || !triangle.nodes) return;
+
+    // Note On
+    for (const node of triangle.nodes) {
+      this.sendNoteOnPc(node.pc, velocity);
+    }
+
+    // Note Off après durée
+    if (duration > 0) {
+      setTimeout(() => {
+        for (const node of triangle.nodes) {
+          this.sendNoteOffPc(node.pc);
+        }
+      }, duration);
+    }
   }
 }
