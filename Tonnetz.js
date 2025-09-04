@@ -289,14 +289,26 @@ class Tonnetz {
     this.activePcs = new Set(this.activeMidiNums.map(n => mod12(n)));
 
     // 2. Reconstruit les noms de notes à partir des nœuds si possible
-    const activeNames = this.activeMidiNums.map(n => {
-      const pc = mod12(n);
-      const node = [...this.netGrid.nodes.values()].find(nd => nd.pc === pc);
-      return node?.name ?? pcToName(pc, this.noteStyle); // ← priorité au nom du nœud
-    });
+    // const activeNames = this.activeMidiNums.map(n => {
+    //   const pc = mod12(n);
+    //   const node = [...this.netGrid.nodes.values()].find(nd => nd.pc === pc);
+    //   return node?.name ?? pcToName(pc, this.noteStyle); // ← priorité au nom du nœud
+    // });
+const activeNames = this.activeMidiNums.map(n => {
+  const pc = mod12(n);
+  // On récupère le node correspondant si besoin
+  const node = [...this.netGrid.nodes.values()].find(nd => nd.pc === pc);
+
+  // On demande à la gamme le nom de la note pour ce PC
+  const nameFromGamme = this.gamme?.getNoteName?.(pc);
+
+  // Priorité au nom calculé par la gamme, sinon fallback sur node.name, sinon pcToName
+  return nameFromGamme ?? node?.name ?? pcToName(pc, this.noteStyle);
+});
 
     // 3. Détection des accords
-    this.lastDetectedChords = this.chordDetector.detect(activeNames, midiNums || []);
+    if (activeNames.length >= 3)
+      this.lastDetectedChords = this.chordDetector.detect(activeNames, midiNums || []);
   }
 
 

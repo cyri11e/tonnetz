@@ -215,6 +215,8 @@ function mouseReleased() {
 
 
 function mousePressed() {
+    // Ignorer le clic droit pour laisser le pan
+  if (mouseButton.right) return;
   if (noteListView && noteListView.handleClick(mouseX, mouseY)) return;
 
   // Test clic triangle momentary
@@ -227,6 +229,24 @@ function mousePressed() {
     return;
   }
 }
+// function mousePressed() {
+//   // Ignorer le clic droit pour les triangles
+//   if (mouseButton === RIGHT) {
+//     return; // on laisse le pan gérer ça
+//   }
+
+//   if (noteListView && noteListView.handleClick(mouseX, mouseY)) return;
+
+//   // 1. Test clic triangle
+//   if (tonnetz.netGrid.chordTriangle.handleClick(mouseX, mouseY)) return;
+
+//   // 2. Test clic nœud
+//   const node = tonnetz.findNodeAt(mouseX, mouseY);
+//   if (node) {
+//     handleTonnetzClick(node);
+//     return;
+//   }
+// }
 
 
 function handleTonnetzClick(node) {

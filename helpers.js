@@ -63,7 +63,7 @@ function pointInTriangle(px, py, x1, y1, x2, y2, x3, y3) {
   return Math.abs(area - (s1 + s2 + s3)) < 0.5;
 }
 
-function pointInTriangleInner(px, py, x1, y1, x2, y2, x3, y3, shrink = 0.85) {
+function pointInTriangleInner(px, py, x1, y1, x2, y2, x3, y3, shrink = 0.75) {
   const cx = (x1 + x2 + x3) / 3;
   const cy = (y1 + y2 + y3) / 3;
   const sx1 = cx + (x1 - cx) * shrink;

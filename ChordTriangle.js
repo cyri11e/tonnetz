@@ -388,13 +388,13 @@ if (tri.numeral && (tri.type === 'min' || tri.type === 'maj')) {
     }
 contains(tri, mx, my) {
   const [a, b, c] = tri.nodes;
-  return pointInTriangleInner(mx, my, a.px, a.py, b.px, b.py, c.px, c.py, 0.85);
+  return pointInTriangleInner(mx, my, a.px, a.py, b.px, b.py, c.px, c.py, 0.75); // 75% de la surface interne
 }
 
 handleHover(mx, my) {
   for (const tri of this.trianglesAll) {
     if (this.contains(tri, mx, my)) {
-      console.log("Hovered:", tri.label);
+      //console.log("Hovered:", tri.label);
     }
   }
 }

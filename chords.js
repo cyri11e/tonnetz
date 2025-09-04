@@ -33,8 +33,8 @@ class ChordDetector {
 
 detect(activeNotes, midiNumbers = null) {
   // Récupère la notation courante (dièses/bémols) selon le style choisi
-  const currentNotation = ENHARMONIC_MAPS[tonnetz.noteStyle];
-  this.pcToNote = currentNotation;
+  //const currentNotation = ENHARMONIC_MAPS[tonnetz.noteStyle];
+  //this.pcToNote = currentNotation;
 
   let pcs, bassNote, midiList;
 
@@ -47,10 +47,25 @@ detect(activeNotes, midiNumbers = null) {
   } else {
     // Cas où on reçoit des noms de notes (ex: ["C", "E", "G"])
     const map = {};
-    currentNotation.forEach((n,i) => map[n] = i);
-    midiList = activeNotes.map(n => map[n]);
-    bassNote = this.pcToNote[midiList[0]];
-    pcs = [...new Set(midiList)].sort((a,b) => a - b);
+
+    // On construit la table de correspondance nom → pitch class
+    for (let pc = 0; pc < 12; pc++) {
+      // Nom prioritaire : celui donné par la gamme active
+      const nameFromGamme = tonnetz.gamme?.getNoteName?.(pc);
+      // Fallback : nom brut selon le style (♯/♭/mixte)
+      const finalName = nameFromGamme ?? pcToName(pc, tonnetz.noteStyle);
+      map[finalName] = pc;
+    }
+
+// Conversion des noms reçus en pitch classes
+midiList = activeNotes.map(n => map[n]);
+
+// La basse est simplement la première note reçue (déjà au bon format)
+bassNote = activeNotes[0];
+
+// Pitch classes uniques triées
+pcs = [...new Set(midiList)].sort((a, b) => a - b);
+
   }
 
   const results = [];
