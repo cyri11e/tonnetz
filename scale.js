@@ -324,6 +324,10 @@ getDegreeLabel(i, noteStyle = "mixed") {
   }
 
 updateNoteLabels() {
+    // ✅ Sécurité : si toutes les notes sont déjà présentes, on sort
+  if (!this.pitchClasses || this.pitchClasses.length >= 12) {
+    return;
+  }
   const labels = [];
 
   if (this.nomReconnu) {

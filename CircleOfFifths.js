@@ -80,7 +80,7 @@ build() {
     strokeWeight(1);
 
     // Anneau principal
-    ellipse(this.center.x, this.center.y, this.radius * 2);
+    //ellipse(this.center.x, this.center.y, this.radius * 2);
 
     // Prépare styles de texte
     textFont(this.CONFIG.fontFamily);
@@ -101,6 +101,7 @@ for (const [i, p] of this.positions.entries()) {
   // Angle de la note
   const angle = Math.atan2(p.ly - this.center.y, p.lx - this.center.x);
   const arcWidth = radians(28);
+  const fullArcWidth = radians(32);
   // --- Arc épais du fond en couleur ---
   if (inScale) {
     stroke(noteColors[i]);
@@ -120,13 +121,13 @@ for (const [i, p] of this.positions.entries()) {
   strokeWeight(this.radius * 0.04);
   stroke(inScale ? this.CONFIG.colors.selectedNodeStroke : this.CONFIG.colors.inactiveNodeStroke);
   noFill();
-  arc(this.center.x, this.center.y, this.radius * 2, this.radius * 2, angle - arcWidth / 2, angle + arcWidth / 2);
+  arc(this.center.x, this.center.y, this.radius * 2, this.radius * 2, angle - fullArcWidth / 2, angle + fullArcWidth / 2);
 
   // --- Arc intérieur ---
-  const innerR = this.radius * 0.75;
+  const innerR = this.radius * 0.7;
   strokeWeight(this.radius * 0.03);
   //stroke(inScale ? this.CONFIG.colors.selectedNodeFill : this.CONFIG.colors.inactiveNodeStroke);
-  arc(this.center.x, this.center.y, innerR * 2, innerR * 2, angle - arcWidth / 2, angle + arcWidth / 2);
+  arc(this.center.x, this.center.y, innerR * 2, innerR * 2, angle - fullArcWidth / 2, angle + fullArcWidth / 2);
 
   // --- Texte ---
   const rawName = inScale
