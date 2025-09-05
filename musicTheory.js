@@ -210,6 +210,7 @@ else if (type === "M") qualite = suiteM[diff + 3] ?? "?";
 
 
 function toUnicodeAlteration(alteration) {
+  if (!alteration) return "?";
   return alteration
     .replace(/bb/g, '𝄫')   // double bémol
     .replace(/##/g, '𝄪')   // double dièse
@@ -218,13 +219,13 @@ function toUnicodeAlteration(alteration) {
     .replace(/♮/g, '♮');   // naturel
 }
 
-function parseLabel(label) {
+function parseLabel(label='') {
   const degree = label.replace(/^[^0-9]+/, '');
   const alteration = toUnicodeAlteration(label.replace(/[0-9]/g, ''));
   return { degree, alteration };
 }
 
-function parseNoteName(noteName) {
+function parseNoteName(noteName='') {
   const match = noteName.match(/^([A-G])(bb|b|##|#|♭|♯|𝄫|𝄪|♮)?$/);
   if (!match) return null;
 
@@ -232,7 +233,8 @@ function parseNoteName(noteName) {
   let accidental = match[2] || "";
 
   // Normalisation des altérations Unicode
-  accidental = toUnicodeAlteration(accidental);
+  if (accidental) 
+    accidental = toUnicodeAlteration(accidental);
 
   return { letter, accidental };
 }
@@ -269,7 +271,7 @@ function  getNextLetter(letter) {
     return letters[(idx + 1) % letters.length];
   }
 
-function  getNextNoteLabel(currentLabel, semiTones = 1 ) {
+function  getNextNoteLabel(currentLabel = '', semiTones = 1 ) {
     const  { letter, alteration }  = parseNoteName(currentLabel);
     currentIndex = nameToPc(currentLabel);
     

@@ -56,58 +56,63 @@ class NoteListView {
 
     this.bubbles = [];
 
-    for (let i = 0; i < bubbleCount; i++) {
-      const pc = pcs[i];
-      const name = this.gamme.getNoteName(pc) ?? pcToName(pc, tonnetz.noteStyle);
-      const degrees = this.gamme.getDegreeLabel(i,tonnetz.noteStyle);
-      const isTonic = pc === this.tonicPc && i === 0;
-      const isOctave = pc === this.tonicPc && i === 12;
-      const inGamme = this.gamme.pitchClasses.includes(pc);
+ for (let i = 0; i < bubbleCount; i++) {
+  const isOctave = (i === 12);
+  const pc = pcs[i];
+  const name = this.gamme.getNoteName(pc) ?? pcToName(pc, tonnetz.noteStyle);
+  const degrees = this.gamme.getDegreeLabel(i % 12, tonnetz.noteStyle); // modulo pour l’octave
+  const isTonic = pc === this.tonicPc && i % 12 === 0;
+  const inGamme = this.gamme.pitchClasses.includes(pc);
 
-      const x = startX + i * spacing;
-      const y = baseY;
+  const x = startX + i * spacing;
+  const y = baseY;
 
-      g.strokeWeight(1);
-      g.stroke(CONFIG.colors.inactiveNodeStroke);
+  // dessin visuel identique
+  g.strokeWeight(1);
+  g.stroke(CONFIG.colors.inactiveNodeStroke);
 
-      if (isTonic) {
-        g.fill(CONFIG.colors.tonicFillLight);
-        g.stroke(CONFIG.colors.selectedNodeStroke);
-        g.strokeWeight(2);
-      } else if (inGamme) {
-        g.fill(CONFIG.colors.selectedNodeFill);
-        g.stroke(CONFIG.colors.selectedNodeStroke);
-        g.strokeWeight(1);
-      } else {
-        g.noFill();
-        g.stroke(CONFIG.colors.inactiveNodeStroke);
-      }
+  if (isTonic) {
+    g.fill(CONFIG.colors.tonicFillLight);
+    g.stroke(CONFIG.colors.selectedNodeStroke);
+    g.strokeWeight(2);
+  } else if (inGamme) {
+    g.fill(CONFIG.colors.selectedNodeFill);
+    g.stroke(CONFIG.colors.selectedNodeStroke);
+    g.strokeWeight(1);
+  } else {
+    g.noFill();
+    g.stroke(CONFIG.colors.inactiveNodeStroke);
+  }
 
-      g.circle(x, y, radius * 2);
+  g.circle(x, y, radius * 2);
 
-      g.fill(isTonic ? CONFIG.colors.tonicTextDark : CONFIG.colors.inactiveNodeLabel);
-      g.noStroke();
-      const letter = name[0];
-      const accidental = name.slice(1);
-      g.text(letter, x, y);
+  g.fill(isTonic ? CONFIG.colors.tonicTextDark : CONFIG.colors.inactiveNodeLabel);
+  g.noStroke();
+  const letter = name[0];
+  const accidental = name.slice(1);
+  g.text(letter, x, y);
 
-      if (accidental) {
-        g.textSize(radius * 0.75);
-        const angle = -60 * Math.PI / 180;
-        const r = radius * 0.6;
-        g.text(accidental, x + Math.cos(angle) * r, y + Math.sin(angle) * r);
-        g.textSize(radius);
-      }
+  if (accidental) {
+    g.textSize(radius * 0.75);
+    const angle = -60 * Math.PI / 180;
+    const r = radius * 0.6;
+    g.text(accidental, x + Math.cos(angle) * r, y + Math.sin(angle) * r);
+    g.textSize(radius);
+  }
 
-      if (degrees) {
-        g.textSize(radius * 0.5);
-        g.fill(isTonic ? CONFIG.colors.tonicTextDark : CONFIG.colors.inactiveNodeLabel);
-        g.text(degrees, x, y + radius * 0.6);
-        g.textSize(radius);
-      }
+  if (degrees) {
+    g.textSize(radius * 0.5);
+    g.fill(isTonic ? CONFIG.colors.tonicTextDark : CONFIG.colors.inactiveNodeLabel);
+    g.text(degrees, x, y + radius * 0.6);
+    g.textSize(radius);
+  }
 
-      this.bubbles.push({ x, y, radius, pc });
-    }
+  // ⚠️ On n’ajoute pas la bulle octave dans this.bubbles
+  if (!isOctave) {
+    this.bubbles.push({ x, y, radius, pc });
+  }
+}
+
 
     g.pop();
   }

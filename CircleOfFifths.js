@@ -58,19 +58,19 @@ build() {
   draw() {
     const C = this.CONFIG.colors;
     // Palette de 12 couleurs (à adapter avec tes vraies couleurs du visuel)
-    const noteColors = [
-    '#F6E27F', // 0  - C
-    '#F9C74F', // 1  - C♯ / D♭
-    '#F8961E', // 2  - D
-    '#F3722C', // 3  - D♯ / E♭
-    '#F94144', // 4  - E
-    '#F9844A', // 5  - F
-    '#F9C74F', // 6  - F♯ / G♭
-    '#90BE6D', // 7  - G
-    '#43AA8B', // 8  - G♯ / A♭
-    '#577590', // 9  - A
-    '#277DA1', // 10 - A♯ / B♭
-    '#4D908E'  // 11 - B
+    const noteColors = [ 
+    '#9a0918', // 1  
+    '#a24b12', // 2  
+    '#d38f09', // 3  
+    '#668c1f', // 4  
+    '#415623', // 5  
+    '#387d52', // 6  
+    '#338cbc', // 7  
+    '#34335b', // 8  
+    '#271f5f', // 9  
+    '#58234b', // 10 
+    '#841f4e', // 11 
+    '#9e003d'  // 12
     ];
 
 
@@ -94,7 +94,7 @@ build() {
     const playedSet = new Set(this.tonnetz.activePcs ?? []);
     const tonicPcAbs = this.tonnetz.keyPc ?? 0;
 let idx = 0;
-for (const p of this.positions) {
+for (const [i, p] of this.positions.entries()) {
   const pcAbs = mod12(this.tonnetz.keyPc + p.relChroma);
   const inScale = this.tonnetz.gamme.pitchClasses.includes(pcAbs);
 
@@ -103,7 +103,7 @@ for (const p of this.positions) {
   const arcWidth = radians(28);
   // --- Arc épais du fond en couleur ---
   if (inScale) {
-    stroke(noteColors[pcAbs]);
+    stroke(noteColors[i]);
     strokeWeight(this.radius * 0.3); // épaisseur de l’arc
     noFill();
     strokeCap(SQUARE);
