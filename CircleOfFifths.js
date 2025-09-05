@@ -57,23 +57,6 @@ build() {
   // Dessin AU-DESSUS du Tonnetz (appeler après tonnetz.draw())
   draw() {
     if (this.hide) return;
-    const C = this.CONFIG.colors;
-    // Palette de 12 couleurs (à adapter avec tes vraies couleurs du visuel)
-    const noteColors = [ 
-    '#9a0918', // 1  
-    '#a24b12', // 2  
-    '#d38f09', // 3  
-    '#668c1f', // 4  
-    '#415623', // 5  
-    '#387d52', // 6  
-    '#338cbc', // 7  
-    '#34335b', // 8  
-    '#271f5f', // 9  
-    '#58234b', // 10 
-    '#841f4e', // 11 
-    '#9e003d'  // 12
-    ];
-
 
     push();
 
@@ -84,10 +67,10 @@ build() {
     fill(bg);
     ellipse(this.center.x, this.center.y, this.radius * 2.2);
     drawingContext.filter = 'none';
-    noFill();
-    stroke(C.inactiveNodeStroke);
-    strokeWeight(1);
 
+    noFill();
+    stroke(CONFIG.colors.inactiveNodeStroke);
+    strokeWeight(1);
 
     // Prépare styles de texte
     textFont(this.CONFIG.fontFamily);
@@ -111,7 +94,7 @@ for (const [i, p] of this.positions.entries()) {
   const fullArcWidth = radians(32);
   // --- Arc épais du fond en couleur ---
   if (inScale) {
-    stroke(noteColors[i]);
+    stroke(CONFIG.colors.noteColors[i]);
     strokeWeight(this.radius * 0.3); // épaisseur de l’arc
     noFill();
     strokeCap(SQUARE);
@@ -197,11 +180,19 @@ for (const [i, p] of this.positions.entries()) {
     if (hit) {
       const pcAbs = mod12((this.tonnetz.keyPc ?? 0) + hit.relChroma);
       // Même comportement que les nœuds du Tonnetz
+      
+
+    if (keyIsDown(SHIFT)) {
+      // SHIFT → changer la tonique
+      this.tonnetz.setKey(pcToName(pcAbs, this.tonnetz.noteStyle));
+    } else {
+      // Sinon → toggle note dans la gamme
       if (this.tonnetz.gamme?.pitchClasses?.includes(pcAbs)) {
         this.tonnetz.gamme.supprimer(pcAbs);
       } else {
         this.tonnetz.gamme.ajouter(pcAbs);
       }
+    }
       // La gamme se rafraîchit elle-même; on s’aligne
       this.update();
       return true;
