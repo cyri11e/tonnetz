@@ -112,9 +112,7 @@ for (const [i, p] of this.positions.entries()) {
 
   strokeWeight(this.radius * 0.04);
   stroke(
-    isRoot
-      ? this.CONFIG.colors.rootStroke
-      : isActive
+    isActive
         ? this.CONFIG.colors.playedStroke
         : inScale
           ? this.CONFIG.colors.selectedNodeStroke
@@ -154,11 +152,12 @@ for (const [i, p] of this.positions.entries()) {
 
   // --- Couche de base : blanc si inScale, gris sinon ---
   let baseColor = inScale
-    ? this.CONFIG.colors.nodeLabel
+    ? this.CONFIG.colors.tonicTextDark
     : this.CONFIG.colors.inactiveNodeLabel;
+    
 
   let labelColor = color(baseColor);
-  labelColor.setAlpha(255);
+  labelColor.setAlpha(155);
   fill(labelColor);
   noStroke();
 
@@ -176,10 +175,8 @@ for (const [i, p] of this.positions.entries()) {
   }
 
   // --- Couche highlight : rouge root, jaune active ---
-  if (isActive || isRoot || fadeFactor > 0) {
-    let hlColor = isRoot
-      ? this.CONFIG.colors.rootStroke
-      : this.CONFIG.colors.playedStroke;
+  if (isActive || fadeFactor > 0) {
+    let hlColor = this.CONFIG.colors.nodeLabel;
 
     labelColor = color(hlColor);
     labelColor.setAlpha(255 * fadeFactor);
