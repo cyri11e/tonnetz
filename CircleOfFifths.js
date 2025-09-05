@@ -20,6 +20,8 @@ class CircleOfFifths {
 
     // Pré-calcul des positions angulaires (sans dépendance aux noms)
     this.positions = []; // [{relChroma, angle, px, py, lpx, lpy}]
+    this.lastActiveTimes = Array(12).fill(0); // un timestamp par pitch class
+
   }
 
   // Dimensions et positions (appel au setup + resize)
@@ -55,7 +57,7 @@ build() {
   }
 
   // Dessin AU-DESSUS du Tonnetz (appeler après tonnetz.draw())
-  draw() {
+  draw(rootPc = null) {
     if (this.hide) return;
 
     push();
@@ -63,9 +65,9 @@ build() {
     // ombre
     drawingContext.filter = 'blur(20px)'; // rayon du flou
     let bg = color(this.CONFIG.colors.bg);
-        bg.setAlpha(180); // opacité de l’ombre
+        bg.setAlpha(200); // opacité de l’ombre
     fill(bg);
-    ellipse(this.center.x, this.center.y, this.radius * 2.2);
+    ellipse(this.center.x, this.center.y, this.radius * 2.3);
     drawingContext.filter = 'none';
 
     noFill();
@@ -82,44 +84,51 @@ build() {
     const gamme = this.tonnetz.gamme;
     const inScaleSet = new Set(gamme?.pitchClasses ?? []);
     const playedSet = new Set(this.tonnetz.activePcs ?? []);
-    const tonicPcAbs = this.tonnetz.keyPc ?? 0;
+
 
 for (const [i, p] of this.positions.entries()) {
   const pcAbs = mod12(this.tonnetz.keyPc + p.relChroma);
   const inScale = this.tonnetz.gamme.pitchClasses.includes(pcAbs);
+  const isActive = playedSet.has(pcAbs);
+  const isRoot = rootPc !== null && pcAbs === rootPc;
 
-  // Angle de la note
+  if (isActive) {
+    this.lastActiveTimes[pcAbs] = millis();
+  }
+  const fadeFactor = getFadeFactor(this.lastActiveTimes[pcAbs]);
+
   const angle = Math.atan2(p.ly - this.center.y, p.lx - this.center.x);
   const arcWidth = radians(28);
   const fullArcWidth = radians(32);
-  // --- Arc épais du fond en couleur ---
+
   if (inScale) {
     stroke(CONFIG.colors.noteColors[i]);
-    strokeWeight(this.radius * 0.3); // épaisseur de l’arc
+    strokeWeight(this.radius * 0.3);
     noFill();
     strokeCap(SQUARE);
-    arc(
-      this.center.x,
-      this.center.y,
-      this.radius * 1.7,
-      this.radius * 1.7,
-      angle - arcWidth / 2,
-      angle + arcWidth / 2
-    );
+    arc(this.center.x, this.center.y, this.radius * 1.7, this.radius * 1.7,
+        angle - arcWidth / 2, angle + arcWidth / 2);
   }
-  // --- Arc extérieur ---
-  strokeWeight(this.radius * 0.04);
-  stroke(inScale ? this.CONFIG.colors.selectedNodeStroke : this.CONFIG.colors.inactiveNodeStroke);
-  noFill();
-  arc(this.center.x, this.center.y, this.radius * 2, this.radius * 2, angle - fullArcWidth / 2, angle + fullArcWidth / 2);
 
-  // --- Arc intérieur ---
+  strokeWeight(this.radius * 0.04);
+  stroke(
+    isRoot
+      ? this.CONFIG.colors.rootStroke
+      : isActive
+        ? this.CONFIG.colors.playedStroke
+        : inScale
+          ? this.CONFIG.colors.selectedNodeStroke
+          : this.CONFIG.colors.inactiveNodeStroke
+  );
+  noFill();
+  arc(this.center.x, this.center.y, this.radius * 2, this.radius * 2,
+      angle - fullArcWidth / 2, angle + fullArcWidth / 2);
+
   const innerR = this.radius * 0.7;
   strokeWeight(this.radius * 0.03);
-  //stroke(inScale ? this.CONFIG.colors.selectedNodeFill : this.CONFIG.colors.inactiveNodeStroke);
-  arc(this.center.x, this.center.y, innerR * 2, innerR * 2, angle - fullArcWidth / 2, angle + fullArcWidth / 2);
+  arc(this.center.x, this.center.y, innerR * 2, innerR * 2,
+      angle - fullArcWidth / 2, angle + fullArcWidth / 2);
 
-  // --- Texte ---
   const rawName = inScale
     ? this.tonnetz.gamme.getNoteName(pcAbs)
     : pcToName(pcAbs, this.tonnetz.noteStyle);
@@ -131,36 +140,64 @@ for (const [i, p] of this.positions.entries()) {
   const letter = name.charAt(0);
   const accidental = name.slice(1);
 
-  fill(inScale ? this.CONFIG.colors.nodeLabel : this.CONFIG.colors.inactiveNodeLabel);
-  noStroke();
-
   const baseSize = this.radius * 0.22;
   const accidentalSize = baseSize * 0.75;
   const degreeSize = baseSize * 0.6;
 
-  // --- Position NOTE ---
-  const noteR = (this.radius + innerR) / 2; // milieu entre ext et int
+  const noteR = (this.radius + innerR) / 2;
   const noteX = this.center.x + Math.cos(angle) * noteR;
   const noteY = this.center.y + Math.sin(angle) * noteR;
 
+  const degreeR = innerR * 0.85;
+  const degreeX = this.center.x + Math.cos(angle) * degreeR;
+  const degreeY = this.center.y + Math.sin(angle) * degreeR;
+
+  // --- Couche de base : blanc si inScale, gris sinon ---
+  let baseColor = inScale
+    ? this.CONFIG.colors.nodeLabel
+    : this.CONFIG.colors.inactiveNodeLabel;
+
+  let labelColor = color(baseColor);
+  labelColor.setAlpha(255);
+  fill(labelColor);
+  noStroke();
+
   textSize(baseSize);
   text(letter, noteX, noteY);
-
   if (accidental) {
     textSize(accidentalSize);
     const offsetR = baseSize * 0.45;
     const offsetA = -40 * Math.PI / 180;
     text(accidental, noteX + Math.cos(offsetA) * offsetR, noteY + Math.sin(offsetA) * offsetR);
   }
-
-  // --- Position DEGRÉ ---
-  const degreeR = innerR * 0.85; // un peu à l'intérieur de l'arc intérieur
-  const degreeX = this.center.x + Math.cos(angle) * degreeR;
-  const degreeY = this.center.y + Math.sin(angle) * degreeR;
-
   if (degree) {
     textSize(degreeSize);
     text(degree, degreeX, degreeY);
+  }
+
+  // --- Couche highlight : rouge root, jaune active ---
+  if (isActive || isRoot || fadeFactor > 0) {
+    let hlColor = isRoot
+      ? this.CONFIG.colors.rootStroke
+      : this.CONFIG.colors.playedStroke;
+
+    labelColor = color(hlColor);
+    labelColor.setAlpha(255 * fadeFactor);
+    fill(labelColor);
+    noStroke();
+
+    textSize(baseSize);
+    text(letter, noteX, noteY);
+    if (accidental) {
+      textSize(accidentalSize);
+      const offsetR = baseSize * 0.45;
+      const offsetA = -40 * Math.PI / 180;
+      text(accidental, noteX + Math.cos(offsetA) * offsetR, noteY + Math.sin(offsetA) * offsetR);
+    }
+    if (degree) {
+      textSize(degreeSize);
+      text(degree, degreeX, degreeY);
+    }
   }
 }
 

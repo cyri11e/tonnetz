@@ -50,12 +50,14 @@ function setup() {
 function draw() {
   background(CONFIG.colors.bg);
 
-  tonnetz.draw(this);
-  cof.draw(); // au-dessus
-
+  let rootNote = null;
+  
   const activeNotes = tonnetz.getActiveNotes();
   const chords = activeNotes.length >= 3 ? tonnetz.getDetectedChords() : [];
   const chordIsActive = chords.length > 0;
+  if (chords.length > 0) {
+    rootNote = tonnetz.chordDetector.noteToPc[chords[0].root];
+  }
 
   if (chordIsActive) {
     const chord = chords[0];
@@ -63,10 +65,11 @@ function draw() {
     lastChordTime = millis();
   }
 
-  let rootNote = null;
-  if (chords.length > 0) {
-    rootNote = tonnetz.chordDetector.noteToPc[chords[0].root];
-  }
+  tonnetz.draw(this);
+  cof.draw(rootNote); // au-dessus
+
+
+
 
   piano.draw(this, rootNote);
 
