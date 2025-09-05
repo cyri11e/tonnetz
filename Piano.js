@@ -1,5 +1,6 @@
 class Piano {
   constructor(size = 88) {
+    this.hide = false;
     // Définition des différentes tailles de piano
     this.PIANO_SIZES = {
       88: { start: 21, end: 108 },  // A0 à C8  (piano complet)
@@ -100,6 +101,7 @@ class Piano {
   }
 
   draw(g, rootPc = null) {
+    if (this.hide) return;
     g.push();
     
     const margin = 20;

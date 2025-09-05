@@ -263,7 +263,7 @@ function keyPressed() {
     console.log(`Cycle des quintes ${cof.hide ? 'caché' : 'visible'}`);
   }
   if (key === 'P' || key === 'p') {
-    piano.hide = !cof.hide;
+    piano.hide = !piano.hide;
     console.log(`Piano ${piano.hide ? 'caché' : 'visible'}`);
   }  
 
@@ -302,11 +302,6 @@ function keyPressed() {
     tonnetz.setNoteStyle(nextStyle);
     return false;
   }
-
-  // const pc = keyToPc(key);
-  // if (pc !== null) {
-  //   tonnetz.toggleActivePc(pc);
-  // }
 
   if (key === '+' || key === '=') {
     tonnetz.transposeGamme(+1); // monte d’un demi-ton
