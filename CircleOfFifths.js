@@ -2,7 +2,7 @@ class CircleOfFifths {
   constructor(tonnetz, config = CONFIG) {
     this.tonnetz = tonnetz;
     this.CONFIG = config;
-
+    this.hide = true;
     // Coquille vide: 12 chromas relatifs (ordre des quintes relatifs)
     this.relOrder = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
 
@@ -56,6 +56,7 @@ build() {
 
   // Dessin AU-DESSUS du Tonnetz (appeler après tonnetz.draw())
   draw() {
+    if (this.hide) return;
     const C = this.CONFIG.colors;
     // Palette de 12 couleurs (à adapter avec tes vraies couleurs du visuel)
     const noteColors = [ 
@@ -75,12 +76,18 @@ build() {
 
 
     push();
+
+    // ombre
+    drawingContext.filter = 'blur(20px)'; // rayon du flou
+    let bg = color(this.CONFIG.colors.bg);
+        bg.setAlpha(180); // opacité de l’ombre
+    fill(bg);
+    ellipse(this.center.x, this.center.y, this.radius * 2.2);
+    drawingContext.filter = 'none';
     noFill();
     stroke(C.inactiveNodeStroke);
     strokeWeight(1);
 
-    // Anneau principal
-    //ellipse(this.center.x, this.center.y, this.radius * 2);
 
     // Prépare styles de texte
     textFont(this.CONFIG.fontFamily);
@@ -93,7 +100,7 @@ build() {
     const inScaleSet = new Set(gamme?.pitchClasses ?? []);
     const playedSet = new Set(this.tonnetz.activePcs ?? []);
     const tonicPcAbs = this.tonnetz.keyPc ?? 0;
-let idx = 0;
+
 for (const [i, p] of this.positions.entries()) {
   const pcAbs = mod12(this.tonnetz.keyPc + p.relChroma);
   const inScale = this.tonnetz.gamme.pitchClasses.includes(pcAbs);
@@ -181,6 +188,7 @@ for (const [i, p] of this.positions.entries()) {
 
   // Interactions
   handlePress(mx, my) {
+    if (this.hide) return false;
     // Ignore clic droit (réservé au pan)
     if (mouseButton && mouseButton.right) return false;
 

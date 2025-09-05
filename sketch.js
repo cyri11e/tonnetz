@@ -12,7 +12,6 @@ let draggedBubble = null;
 let dragStartPc = null;
 
 
-
 function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
   canvas.elt.oncontextmenu = () => false;
@@ -31,7 +30,6 @@ function setup() {
   cof = new CircleOfFifths(tonnetz, CONFIG);
   cof.build();
 
-
   midiInput = new MidiManager((notes, midiNums) => {
     tonnetz.updateFromMidi(midiNums);
     piano.setMidiNotes(midiNums);
@@ -44,14 +42,15 @@ function setup() {
     style: tonnetz.noteStyle
   });
 
-
   piano = new Piano(49);
 }
+
+// --------------     AFFICHAGE -----------------
 
 function draw() {
   background(CONFIG.colors.bg);
 
-  //tonnetz.draw(this);
+  tonnetz.draw(this);
   cof.draw(); // au-dessus
 
   const activeNotes = tonnetz.getActiveNotes();
@@ -176,7 +175,6 @@ function displayScaleLabel(g) {
     fontSize *= targetWidth / tw;
     g.textSize(fontSize);
   }
-
   g.push();
   g.stroke(CONFIG.colors.selectedNodeStroke);
   g.noFill();
@@ -186,6 +184,8 @@ function displayScaleLabel(g) {
   g.text(scaleText, width / 2, 10);
   g.pop();
 }
+
+//  ---------------   INTERACTIONS ---------------
 
 // pour detecter les hover
 function mouseMoved() {
@@ -236,24 +236,6 @@ function mousePressed() {
     return;
   }
 }
-// function mousePressed() {
-//   // Ignorer le clic droit pour les triangles
-//   if (mouseButton === RIGHT) {
-//     return; // on laisse le pan gérer ça
-//   }
-
-//   if (noteListView && noteListView.handleClick(mouseX, mouseY)) return;
-
-//   // 1. Test clic triangle
-//   if (tonnetz.netGrid.chordTriangle.handleClick(mouseX, mouseY)) return;
-
-//   // 2. Test clic nœud
-//   const node = tonnetz.findNodeAt(mouseX, mouseY);
-//   if (node) {
-//     handleTonnetzClick(node);
-//     return;
-//   }
-// }
 
 
 function handleTonnetzClick(node) {
@@ -271,7 +253,25 @@ function handleTonnetzClick(node) {
 
 
 function keyPressed() {
-  const pianoSizes = { '2': 25, '4': 49, '6': 61, '7': 76, '8': 88 };
+
+  if (key === 'Z' || key === 'z') {
+    tonnetz.hide = !tonnetz.hide;
+    console.log(`Tonnetz ${tonnetz.hide ? 'caché' : 'visible'}`);
+  }
+  if (key === 'Q' || key === 'q') {
+    cof.hide = !cof.hide;
+    console.log(`Cycle des quintes ${cof.hide ? 'caché' : 'visible'}`);
+  }
+  if (key === 'P' || key === 'p') {
+    piano.hide = !cof.hide;
+    console.log(`Piano ${piano.hide ? 'caché' : 'visible'}`);
+  }  
+
+  const pianoSizes = { '2': 25, 'é': 25,
+                       '4': 49, "'" : 49,
+                       '6': 61, '§' : 61,
+                       '7': 76, 'è' : 76,
+                       '8': 88, '!' : 88 };
   if (pianoSizes[key]) {
     piano = new Piano(pianoSizes[key]);
     return;
@@ -285,6 +285,7 @@ function keyPressed() {
     console.log('🔄 Gamme recréée sur C');
   }
 
+  // recupere les notes actives en cours pour remplir gamme
   if (key === ' ') {
     tonnetz.gamme = new Gamme();
     tonnetz.activeMidiNums.forEach(num => {
@@ -302,10 +303,10 @@ function keyPressed() {
     return false;
   }
 
-  const pc = keyToPc(key);
-  if (pc !== null) {
-    tonnetz.toggleActivePc(pc);
-  }
+  // const pc = keyToPc(key);
+  // if (pc !== null) {
+  //   tonnetz.toggleActivePc(pc);
+  // }
 
   if (key === '+' || key === '=') {
     tonnetz.transposeGamme(+1); // monte d’un demi-ton

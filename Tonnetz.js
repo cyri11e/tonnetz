@@ -5,6 +5,7 @@ class Tonnetz {
     this.Vn = Vn;
     this.canvas = canvas;
     this.debug = debug;
+    this.hide = false;
 
     this.keyNote = 'E';
     this.keyPc = nameToPc(this.keyNote);
@@ -142,6 +143,7 @@ class Tonnetz {
 
   // draw principal 
   draw(g) {
+    if (this.hide) return;
     g.push();
     g.background(CONFIG.colors.bg);
     this.drawGrid(g);
@@ -294,17 +296,17 @@ class Tonnetz {
     //   const node = [...this.netGrid.nodes.values()].find(nd => nd.pc === pc);
     //   return node?.name ?? pcToName(pc, this.noteStyle); // ← priorité au nom du nœud
     // });
-const activeNames = this.activeMidiNums.map(n => {
-  const pc = mod12(n);
-  // On récupère le node correspondant si besoin
-  const node = [...this.netGrid.nodes.values()].find(nd => nd.pc === pc);
+    const activeNames = this.activeMidiNums.map(n => {
+      const pc = mod12(n);
+      // On récupère le node correspondant si besoin
+      const node = [...this.netGrid.nodes.values()].find(nd => nd.pc === pc);
 
-  // On demande à la gamme le nom de la note pour ce PC
-  const nameFromGamme = this.gamme?.getNoteName?.(pc);
+      // On demande à la gamme le nom de la note pour ce PC
+      const nameFromGamme = this.gamme?.getNoteName?.(pc);
 
-  // Priorité au nom calculé par la gamme, sinon fallback sur node.name, sinon pcToName
-  return nameFromGamme ?? node?.name ?? pcToName(pc, this.noteStyle);
-});
+      // Priorité au nom calculé par la gamme, sinon fallback sur node.name, sinon pcToName
+      return nameFromGamme ?? node?.name ?? pcToName(pc, this.noteStyle);
+    });
 
     // 3. Détection des accords
     if (activeNames.length >= 3)
@@ -322,4 +324,38 @@ const activeNames = this.activeMidiNums.map(n => {
     const chords = this.getDetectedChords();
     return chords.length && chords[0].root === node.name;
   }
+
+  // interaction souris
+  handleClick(mx, my) {
+    if (this.hide) return false;
+    const node = this.findNodeAt(mx, my);
+    if (!node) return false;
+
+    if (keyIsDown(SHIFT)) {
+      this.setKey(node.name);
+      if (!this.gamme.chroma.includes(this.keyPc)) {
+        this.gamme.ajouter(this.keyPc);
+      }
+    } else {
+      this.togglePc(node.pc);
+    }
+    return true;
+  }
+
+  handleHover(mx, my) {
+    if (this.hide) return;
+    this.netGrid.chordTriangle.handleHover(mx, my);
+  }
+
+  handleRelease() {
+    if (this.hide) return;
+    this.netGrid.chordTriangle.handleRelease();
+  }
+  
+  // interaction clavier
+  handlePress(mx, my) {
+    if (this.hide) return false;
+    return this.netGrid.chordTriangle.handlePress(mx, my);
+  }
+
 }

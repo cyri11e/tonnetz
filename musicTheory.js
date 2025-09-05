@@ -86,7 +86,7 @@ function getAlteration(chromaReel, chromaReference) {
   if (ecart === -2) return "bb";      // double bémol
 
   // Cas extrêmes : note trop éloignée, notation incertaine
-  return "?";
+  return "?a";
 }
 function getNature(chromaReel, chromaReference) {
   const ecart = chromaReel - chromaReference;
@@ -106,7 +106,7 @@ function getNature(chromaReel, chromaReference) {
   if ((ecart === -3)&&(![0,5,7].includes(chromaReel))) return "dd";      // double diminué  
   
   // Cas extrêmes : note trop éloignée, notation incertaine
-  return "?";
+  return "n?";
 }
 
 // Calcule la "qualité" (P, M, m, A, d, AA, dd) d'un intervalle
@@ -194,7 +194,7 @@ function calculerIntervalle(degre1, degre2) {
   const chromaRef = chromasRef[Math.abs(numeroIntervalle)];
   const diff = chromaReel - chromaRef;
 
-let qualite = "?";
+let qualite = "i?";
 const suiteP = ["dd", "d", "P", "A", "AA"];
 const suiteM = ["dd", "d", "m", "M", "A", "AA"];
 
@@ -209,9 +209,9 @@ else if (type === "M") qualite = suiteM[diff + 3] ?? "?";
 
 
 
-function toUnicodeAlteration(alteration) {
-  if (!alteration) return "?";
-  return alteration
+function toUnicodeAlteration(rawNoteLabel) {
+  if (!rawNoteLabel) return "";
+  return rawNoteLabel
     .replace(/bb/g, '𝄫')   // double bémol
     .replace(/##/g, '𝄪')   // double dièse
     .replace(/b/g, '♭')    // simple bémol
@@ -291,13 +291,13 @@ function  getNextNoteLabel(currentLabel = '', semiTones = 1 ) {
         return note;  // trouve la note suivante
       }
     }  
-    return '?'; // pas trouvé
+    return '%'; // pas trouvé
   }
 
 function getRomanNumeral(degreeLabel, type) {
   // Extrait l’altération et le degré (1 à 7)
   const match = degreeLabel.match(/^(𝄫|♭|𝄪|♯|bb|b|##|#|♮)?([1-7])$/);
-  if (!match) return '?';
+  if (!match) return '*';
 
   const rawAlt = match[1] ?? '';
   const num = parseInt(match[2]);
@@ -325,7 +325,7 @@ function getRomanNumeral(degreeLabel, type) {
 function drawRomanNumeral(g, degreeLabel, x, y, zoom) {
   const match = degreeLabel.match(/^([𝄫♭𝄪♯♮b#]{0,2})([ivIV]+)$/);
   if (!match) {
-    g.text('?');
+    //g.text('?');
     return;
   }
 

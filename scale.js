@@ -324,13 +324,15 @@ getDegreeLabel(i, noteStyle = "mixed") {
   }
 
 updateNoteLabels() {
-    // ✅ Sécurité : si toutes les notes sont déjà présentes, on sort
+  // ✅ Sécurité : si toutes les notes sont déjà présentes, on sort
   if (!this.pitchClasses || this.pitchClasses.length >= 12) {
     return;
   }
   const labels = [];
 
-  if (this.nomReconnu) {
+  // Pour les gammes pentatoniques, on utilise directement les noms des pitch classes
+
+  if (this.nomReconnu && this.nomReconnu !== 'Pentatonique') {
     // Cas gamme reconnue : on applique la logique stricte
     let currentLabel = this.tonicNote;
     for (let i = 0; i < this.chroma.length; i++) {
