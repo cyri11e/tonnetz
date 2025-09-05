@@ -221,21 +221,21 @@ function mouseReleased() {
 
 
 
-function mousePressed() {
-    // Ignorer le clic droit pour laisser le pan
-  if (mouseButton.right) return;
-  if (noteListView && noteListView.handleClick(mouseX, mouseY)) return;
+// function mousePressed() {
+//     // Ignorer le clic droit pour laisser le pan
+//   if (mouseButton.right) return;
+//   if (noteListView && noteListView.handleClick(mouseX, mouseY)) return;
 
-  // Test clic triangle momentary
-  if (tonnetz.netGrid.chordTriangle.handlePress(mouseX, mouseY)) return;
+//   // Test clic triangle momentary
+//   if (tonnetz.netGrid.chordTriangle.handlePress(mouseX, mouseY)) return;
 
-  // Test clic nœud
-  const node = tonnetz.findNodeAt(mouseX, mouseY);
-  if (node) {
-    handleTonnetzClick(node);
-    return;
-  }
-}
+//   // Test clic nœud
+//   const node = tonnetz.findNodeAt(mouseX, mouseY);
+//   if (node) {
+//     handleTonnetzClick(node);
+//     return;
+//   }
+// }
 
 
 function handleTonnetzClick(node) {
@@ -341,3 +341,19 @@ function mouseDragged() {
     return false;
   }
 }
+
+
+function mousePressed() {
+  if (mouseButton.right) return;
+
+  // Priorité au COF si nécessaire
+  if (cof.handleClick(mouseX, mouseY, mouseButton)) return;
+
+  // puis NoteListView
+  if (noteListView && noteListView.handleClick(mouseX, mouseY, mouseButton)) return;
+
+  // Tonnetz en arriere-plan
+  if (tonnetz.handleClick(mouseX, mouseY, mouseButton)) return;
+
+}
+

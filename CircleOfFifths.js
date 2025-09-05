@@ -187,7 +187,7 @@ for (const [i, p] of this.positions.entries()) {
   }
 
   // Interactions
-  handlePress(mx, my) {
+  handleClick(mx, my, mouseButton) {
     if (this.hide) return false;
     // Ignore clic droit (réservé au pan)
     if (mouseButton && mouseButton.right) return false;

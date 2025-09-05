@@ -326,21 +326,35 @@ class Tonnetz {
   }
 
   // interaction souris
-  handleClick(mx, my) {
-    if (this.hide) return false;
-    const node = this.findNodeAt(mx, my);
-    if (!node) return false;
+handleClick(mx, my, button) {
+  if (this.hide) return false;
 
+  // 1. Triangle momentary
+  if (this.netGrid?.chordTriangle?.handlePress(mx, my)) {
+    return true; // clic consommé
+  }
+
+  // 2. Nœud du Tonnetz
+  const node = this.findNodeAt(mx, my);
+  if (node) {
+    const pc = node.pc;
     if (keyIsDown(SHIFT)) {
       this.setKey(node.name);
       if (!this.gamme.chroma.includes(this.keyPc)) {
         this.gamme.ajouter(this.keyPc);
       }
     } else {
-      this.togglePc(node.pc);
+      this.togglePc(pc);
     }
     return true;
   }
+
+  // 3. (plus tard) clic sur autre élément interactif du Tonnetz
+  // ex: boutons, zones spéciales, etc.
+
+  return false; // rien capté
+}
+
 
   handleHover(mx, my) {
     if (this.hide) return;
@@ -351,7 +365,7 @@ class Tonnetz {
     if (this.hide) return;
     this.netGrid.chordTriangle.handleRelease();
   }
-  
+
   // interaction clavier
   handlePress(mx, my) {
     if (this.hide) return false;
