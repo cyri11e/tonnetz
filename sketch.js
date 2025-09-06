@@ -264,10 +264,9 @@ function keyPressed() {
   }
 
   if (key === BACKSPACE) {
-    tonnetz.gamme = new Gamme('C'); // ← recrée la gamme
-    tonnetz.setKey('C');            // ← synchronise la tonique
-    tonnetz.selectedPcs.clear();
-    tonnetz.activePcs.clear();
+    // Forcer le rafraîchissement visuel
+    tonnetz.reset(); // ← très important
+   //circleOfFifths.update(); // ← si le COF dépend aussi de la gamme
     console.log('🔄 Gamme recréée sur C');
   }
 
@@ -315,10 +314,21 @@ function windowResized() {
 }
 
 function mouseWheel(event) {
-  const factor = event.delta > 0 ? 0.95 : 1.05;
-  tonnetz.zoomAt(mouseX, mouseY, factor);
-  return false;
+  const factor = event.delta > 0 ? 0.9 : 1.1;
+
+  if (cof.isMouseOver(mouseX, mouseY)) {
+    // Zoom sur le COF
+    cof.radius *= factor;
+    cof.ringThickness = cof.radius * 0.40;
+    //circleOfFifths.recomputePositions();
+  } else {
+    // Zoom sur le Tonnetz
+    tonnetz.zoomAt(mouseX, mouseY, factor);
+  }
+
+  return false; // ← empêche le scroll par défaut
 }
+
 
 function mouseDragged() {
   cof.handleDrag(mouseX, mouseY);

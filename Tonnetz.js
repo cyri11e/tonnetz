@@ -37,6 +37,27 @@ class Tonnetz {
     this.updateNodePositions();
   }
 
+reset() {
+  this.gamme = new Gamme('C','100000000000');
+  this.setKey('C'); // synchronise la tonique
+
+  this.selectedPcs = new Set();
+  this.activePcs = new Set();
+  this.activeMidiNums = [];
+
+  // Vide les accords détectés
+  this.lastDetectedChords = [];
+
+  // Reconstruit les triangles
+  if (this.netGrid?.chordTriangle) {
+    this.netGrid.chordTriangle.setGamme(this.gamme);
+    this.netGrid.chordTriangle.build(); // ← très important
+  }
+
+  console.log('🔄 Tonnetz réinitialisé sur C');
+}
+
+
   key(i, j) { return `${i},${j}`; }
   get(i, j) { return this.netGrid.nodes.get(this.key(i, j)); }
 
@@ -146,7 +167,7 @@ class Tonnetz {
     if (this.hide) return;
     g.push();
     g.background(CONFIG.colors.bg);
-    this.drawGrid(g);
+    //this.drawGrid(g);
     this.drawEdges(g);    
     if (this.netGrid.chordTriangle) {
       this.netGrid.chordTriangle.draw(g, this.zoom, this.activePcs);

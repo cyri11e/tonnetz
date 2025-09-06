@@ -114,9 +114,10 @@ for (const [i, p] of this.positions.entries()) {
     }
     
   // arc extérieur
-  const fullArcWidth = radians(32); // largeur totale de l’arc 
-  strokeWeight(this.radius * ((i == 0) ? 0.02 : 0.01)
-                * isActive ? 8 : 1    ); // trait plus épais pour la tonique
+  const fullArcWidth = radians(30); // largeur totale de l’arc 
+  const arcExtThickness = this.radius * ((i == 0) ? 0.03 : 0.02)
+                *( isActive ? 2 : 1)   ; // épaisseur de l’arc extérieur
+  strokeWeight(arcExtThickness); // trait plus épais pour la tonique
   stroke(
     isRoot ? this.CONFIG.colors.rootStroke :
     isActive
@@ -132,8 +133,8 @@ for (const [i, p] of this.positions.entries()) {
 
   // arc intérieur     
   const innerR = this.radius * 0.7;
-    strokeWeight(this.radius * ((i == 0) ? 0.02 : 0.01)
-                * isActive ? 8 : 1    ); // trait plus épais pour la tonique
+    strokeWeight(this.radius * ((i == 0) ? 0.03 : 0.02)
+                * (isActive ? 2 : 1 )   ); // trait plus épais pour la tonique
     arc(this.center.x, this.center.y, innerR * 2, innerR * 2,
       angle - fullArcWidth / 2, angle + fullArcWidth / 2);
 
@@ -294,6 +295,9 @@ handleDrag(mx, my) {
   handleRelease() {
     this.isDraggingRing = false;
     this.isDraggingCenter = false;
+
+    cursor(ARROW); // ← rétablit le curseur par défaut
+
   }
 
   // Helpers
@@ -309,6 +313,12 @@ handleDrag(mx, my) {
     console.log('Drag center start');
     return d > (this.radius - 40) && d < (this.radius + 40);
   }
+
+  isMouseOver(mx, my) {
+    const d = dist(mx, my, this.center.x, this.center.y);
+    return d < this.radius * 1.2; // ← marge de tolérance
+  }
+
 
   hitTestNode(mx, my) {
     let best = null;
