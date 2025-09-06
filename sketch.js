@@ -67,7 +67,7 @@ function draw() {
 
   tonnetz.draw(this);
   cof.draw(rootNote); // au-dessus
-
+  //cof.drawHitzone(); // debug
 
 
 
@@ -198,7 +198,7 @@ function mouseMoved() {
 function mouseReleased() {
 
   tonnetz.netGrid.chordTriangle.handleRelease();
-
+  cof.handleRelease();
   if (draggedBubble) {
     for (const target of noteListView.bubbles) {
       const dx = mouseX - target.x;
@@ -222,23 +222,6 @@ function mouseReleased() {
   }
 }
 
-
-
-// function mousePressed() {
-//     // Ignorer le clic droit pour laisser le pan
-//   if (mouseButton.right) return;
-//   if (noteListView && noteListView.handleClick(mouseX, mouseY)) return;
-
-//   // Test clic triangle momentary
-//   if (tonnetz.netGrid.chordTriangle.handlePress(mouseX, mouseY)) return;
-
-//   // Test clic nœud
-//   const node = tonnetz.findNodeAt(mouseX, mouseY);
-//   if (node) {
-//     handleTonnetzClick(node);
-//     return;
-//   }
-// }
 
 
 function handleTonnetzClick(node) {
@@ -338,6 +321,7 @@ function mouseWheel(event) {
 }
 
 function mouseDragged() {
+  cof.handleDrag(mouseX, mouseY);
   // pan du Tonnetz
   if (mouseButton.right || (mouseButton.left && keyIsDown(SHIFT))) {
     tonnetz.pan(movedX, movedY);

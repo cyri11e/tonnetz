@@ -14,7 +14,7 @@ class CircleOfFifths {
     this.rotation = -HALF_PI; // 12h = relChroma 0 en haut
 
     // Drag/rotation
-    this.isDragging = false;
+    this.isDraggingRing = false;
     this.dragStartAngle = 0;
     this.rotationAtDragStart = 0;
 
@@ -62,10 +62,10 @@ build() {
 
     push();
 
-    // ombre
-    drawingContext.filter = 'blur(20px)'; // rayon du flou
+    // cercle rempli du fond ombré
+    drawingContext.filter = 'blur(30px)'; // rayon du flou
     let bg = color(this.CONFIG.colors.bg);
-        bg.setAlpha(200); // opacité de l’ombre
+        bg.setAlpha(255); // opacité de l’ombre
     fill(bg);
     ellipse(this.center.x, this.center.y, this.radius * 2.3);
     drawingContext.filter = 'none';
@@ -99,19 +99,26 @@ for (const [i, p] of this.positions.entries()) {
 
   const angle = Math.atan2(p.ly - this.center.y, p.lx - this.center.x);
   const arcWidth = radians(28);
-  const fullArcWidth = radians(32);
-
+  
+  // arc qui rempli le fond coloré si dans la gamme
   if (inScale) {
-    stroke(CONFIG.colors.noteColors[i]);
-    strokeWeight(this.radius * 0.3);
-    noFill();
-    strokeCap(SQUARE);
-    arc(this.center.x, this.center.y, this.radius * 1.7, this.radius * 1.7,
+      const c = color(this.CONFIG.colors.noteColors[i]);
+      c.setAlpha(isActive ? 220 : 80);
+      stroke(c);
+      //stroke(CONFIG.colors.noteColors[i]);
+      strokeWeight(this.radius * 0.3);
+      noFill();
+      strokeCap(SQUARE);
+      arc(this.center.x, this.center.y, this.radius * 1.7, this.radius * 1.7,
         angle - arcWidth / 2, angle + arcWidth / 2);
-  }
-
-  strokeWeight(this.radius * 0.04);
+    }
+    
+  // arc extérieur
+  const fullArcWidth = radians(32); // largeur totale de l’arc 
+  strokeWeight(this.radius * ((i == 0) ? 0.02 : 0.01)
+                * isActive ? 8 : 1    ); // trait plus épais pour la tonique
   stroke(
+    isRoot ? this.CONFIG.colors.rootStroke :
     isActive
         ? this.CONFIG.colors.playedStroke
         : inScale
@@ -122,9 +129,12 @@ for (const [i, p] of this.positions.entries()) {
   arc(this.center.x, this.center.y, this.radius * 2, this.radius * 2,
       angle - fullArcWidth / 2, angle + fullArcWidth / 2);
 
+
+  // arc intérieur     
   const innerR = this.radius * 0.7;
-  strokeWeight(this.radius * 0.03);
-  arc(this.center.x, this.center.y, innerR * 2, innerR * 2,
+    strokeWeight(this.radius * ((i == 0) ? 0.02 : 0.01)
+                * isActive ? 8 : 1    ); // trait plus épais pour la tonique
+    arc(this.center.x, this.center.y, innerR * 2, innerR * 2,
       angle - fullArcWidth / 2, angle + fullArcWidth / 2);
 
   const rawName = inScale
@@ -152,7 +162,7 @@ for (const [i, p] of this.positions.entries()) {
 
   // --- Couche de base : blanc si inScale, gris sinon ---
   let baseColor = inScale
-    ? this.CONFIG.colors.tonicTextDark
+    ? this.CONFIG.colors.nodeLabel
     : this.CONFIG.colors.inactiveNodeLabel;
     
 
@@ -160,30 +170,32 @@ for (const [i, p] of this.positions.entries()) {
   labelColor.setAlpha(155);
   fill(labelColor);
   noStroke();
-
+  textStyle(this.CONFIG.fontWeight);
   textSize(baseSize);
   text(letter, noteX, noteY);
   if (accidental) {
     textSize(accidentalSize);
+    textStyle(NORMAL);
     const offsetR = baseSize * 0.45;
     const offsetA = -40 * Math.PI / 180;
     text(accidental, noteX + Math.cos(offsetA) * offsetR, noteY + Math.sin(offsetA) * offsetR);
   }
   if (degree) {
     textSize(degreeSize);
+    textStyle(NORMAL);
     text(degree, degreeX, degreeY);
   }
 
   // --- Couche highlight : rouge root, jaune active ---
   if (isActive || fadeFactor > 0) {
     let hlColor = this.CONFIG.colors.nodeLabel;
-
+    textStyle(BOLD);
     labelColor = color(hlColor);
     labelColor.setAlpha(255 * fadeFactor);
     fill(labelColor);
     noStroke();
 
-    textSize(baseSize);
+    textSize(baseSize * (isRoot ? 1.1 : 1.0) );
     text(letter, noteX, noteY);
     if (accidental) {
       textSize(accidentalSize);
@@ -208,6 +220,24 @@ for (const [i, p] of this.positions.entries()) {
     if (this.hide) return false;
     // Ignore clic droit (réservé au pan)
     if (mouseButton && mouseButton.right) return false;
+
+
+
+    // drag au centre de l’anneau
+    const d = dist(mx, my, this.center.x, this.center.y);
+    const centerRadius = this.radius * 0.7; // zone centrale (70% du rayon)
+
+    if (d < centerRadius) {
+        this.isDraggingCenter = true;
+        this.dragOffset = {
+            x: mx - this.center.x,
+            y: my - this.center.y
+        };
+        console.log('Drag center start');
+        return true; // ← bloque la propagation
+    }
+
+
 
     // 1) Si clic sur une pastille → toggle la note dans la gamme
     const hit = this.hitTestNode(mx, my);
@@ -234,19 +264,32 @@ for (const [i, p] of this.positions.entries()) {
 
     // 2) Sinon si clic sur l’anneau → rotation visuelle (drag)
     if (this.isNearRing(mx, my)) {
-      this.isDragging = true;
+      this.isDraggingRing = true;
       this.dragStartAngle = Math.atan2(my - this.center.y, mx - this.center.x);
       this.rotationAtDragStart = this.rotation;
-      return true;
-    }
+
+        cursor(HAND); // curseur en forme de main
+
+       
+    console.log('Drag ring start');
+      return true; // ← bloque la propagation
+    } else 
+        cursor(ARROW); // curseur normal
 
     return false;
   }
 
   handleDrag(mx, my) {
-    if (!this.isDragging) return false;
-    if (mouseButton && mouseButton.right) return false; // pan Tonnetz à droite
+    if (!this.isDraggingCenter) return false;
+    if (this.isDraggingCenter) {
+    this.center.x = mx - this.dragOffset.x;
+    this.center.y = my - this.dragOffset.y;
+    this.recomputePositions(); // recalculer les positions des notes
+    return true;
+}
 
+    if (mouseButton && mouseButton.right) return false; // pan Tonnetz à droite
+    cursor(HAND); // curseur en forme de main
     const currentAngle = Math.atan2(my - this.center.y, mx - this.center.x);
     const delta = currentAngle - this.dragStartAngle;
     this.rotation = this.rotationAtDragStart + delta;
@@ -255,7 +298,8 @@ for (const [i, p] of this.positions.entries()) {
     }
 
   handleRelease() {
-    this.isDragging = false;
+    this.isDraggingRing = false;
+    this.isDraggingCenter = false;
   }
 
   // Helpers
@@ -263,6 +307,12 @@ for (const [i, p] of this.positions.entries()) {
   isNearRing(mx, my) {
     const d = dist(mx, my, this.center.x, this.center.y);
     // Gros anneau cliquable autour de l’anneau pour drag (40 px de bande)
+        if (d < this.ringThickness ) {
+        cursor(HAND); // curseur en forme de main
+        } else {
+        cursor(ARROW); // curseur normal
+        }
+    console.log('Drag center start');
     return d > (this.radius - 40) && d < (this.radius + 40);
   }
 
@@ -283,4 +333,36 @@ for (const [i, p] of this.positions.entries()) {
 
   // Utilitaire: accepte valeur hex/rgba de CONFIG et la passe à p5 fill/stroke
   hexOrRgba(v) { return v; }
+
+  // debug: dessine les zones sensibles
+  drawHitzone() {
+  if (this.hide) return;
+
+  push();
+  noFill();
+
+  // --- Zone centrale (drag du COF) ---
+  stroke(255, 0, 0, 200); // rouge transparent
+  strokeWeight(1);
+  const centerRadius = this.radius * 0.7;
+  ellipse(this.center.x, this.center.y, centerRadius * 2);
+
+  // --- Zone de rotation (anneau interactif) ---
+  stroke(0, 255, 0, 200); // vert transparent
+  strokeWeight(1);
+  ellipse(this.center.x, this.center.y, (this.radius - 40) * 2); // bord intérieur
+  ellipse(this.center.x, this.center.y, (this.radius + 40) * 2); // bord extérieur
+
+  // --- Zones sensibles des pastilles ---
+  stroke(0, 0, 255, 200); // bleu transparent
+  strokeWeight(1);
+  const hitR = this.ringThickness * 0.6;
+
+  for (const p of this.positions) {
+    ellipse(p.rx, p.ry, hitR * 2);
+  }
+
+  pop();
+}
+
 }
