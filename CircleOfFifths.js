@@ -217,85 +217,79 @@ for (const [i, p] of this.positions.entries()) {
 
   // Interactions
   handleClick(mx, my, mouseButton) {
-    if (this.hide) return false;
-    // Ignore clic droit (réservé au pan)
-    if (mouseButton && mouseButton.right) return false;
+  if (this.hide) return false;
+  if (mouseButton && mouseButton.right) return false; // clic droit ignoré
 
+  const d = dist(mx, my, this.center.x, this.center.y);
+  const centerRadius = this.radius * 0.7;
 
-
-    // drag au centre de l’anneau
-    const d = dist(mx, my, this.center.x, this.center.y);
-    const centerRadius = this.radius * 0.7; // zone centrale (70% du rayon)
-
-    if (d < centerRadius) {
-        this.isDraggingCenter = true;
-        this.dragOffset = {
-            x: mx - this.center.x,
-            y: my - this.center.y
-        };
-        console.log('Drag center start');
-        return true; // ← bloque la propagation
-    }
-
-
-
-    // 1) Si clic sur une pastille → toggle la note dans la gamme
-    const hit = this.hitTestNode(mx, my);
-    if (hit) {
-      const pcAbs = mod12((this.tonnetz.keyPc ?? 0) + hit.relChroma);
-      // Même comportement que les nœuds du Tonnetz
-      
+  // --- Priorité 1 : pastille ---
+  const hit = this.hitTestNode(mx, my);
+  if (hit) {
+    const pcAbs = mod12((this.tonnetz.keyPc ?? 0) + hit.relChroma);
 
     if (keyIsDown(SHIFT)) {
-      // SHIFT → changer la tonique
       this.tonnetz.setKey(pcToName(pcAbs, this.tonnetz.noteStyle));
     } else {
-      // Sinon → toggle note dans la gamme
       if (this.tonnetz.gamme?.pitchClasses?.includes(pcAbs)) {
         this.tonnetz.gamme.supprimer(pcAbs);
       } else {
         this.tonnetz.gamme.ajouter(pcAbs);
       }
     }
-      // La gamme se rafraîchit elle-même; on s’aligne
-      this.update();
-      return true;
-    }
 
-    // 2) Sinon si clic sur l’anneau → rotation visuelle (drag)
-    if (this.isNearRing(mx, my)) {
-      this.isDraggingRing = true;
-      this.dragStartAngle = Math.atan2(my - this.center.y, mx - this.center.x);
-      this.rotationAtDragStart = this.rotation;
-
-        cursor(HAND); // curseur en forme de main
-
-       
-    console.log('Drag ring start');
-      return true; // ← bloque la propagation
-    } else 
-        cursor(ARROW); // curseur normal
-
-    return false;
+    this.update();
+    return true;
   }
 
-  handleDrag(mx, my) {
-    if (!this.isDraggingCenter) return false;
-    if (this.isDraggingCenter) {
-    this.center.x = mx - this.dragOffset.x;
-    this.center.y = my - this.dragOffset.y;
-    this.recomputePositions(); // recalculer les positions des notes
+  // --- Priorité 2 : anneau interactif (rotation) ---
+  if (this.isNearRing(mx, my)) {
+    this.isDraggingRing = true;
+    this.isDraggingCenter = false;
+    this.ringDragStartAngle = Math.atan2(my - this.center.y, mx - this.center.x);
+    this.rotationAtRingDragStart = this.rotation;
+    cursor(HAND);
+    console.log('Drag ring start');
     return true;
+  }
+
+  // --- Priorité 3 : centre (déplacement) ---
+  if (d < centerRadius) {
+    this.isDraggingCenter = true;
+    this.isDraggingRing = false;
+    this.dragOffset = {
+      x: mx - this.center.x,
+      y: my - this.center.y
+    };
+    cursor(MOVE);
+    console.log('Drag center start');
+    return true;
+  }
+
+  cursor(ARROW);
+  return false;
 }
 
-    if (mouseButton && mouseButton.right) return false; // pan Tonnetz à droite
-    cursor(HAND); // curseur en forme de main
-    const currentAngle = Math.atan2(my - this.center.y, mx - this.center.x);
-    const delta = currentAngle - this.dragStartAngle;
-    this.rotation = this.rotationAtDragStart + delta;
+
+handleDrag(mx, my) {
+  if (this.isDraggingCenter) {
+    this.center.x = mx - this.dragOffset.x;
+    this.center.y = my - this.dragOffset.y;
     this.recomputePositions();
     return true;
-    }
+  }
+
+  if (this.isDraggingRing) {
+    const currentAngle = Math.atan2(my - this.center.y, mx - this.center.x);
+    const delta = currentAngle - this.ringDragStartAngle;
+    this.rotation = this.rotationAtRingDragStart + delta;
+    this.recomputePositions();
+    return true;
+  }
+
+  return false;
+}
+
 
   handleRelease() {
     this.isDraggingRing = false;
