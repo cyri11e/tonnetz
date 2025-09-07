@@ -324,16 +324,32 @@ getDegreeLabel(i, noteStyle = "mixed") {
   }
 
 updateNoteLabels() {
-  // ✅ Sécurité : si toutes les notes sont déjà présentes, on sort
-  if (!this.pitchClasses || this.pitchClasses.length >= 12) {
-    return;
-  }
+  // Ne sortir que si pitchClasses est absent
+  if (!this.pitchClasses) return;
+
   const labels = [];
 
-  // Pour les gammes pentatoniques, on utilise directement les noms des pitch classes
+  // Cas chromatique (12 notes) → on nomme toutes les pitch classes
+  if (this.pitchClasses.length === 12) {
+    // Choix par défaut: noms dièses (ou adapte selon ta logique de tonalité)
+    const style = "mixed"; // "sharp" | "flat" | "mixed"
+    let current = this.tonicNote;
 
+    // On parcourt la signature pour avancer de 1 demi-ton à chaque '1'
+    // et nommer dans l'ordre relatif depuis la tonique.
+    for (let i = 0; i < 12; i++) {
+      const rel = this.chroma[i]; // 0..11, ordre relatif
+      const pcAbs = this.pitchClasses[i];
+
+      labels.push(pcToName(pcAbs))
+    }
+    this.notes = labels;
+    return;
+  }
+
+  // Pentatoniques: noms directs par pitch classes
   if (this.nomReconnu && this.nomReconnu !== 'Pentatonique') {
-    // Cas gamme reconnue : on applique la logique stricte
+    // Gamme reconnue: application stricte par intervalles relatifs
     let currentLabel = this.tonicNote;
     for (let i = 0; i < this.chroma.length; i++) {
       labels.push(currentLabel);
@@ -341,7 +357,7 @@ updateNoteLabels() {
       currentLabel = getNextNoteLabel(currentLabel, demiTons);
     }
   } else {
-    // Cas non reconnu : noms par défaut depuis pitchClasses
+    // Non reconnue: nommage par défaut depuis les pitch classes
     this.pitchClasses.forEach(pc => {
       labels.push(pcToName(pc));
     });
@@ -349,6 +365,7 @@ updateNoteLabels() {
 
   this.notes = labels;
 }
+
 
 
   getScaleMode() {

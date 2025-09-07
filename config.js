@@ -50,20 +50,20 @@ const CONFIG = {
     tonicTextDark:       '#0f0f10',           // couleur du texte sur tonique
     degreeLabel:         '#7a9ef5ff',         // gris doux, ou blanc si fond sombre
 
-    // Couleurs par note (1 à 12)
+    // Couleurs par note ordre du cycle des quintes (1 à 12)
     noteColors: [
       '#9a0918', // 1  
-      '#a24b12', // 2  
-      '#d38f09', // 3  
-      '#668c1f', // 4  
-      '#415623', // 5  
-      '#387d52', // 6  
-      '#338cbc', // 7  
-      '#34335b', // 8  
-      '#271f5f', // 9  
-      '#58234b', // 10 
-      '#841f4e', // 11 
-      '#9e003d'  // 12
+      '#a24b12', // 5  
+      '#d38f09', // 2  
+      '#668c1f', // 6  
+      '#415623', // 3  
+      '#387d52', // 7  
+      '#338cbc', // #4 b5  
+      '#34335b', // b2  
+      '#271f5f', // b6  
+      '#58234b', // b3 
+      '#841f4e', // b7 
+      '#9e003d'  // 4
     ]
   }
 };

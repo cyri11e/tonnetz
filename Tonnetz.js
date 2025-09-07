@@ -329,6 +329,18 @@ reset() {
       return nameFromGamme ?? node?.name ?? pcToName(pc, this.noteStyle);
     });
 
+    if (this.activeNames?.length === 2) {
+      const [noteA, noteB] = this.activeNames;
+
+      const midiA = this.activeMidiNums[0];
+      const midiB = this.activeMidiNums[1];
+      const semitones = Math.abs(midiB - midiA);
+
+      getIntervalFromNotes(noteA, noteB, semitones);
+    }
+
+
+
     // 3. Détection des accords
     if (activeNames.length >= 3)
       this.lastDetectedChords = this.chordDetector.detect(activeNames, midiNums || []);

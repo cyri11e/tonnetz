@@ -197,6 +197,8 @@ function mouseMoved() {
 
 function mouseReleased() {
 
+  if (noteListView.handleRelease(mouseX, mouseY)) return;
+
   tonnetz.netGrid.chordTriangle.handleRelease();
   cof.handleRelease();
   if (draggedBubble) {

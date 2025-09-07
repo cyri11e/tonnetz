@@ -148,6 +148,54 @@ function getRefNature(chroma) {
   return  INTERVALLES.filter(filterType => filterType.chroma === chroma && valides.includes(filterType.nature))[0];
 }
 
+function getIntervalFromNotes(noteA, noteB, semitones) {
+  const letters = ['C','D','E','F','G','A','B'];
+
+  const parsedA = parseNoteName(noteA);
+  const parsedB = parseNoteName(noteB);
+  if (!parsedA || !parsedB) return null;
+
+  const idxA = letters.indexOf(parsedA.letter);
+  const idxB = letters.indexOf(parsedB.letter);
+  if (idxA === -1 || idxB === -1) return null;
+
+  const pcA = nameToPc(noteA);
+  const pcB = nameToPc(noteB);
+  if (pcA === -1 || pcB === -1) return null;
+
+  // --- 1. Numéro d’intervalle diatonique ---
+  let ecartLettres = idxB - idxA;
+  let direction = "ascendant";
+  if (ecartLettres < 0) {
+    ecartLettres += 7;
+    direction = "descendant";
+  }
+  const numero = ecartLettres + 1;
+
+  // --- 2. Distance chromatique ---
+  let chroma = pcB - pcA;
+  if (chroma < 0) chroma += 12;
+
+  // --- 3. Intervalle de référence ---
+  const refKey = Object.keys(INTERVALLES).find(k => {
+    const i = INTERVALLES[k];
+    return parseInt(i.raccourci.slice(1)) === numero &&
+           (i.raccourci.startsWith('P') || i.raccourci.startsWith('M'));
+  });
+
+  const ref = INTERVALLES[refKey] ?? null;
+  if (!ref) return `?${numero}`;
+
+  const nature = getIntervalNature(ref.chroma, chroma, ref.nature);
+  const intervalLabel = `${nature}${numero}`;
+
+  // --- 4. Affichage console ---
+  console.log(`🎵 ${noteA} → ${noteB} : ${intervalLabel} (${semitones} demi-tons, ${direction})`);
+
+  return intervalLabel;
+}
+
+
 function calculerIntervalle(degre1, degre2) {
   const altToChroma = {
     "bb": -2, "b": -1,
