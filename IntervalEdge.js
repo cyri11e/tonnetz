@@ -40,41 +40,53 @@ class IntervalEdge {
     }
   }
 
-  draw(g, active, zoom = 1) {
-    if (active) this.lastActiveTime = millis();
-    const fadeFactor = getFadeFactor(this.lastActiveTime);
+draw(g, active, zoom = 1) {
+  if (active) this.lastActiveTime = millis();
+  const fadeFactor = getFadeFactor(this.lastActiveTime);
 
-    g.push();
+  g.push();
 
-    const c = g.color(this.color());
-    c.setAlpha(255 * fadeFactor);
-    g.stroke(c);
-    const weight = fadeFactor > 0
-      ? CONFIG.edgeWidthThick * zoom
-      : CONFIG.edgeWidthThin * zoom;
-    g.strokeWeight(weight);
-    g.line(this.a.px, this.a.py, this.b.px, this.b.py);
+  // Couleur et opacité du segment
+  const lineColor = g.color(this.color());
+  const lineAlpha = active ? 255 : 80 + 175 * fadeFactor;
+  lineColor.setAlpha(lineAlpha);
+  g.stroke(lineColor);
 
-    if (fadeFactor > 0) {
-      g.translate(this.midpoint.x, this.midpoint.y);
-      g.rotate(this.angle);
-      g.textAlign(g.CENTER, g.CENTER);
-      g.textFont(CONFIG.fontFamily);
-      g.textStyle(CONFIG.fontWeight);
-      g.textSize(CONFIG.fontSize * 0.5 * zoom);
-      g.noStroke();
+  const weight = active
+    ? CONFIG.edgeWidthThick * zoom
+    : CONFIG.edgeWidthThin * zoom;
+  g.strokeWeight(weight);
+  g.line(this.a.px, this.a.py, this.b.px, this.b.py);
 
-      const bgColor = g.color(this.color());
-      bgColor.setAlpha(255 * fadeFactor);
-      g.fill(bgColor);
-      g.circle(0, 0, CONFIG.fontSize * 0.8 * zoom);
+  // Affichage pastille + label si visible
+  if (fadeFactor > 0 || active) {
+    const midX = (this.a.px + this.b.px) / 2;
+    const midY = (this.a.py + this.b.py) / 2;
 
-      const labelColor = g.color(CONFIG.colors.bg);
-      labelColor.setAlpha(255 * fadeFactor);
-      g.fill(labelColor);
-      g.text(this.label, 0, 0);
-    }
+    g.translate(midX, midY);
+    g.rotate(this.angle);
+    g.textAlign(g.CENTER, g.CENTER);
+    g.textFont(CONFIG.fontFamily);
+    g.textStyle(CONFIG.fontWeight);
+    g.textSize(CONFIG.fontSize * 0.5 * zoom);
+    g.noStroke();
 
-    g.pop();
+    const alpha = active ? 255 : 80 + 175 * fadeFactor;
+
+    const bgColor = g.color(this.color());
+    bgColor.setAlpha(alpha);
+    g.fill(bgColor);
+    g.circle(0, 0, CONFIG.fontSize * 0.8 * zoom);
+
+    const labelColor = g.color(CONFIG.colors.bg);
+    labelColor.setAlpha(alpha);
+    g.fill(labelColor);
+    g.text(this.label, 0, 0);
   }
+
+  g.pop();
+}
+
+
+
 }

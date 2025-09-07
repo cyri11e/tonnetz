@@ -132,19 +132,11 @@ reset() {
 
 
   drawEdges(g) {
-    for (const e of this.netGrid.edges) {
-      const active = this.activePcs.has(e.a.pc) && this.activePcs.has(e.b.pc);
-      let col = active
-        ? g.color(
-          e.interval === 'P5' ? CONFIG.colors.edgeP5 :
-            e.interval === 'M3' ? CONFIG.colors.edgeM3 :
-              CONFIG.colors.edgem3
-        )
-        : g.color(CONFIG.colors.grid);
-      g.stroke(col);
-      g.strokeWeight(active ? CONFIG.edgeWidthThick : CONFIG.edgeWidthThin);
-      g.line(e.a.px, e.a.py, e.b.px, e.b.py);
-    }
+  for (const e of this.netGrid.edges) {
+    const active = this.activePcs.has(e.a.pc) && this.activePcs.has(e.b.pc);
+    e.draw(g, active, this.zoom);
+  }
+
   }
 
   drawNodes(g) {
@@ -168,11 +160,11 @@ reset() {
     g.push();
     g.background(CONFIG.colors.bg);
     //this.drawGrid(g);
-    this.drawEdges(g);    
     if (this.netGrid.chordTriangle) {
       this.netGrid.chordTriangle.draw(g, this.zoom, this.activePcs);
     }
-
+    
+    this.drawEdges(g);    
 
     this.drawNodes(g);
     g.pop();
