@@ -208,35 +208,36 @@ draw(rootPc = null) {
       });
     }
     
-if ( inScale || isActive ) {
-  push();
-  drawingContext.filter = 'blur(20px)';
+    // effet neon 
+    if ( inScale || isActive ) {
+      push();
+      drawingContext.filter = 'blur(20px)';
 
-  const glowColor = color(this.getArcColor(i, isActive, isRoot, inScale));
-  glowColor.setAlpha(220); // intensité du néon
-  stroke(glowColor);
-  strokeWeight(this.radius * 0.05); // épaisseur du liseré lumineux
-  noFill();
+      const glowColor = color(this.getArcColor(i, isActive, isRoot, inScale));
+      glowColor.setAlpha(isActive ? 255 : CONFIG.inactiveNoteBgalpha); // intensité du néon
+      stroke(glowColor);
+      strokeWeight(this.radius * 0.05); // épaisseur du liseré lumineux
+      noFill();
 
-  arc(
-    this.center.x + this.radius * 0.01,
-    this.center.y + this.radius * 0.01,
-    this.radius * 2.03,
-    this.radius * 2.03,
-    p.angle - radians(30) / 2,
-    p.angle + radians(30) / 2
-  );
-  arc(
-    this.center.x + this.radius * 0.01,
-    this.center.y + this.radius * 0.01,
-    this.radius * 1.37,
-    this.radius * 1.37,
-    p.angle - radians(30) / 2,
-    p.angle + radians(30) / 2
-  );
-  drawingContext.filter = 'none';
-  pop();
-}
+      arc(
+        this.center.x + this.radius * 0.01,
+        this.center.y + this.radius * 0.01,
+        this.radius * 2.03,
+        this.radius * 2.03,
+        p.angle - radians(30) / 2,
+        p.angle + radians(30) / 2
+      );
+      arc(
+        this.center.x + this.radius * 0.01,
+        this.center.y + this.radius * 0.01,
+        this.radius * 1.37,
+        this.radius * 1.37,
+        p.angle - radians(30) / 2,
+        p.angle + radians(30) / 2
+      );
+      drawingContext.filter = 'none';
+      pop();
+    }
 
 
 
