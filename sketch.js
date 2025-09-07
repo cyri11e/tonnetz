@@ -67,7 +67,8 @@ function draw() {
 
   tonnetz.draw(this);
   cof.draw(rootNote); // au-dessus
-  //cof.drawHitzone(); // debug
+  if (tonnetz.debug)
+    cof.drawHitzone(); // debug
 
 
 
@@ -241,6 +242,12 @@ function handleTonnetzClick(node) {
 
 
 function keyPressed() {
+  if ( key === 'D' || key === 'd' ) {
+    tonnetz.debug = !tonnetz.debug;
+    console.log(`Debug mode ${tonnetz.debug ? 'ON' : 'OFF'}`);
+    return;
+  }
+
 
   if (key === 'Z' || key === 'z') {
     tonnetz.hide = !tonnetz.hide;

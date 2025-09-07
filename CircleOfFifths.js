@@ -306,8 +306,12 @@ draw(rootPc = null) {
     this.isDraggingCenter = false;
     this.ringDragStartAngle = Math.atan2(my - this.center.y, mx - this.center.x);
     this.rotationAtRingDragStart = this.rotation;
-    cursor(HAND);
-    console.log('Drag ring start');
+    if (d > (this.radius - 40) && d < (this.radius + 40)) {
+      cursor(HAND);
+    } else {
+      cursor(ARROW);
+    }
+
     return true;
   }
 
@@ -320,7 +324,6 @@ draw(rootPc = null) {
       y: my - this.center.y
     };
     cursor(MOVE);
-    console.log('Drag center start');
     return true;
   }
 
@@ -367,7 +370,6 @@ handleDrag(mx, my) {
         } else {
         cursor(ARROW); // curseur normal
         }
-    console.log('Drag center start');
     return d > (this.radius - 40) && d < (this.radius + 40);
   }
 
