@@ -1,46 +1,33 @@
 class CircleOfFifths {
-  constructor(tonnetz, config = CONFIG) {
+  constructor(tonnetz) {
     this.tonnetz = tonnetz;
-    this.CONFIG = config;
     this.hide = true;
-    // Coquille vide: 12 chromas relatifs (ordre des quintes relatifs)
     this.relOrder = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
 
-    // Géométrie
     this.center = { x: 0, y: 0 };
     this.radius = 0;
-    this.ringThickness = Math.max(18, Math.floor(this.CONFIG.nodeRadius * 3));
+    this.ringThickness = Math.max(18, Math.floor(CONFIG.nodeRadius * 3));
     this.labelRadiusFactor = 0.82;
-    this.rotation = -HALF_PI; // 12h = relChroma 0 en haut
+    this.rotation = -HALF_PI;
 
-    // Drag/rotation
     this.isDraggingRing = false;
     this.dragStartAngle = 0;
     this.rotationAtDragStart = 0;
 
-    // Pré-calcul des positions angulaires (sans dépendance aux noms)
-    this.positions = []; // [{relChroma, angle, px, py, lpx, lpy}]
-    this.lastActiveTimes = Array(12).fill(0); // un timestamp par pitch class
-
+    this.positions = [];
+    this.lastActiveTimes = Array(12).fill(0);
   }
 
-  // Dimensions et positions (appel au setup + resize)
-build() {
-  const d = Math.floor(0.5 * Math.min(width, height)); // 50% de la plus petite dimension
-  this.radius = d / 2;
-  this.center.x = width / 2;
-  this.center.y = height / 2;
+  build() {
+    const d = Math.floor(0.5 * Math.min(width, height));
+    this.radius = d / 2;
+    this.center.x = width / 2;
+    this.center.y = height / 2;
+    this.ringThickness = this.radius * 0.40;
+    this.recomputePositions();
+  }
 
-  // Taille des pastilles proportionnelle au rayon du grand cercle
-  this.ringThickness = this.radius * 0.40; // 18% du rayon, à ajuster selon rendu
-
-  this.recomputePositions();
-}
-
-
-  // Recalculs si keyPc, gamme, noteStyle ou rotation changent
   update() {
-    // Rien à stocker côté labels → juste réévaluer la géométrie si besoin
     this.recomputePositions();
   }
 
@@ -56,16 +43,21 @@ build() {
     });
   }
 
-  // Dessin AU-DESSUS du Tonnetz (appeler après tonnetz.draw())
+  drawText(txt, x, y, size, style = CONFIG.fontWeight) {
+    textFont(CONFIG.fontFamily);
+    textAlign(CENTER, CENTER);
+    textStyle(style);
+    textSize(size);
+    text(txt, x, y);
+  }
+
   draw(rootPc = null) {
     if (this.hide) return;
 
     push();
-
-    // cercle rempli du fond ombré
-    drawingContext.filter = 'blur(30px)'; // rayon du flou
-    let bg = color(this.CONFIG.colors.bg);
-        bg.setAlpha(255); // opacité de l’ombre
+    drawingContext.filter = 'blur(30px)';
+    let bg = color(CONFIG.colors.bg);
+    bg.setAlpha(255);
     fill(bg);
     ellipse(this.center.x, this.center.y, this.radius * 2.3);
     drawingContext.filter = 'none';
@@ -74,147 +66,107 @@ build() {
     stroke(CONFIG.colors.inactiveNodeStroke);
     strokeWeight(1);
 
-    // Prépare styles de texte
-    textFont(this.CONFIG.fontFamily);
-    textStyle(this.CONFIG.fontWeight);
-    textSize(this.radius * 0.15);
-    textAlign(CENTER, CENTER);
-
-    // Sets d’état
     const gamme = this.tonnetz.gamme;
     const inScaleSet = new Set(gamme?.pitchClasses ?? []);
     const playedSet = new Set(this.tonnetz.activePcs ?? []);
 
+    for (const [i, p] of this.positions.entries()) {
+      const pcAbs = mod12(this.tonnetz.keyPc + p.relChroma);
+      const inScale = gamme.pitchClasses.includes(pcAbs);
+      const isActive = playedSet.has(pcAbs);
+      const isRoot = rootPc !== null && pcAbs === rootPc;
 
-for (const [i, p] of this.positions.entries()) {
-  const pcAbs = mod12(this.tonnetz.keyPc + p.relChroma);
-  const inScale = this.tonnetz.gamme.pitchClasses.includes(pcAbs);
-  const isActive = playedSet.has(pcAbs);
-  const isRoot = rootPc !== null && pcAbs === rootPc;
+      if (isActive) this.lastActiveTimes[pcAbs] = millis();
+      const fadeFactor = getFadeFactor(this.lastActiveTimes[pcAbs]);
 
-  if (isActive) {
-    this.lastActiveTimes[pcAbs] = millis();
-  }
-  const fadeFactor = getFadeFactor(this.lastActiveTimes[pcAbs]);
+      const angle = Math.atan2(p.ly - this.center.y, p.lx - this.center.x);
+      const arcWidth = radians(28);
 
-  const angle = Math.atan2(p.ly - this.center.y, p.lx - this.center.x);
-  const arcWidth = radians(28);
-  
-  // arc qui rempli le fond coloré si dans la gamme
-  if (inScale) {
-      const c = color(this.CONFIG.colors.noteColors[i]);
-      c.setAlpha(isActive ? 220 : 80);
-      stroke(c);
-      //stroke(CONFIG.colors.noteColors[i]);
-      strokeWeight(this.radius * 0.3);
+      if (inScale) {
+        const c = color(CONFIG.colors.noteColors[i]);
+        c.setAlpha(isActive ? 220 : 80);
+        stroke(c);
+        strokeWeight(this.radius * 0.3);
+        noFill();
+        strokeCap(SQUARE);
+        arc(this.center.x, this.center.y, this.radius * 1.7, this.radius * 1.7,
+          angle - arcWidth / 2, angle + arcWidth / 2);
+      }
+
+      const fullArcWidth = radians(30);
+      const arcExtThickness = this.radius * ((i == 0) ? 0.03 : 0.02) * (isActive ? 2 : 1);
+      strokeWeight(arcExtThickness);
+      stroke(
+        isRoot ? CONFIG.colors.rootStroke :
+        isActive ? CONFIG.colors.playedStroke :
+        inScale ? CONFIG.colors.selectedNodeStroke :
+        CONFIG.colors.inactiveNodeStroke
+      );
       noFill();
-      strokeCap(SQUARE);
-      arc(this.center.x, this.center.y, this.radius * 1.7, this.radius * 1.7,
-        angle - arcWidth / 2, angle + arcWidth / 2);
+      arc(this.center.x, this.center.y, this.radius * 2, this.radius * 2,
+        angle - fullArcWidth / 2, angle + fullArcWidth / 2);
+
+      const innerR = this.radius * 0.7;
+      strokeWeight(this.radius * ((i == 0) ? 0.03 : 0.02) * (isActive ? 2 : 1));
+      arc(this.center.x, this.center.y, innerR * 2, innerR * 2,
+        angle - fullArcWidth / 2, angle + fullArcWidth / 2);
+
+      const rawName = inScale ? gamme.getNoteName(pcAbs) : pcToName(pcAbs, this.tonnetz.noteStyle);
+      const rawDegree = gamme.getDegreeLabel(p.relChroma, this.tonnetz.noteStyle);
+      const name = toUnicodeAlteration(rawName);
+      const degree = toUnicodeAlteration(rawDegree);
+
+      const letter = name.charAt(0);
+      const accidental = name.slice(1);
+
+      const baseSize = this.radius * 0.22;
+      const accidentalSize = baseSize * 0.75;
+      const degreeSize = baseSize * 0.6;
+
+      const noteR = (this.radius + innerR) / 2;
+      const noteX = this.center.x + Math.cos(angle) * noteR;
+      const noteY = this.center.y + Math.sin(angle) * noteR;
+
+      const degreeR = innerR * 0.85;
+      const degreeX = this.center.x + Math.cos(angle) * degreeR;
+      const degreeY = this.center.y + Math.sin(angle) * degreeR;
+
+      let baseColor = inScale ? CONFIG.colors.nodeLabel : CONFIG.colors.inactiveNodeLabel;
+      let labelColor = color(baseColor);
+      labelColor.setAlpha(inScale ? 155 : 60);
+      fill(labelColor);
+      noStroke();
+      this.drawText(letter, noteX, noteY, baseSize);
+      if (accidental) {
+        const offsetR = baseSize * 0.45;
+        const offsetA = -40 * Math.PI / 180;
+        this.drawText(accidental, noteX + Math.cos(offsetA) * offsetR, noteY + Math.sin(offsetA) * offsetR, accidentalSize, NORMAL);
+      }
+      if (degree) {
+        this.drawText(degree, degreeX, degreeY, degreeSize, NORMAL);
+      }
+
+      if (isActive || fadeFactor > 0) {
+        let hlColor = CONFIG.colors.nodeLabel;
+        labelColor = color(hlColor);
+        labelColor.setAlpha(255 * fadeFactor);
+        fill(labelColor);
+        noStroke();
+        this.drawText(letter, noteX, noteY, baseSize * (isRoot ? 1.1 : 1.0), BOLD);
+        if (accidental) {
+          const offsetR = baseSize * 0.45;
+          const offsetA = -40 * Math.PI / 180;
+          this.drawText(accidental, noteX + Math.cos(offsetA) * offsetR, noteY + Math.sin(offsetA) * offsetR, accidentalSize, NORMAL);
+        }
+        if (degree) {
+          this.drawText(degree, degreeX, degreeY, degreeSize, NORMAL);
+        }
+      }
     }
-    
-  // arc extérieur
-  const fullArcWidth = radians(30); // largeur totale de l’arc 
-  const arcExtThickness = this.radius * ((i == 0) ? 0.03 : 0.02)
-                *( isActive ? 2 : 1)   ; // épaisseur de l’arc extérieur
-  strokeWeight(arcExtThickness); // trait plus épais pour la tonique
-  stroke(
-    isRoot ? this.CONFIG.colors.rootStroke :
-    isActive
-        ? this.CONFIG.colors.playedStroke
-        : inScale
-          ? this.CONFIG.colors.selectedNodeStroke
-          : this.CONFIG.colors.inactiveNodeStroke
-  );
-  noFill();
-  arc(this.center.x, this.center.y, this.radius * 2, this.radius * 2,
-      angle - fullArcWidth / 2, angle + fullArcWidth / 2);
-
-
-  // arc intérieur     
-  const innerR = this.radius * 0.7;
-    strokeWeight(this.radius * ((i == 0) ? 0.03 : 0.02)
-                * (isActive ? 2 : 1 )   ); // trait plus épais pour la tonique
-    arc(this.center.x, this.center.y, innerR * 2, innerR * 2,
-      angle - fullArcWidth / 2, angle + fullArcWidth / 2);
-
-  const rawName = inScale
-    ? this.tonnetz.gamme.getNoteName(pcAbs)
-    : pcToName(pcAbs, this.tonnetz.noteStyle);
-  const rawDegree = this.tonnetz.gamme.getDegreeLabel(p.relChroma, this.tonnetz.noteStyle);
-
-  const name = toUnicodeAlteration(rawName);
-  const degree = toUnicodeAlteration(rawDegree);
-
-  const letter = name.charAt(0);
-  const accidental = name.slice(1);
-
-  const baseSize = this.radius * 0.22;
-  const accidentalSize = baseSize * 0.75;
-  const degreeSize = baseSize * 0.6;
-
-  const noteR = (this.radius + innerR) / 2;
-  const noteX = this.center.x + Math.cos(angle) * noteR;
-  const noteY = this.center.y + Math.sin(angle) * noteR;
-
-  const degreeR = innerR * 0.85;
-  const degreeX = this.center.x + Math.cos(angle) * degreeR;
-  const degreeY = this.center.y + Math.sin(angle) * degreeR;
-
-  // --- Couche de base : blanc si inScale, gris sinon ---
-  let baseColor = inScale
-    ? this.CONFIG.colors.nodeLabel
-    : this.CONFIG.colors.inactiveNodeLabel;
-    
-
-  let labelColor = color(baseColor);
-  labelColor.setAlpha(inScale ? 155 : 60);
-  fill(labelColor);
-  noStroke();
-  textStyle(this.CONFIG.fontWeight);
-  textSize(baseSize);
-  text(letter, noteX, noteY);
-  if (accidental) {
-    textSize(accidentalSize);
-    textStyle(NORMAL);
-    const offsetR = baseSize * 0.45;
-    const offsetA = -40 * Math.PI / 180;
-    text(accidental, noteX + Math.cos(offsetA) * offsetR, noteY + Math.sin(offsetA) * offsetR);
-  }
-  if (degree) {
-    textSize(degreeSize);
-    textStyle(NORMAL);
-    text(degree, degreeX, degreeY);
-  }
-
-  // --- Couche highlight : rouge root, jaune active ---
-  if (isActive || fadeFactor > 0) {
-    let hlColor = this.CONFIG.colors.nodeLabel;
-    textStyle(BOLD);
-    labelColor = color(hlColor);
-    labelColor.setAlpha(255 * fadeFactor);
-    fill(labelColor);
-    noStroke();
-
-    textSize(baseSize * (isRoot ? 1.1 : 1.0) );
-    text(letter, noteX, noteY);
-    if (accidental) {
-      textSize(accidentalSize);
-      const offsetR = baseSize * 0.45;
-      const offsetA = -40 * Math.PI / 180;
-      text(accidental, noteX + Math.cos(offsetA) * offsetR, noteY + Math.sin(offsetA) * offsetR);
-    }
-    if (degree) {
-      textSize(degreeSize);
-      text(degree, degreeX, degreeY);
-    }
-  }
-}
-
-
 
     pop();
   }
+
 
   // Interactions
   handleClick(mx, my, mouseButton) {
