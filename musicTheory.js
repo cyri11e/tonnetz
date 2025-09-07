@@ -187,7 +187,7 @@ function getIntervalFromNotes(noteA, noteB, semitones) {
   if (!ref) return `?${numero}`;
 
   const nature = getIntervalNature(ref.chroma, chroma, ref.nature);
-  const intervalLabel = `${nature}${numero}`;
+  const intervalLabel = `${(chroma < 0)?'-':'+'}${nature}${numero}`;
 
   // --- 4. Affichage console ---
   console.log(`🎵 ${noteA} → ${noteB} : ${intervalLabel} (${semitones} demi-tons, ${direction})`);
