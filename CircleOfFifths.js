@@ -168,7 +168,7 @@ for (const [i, p] of this.positions.entries()) {
     
 
   let labelColor = color(baseColor);
-  labelColor.setAlpha(155);
+  labelColor.setAlpha(inScale ? 155 : 60);
   fill(labelColor);
   noStroke();
   textStyle(this.CONFIG.fontWeight);
