@@ -194,7 +194,7 @@ draw(rootPc = null) {
 
     
     // 🔸 Alpha dynamique basé sur l'activité (fond)
-    const bgAlpha = fadeFactor > 0 ? 220 * fadeFactor : 90;
+    const bgAlpha = fadeFactor > 0 ? 220 * fadeFactor : CONFIG.inactiveNoteBgalpha;
     
     // 🟡 Arc de fond (seulement pour les notes dans la gamme)
     if (inScale) {
@@ -213,7 +213,7 @@ if ( inScale || isActive ) {
   drawingContext.filter = 'blur(20px)';
 
   const glowColor = color(this.getArcColor(i, isActive, isRoot, inScale));
-  glowColor.setAlpha(180); // intensité du néon
+  glowColor.setAlpha(220); // intensité du néon
   stroke(glowColor);
   strokeWeight(this.radius * 0.05); // épaisseur du liseré lumineux
   noFill();

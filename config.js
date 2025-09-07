@@ -26,6 +26,10 @@ const CONFIG = {
   //fontFamilyRoman: 'EB Garamond', // police avec empattement pour les accords
   fontFamilyRoman: 'Arial Unicode MS',
 
+  // transparence des couleur de fond de note
+  inactiveNoteBgalpha: 100,
+  activeNoteBgalpha: 255,
+
   // Palette de couleurs centralisée
   colors: {
     bg:                 '#0f0f10',         // couleur de fond du canvas
@@ -52,18 +56,18 @@ const CONFIG = {
 
     // Couleurs par note ordre du cycle des quintes (1 à 12)
     noteColors: [
-      '#9a0918', // 1  
-      '#a24b12', // 5  
+      '#9a0918', // 1  idx 0
+      '#a24b12', // 5  idx 1
       '#d38f09', // 2  
       '#668c1f', // 6  
       '#415623', // 3  
       '#387d52', // 7  
       '#338cbc', // #4 b5  
-      '#34335b', // b2  
+      '#34335b', // b2 idx 8 
       '#271f5f', // b6  
       '#58234b', // b3 
       '#841f4e', // b7 
-      '#9e003d'  // 4
+      '#9e003d'  // 4 idx 11
     ]
   }
 };

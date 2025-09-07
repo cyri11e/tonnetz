@@ -90,27 +90,13 @@ draw(g, canvasWidth) {
     const x = startX + i * spacing;
     const y = baseY;
 
-const COLOR_INDEX_TO_QUINTE_INDEX = [
-  0,  // couleur 0 → quinteIndex 0
-  6,  // 1 → 6
-  10, // 2 → 10
-  2,  // 3 → 2
-  8,  // 4 → 8
-  4,  // 5 → 4
-  11, // 6 → 11
-  1,  // 7 → 1
-  7,  // 8 → 7
-  3,  // 9 → 3
-  9,  // 10 → 9
-  5   // 11 → 5
-];
-
 
     // Couleur de fond
-const colorIndex = COLOR_INDEX_TO_QUINTE_INDEX[i % 12];
-const noteColor = color(CONFIG.colors.noteColors[colorIndex]);
+    const QUINTE_INDEX = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
+    const colorIndex = QUINTE_INDEX[i % 12];
+    const noteColor = color(CONFIG.colors.noteColors[colorIndex]);
 
-    noteColor.setAlpha(isActive ?  220 : 80);
+    noteColor.setAlpha(isActive ?  220 : CONFIG.inactiveNoteBgalpha);
     if (inGamme) {
         g.fill(noteColor);
     } else {        
@@ -127,32 +113,6 @@ const noteColor = color(CONFIG.colors.noteColors[colorIndex]);
                  CONFIG.colors.inactiveNodeStroke;
 
     const outlineWeight = radius * ((relIndex === 0) ? 0.08 : 0.04) * (isActive ? 3 : 1);
-// if (inGamme) {
-//   const glowColor = color(CONFIG.colors.selectedNodeStroke);
-//   glowColor.setAlpha(100 + fadeFactor * 80); // lumière douce, modulée par activité
-
-//   g.noFill();
-//   g.stroke(glowColor);
-//   g.strokeWeight(outlineWeight * 2);
-
-//   // Simule un halo lumineux sous la pastille
-//   drawingContext.save();
-//   drawingContext.shadowBlur = radius * 3.8;
-//   drawingContext.shadowColor = glowColor.toString();
-//   g.circle(x, y, radius * 2.3); // légèrement plus grand que la pastille
-//   drawingContext.restore();
-// }
-
-    // push();
-    // drawingContext.filter = 'blur(30px)'; // rayon du flou
-    // let bg = color('red');
-    //     bg.setAlpha(85); // opacité de l’ombre
-    // noFill();
-    // stroke(bg)
-    // strokeWeight(outlineWeight * 2.6);
-    // ellipse(x, y, this.radius * 2.3);
-    // drawingContext.filter = 'none';
-    // pop();
 
     g.stroke(strokeColor);
     g.strokeWeight(outlineWeight);
