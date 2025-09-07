@@ -148,12 +148,59 @@ function getRefNature(chroma) {
   return  INTERVALLES.filter(filterType => filterType.chroma === chroma && valides.includes(filterType.nature))[0];
 }
 
+// function getIntervalFromNotes(noteA, noteB, semitones) {
+//   const letters = ['C','D','E','F','G','A','B'];
+
+//   const parsedA = parseNoteName(noteA);
+//   const parsedB = parseNoteName(noteB);
+//   if (!parsedA || !parsedB) return null;
+
+//   const idxA = letters.indexOf(parsedA.letter);
+//   const idxB = letters.indexOf(parsedB.letter);
+//   if (idxA === -1 || idxB === -1) return null;
+
+//   const pcA = nameToPc(noteA);
+//   const pcB = nameToPc(noteB);
+//   if (pcA === -1 || pcB === -1) return null;
+
+//   // --- 1. Numéro d’intervalle diatonique ---
+//   let ecartLettres = idxB - idxA;
+//   let direction = "ascendant";
+//   if (ecartLettres < 0) {
+//     ecartLettres += 7;
+//     direction = "descendant";
+//   }
+//   const numero = ecartLettres + 1;
+
+//   // --- 2. Distance chromatique ---
+//   let chroma = pcB - pcA;
+//   if (chroma < 0) chroma += 12;
+
+//   // --- 3. Intervalle de référence ---
+//   const refKey = Object.keys(INTERVALLES).find(k => {
+//     const i = INTERVALLES[k];
+//     return parseInt(i.raccourci.slice(1)) === numero &&
+//            (i.raccourci.startsWith('P') || i.raccourci.startsWith('M'));
+//   });
+
+//   const ref = INTERVALLES[refKey] ?? null;
+//   if (!ref) return `?${numero}`;
+
+//   const nature = getIntervalNature(ref.chroma, chroma, ref.nature);
+//   const intervalLabel = `${(chroma < 0)?'-':'+'}${nature}${numero}`;
+
+//   // --- 4. Affichage console ---
+//   console.log(`🎵 ${noteA} → ${noteB} : ${intervalLabel} (${semitones} demi-tons, ${direction})`);
+
+//   return intervalLabel;
+// }
+
 function getIntervalFromNotes(noteA, noteB, semitones) {
   const letters = ['C','D','E','F','G','A','B'];
 
   const parsedA = parseNoteName(noteA);
   const parsedB = parseNoteName(noteB);
-  if (!parsedA || !parsedB) return null;
+  if (!parsedA || !parsedB || semitones == null) return null;
 
   const idxA = letters.indexOf(parsedA.letter);
   const idxB = letters.indexOf(parsedB.letter);
@@ -163,34 +210,33 @@ function getIntervalFromNotes(noteA, noteB, semitones) {
   const pcB = nameToPc(noteB);
   if (pcA === -1 || pcB === -1) return null;
 
-  // --- 1. Numéro d’intervalle diatonique ---
+  // --- 1. Intervalle simple ---
   let ecartLettres = idxB - idxA;
-  let direction = "ascendant";
-  if (ecartLettres < 0) {
-    ecartLettres += 7;
-    direction = "descendant";
-  }
-  const numero = ecartLettres + 1;
+  if (semitones < 0) ecartLettres = idxA - idxB;
+  if (ecartLettres < 0) ecartLettres += 7;
+  const numeroSimple = ecartLettres + 1;
 
-  // --- 2. Distance chromatique ---
-  let chroma = pcB - pcA;
-  if (chroma < 0) chroma += 12;
+  const chromaSimple = Math.abs(semitones) % 12;
 
-  // --- 3. Intervalle de référence ---
   const refKey = Object.keys(INTERVALLES).find(k => {
     const i = INTERVALLES[k];
-    return parseInt(i.raccourci.slice(1)) === numero &&
+    return parseInt(i.raccourci.slice(1)) === numeroSimple &&
            (i.raccourci.startsWith('P') || i.raccourci.startsWith('M'));
   });
 
   const ref = INTERVALLES[refKey] ?? null;
-  if (!ref) return `?${numero}`;
+  if (!ref) return `?${numeroSimple}`;
 
-  const nature = getIntervalNature(ref.chroma, chroma, ref.nature);
-  const intervalLabel = `${(chroma < 0)?'-':'+'}${nature}${numero}`;
+  const nature = getIntervalNature(ref.chroma, chromaSimple, ref.nature);
 
-  // --- 4. Affichage console ---
-  console.log(`🎵 ${noteA} → ${noteB} : ${intervalLabel} (${semitones} demi-tons, ${direction})`);
+  // --- 2. Extension par octave ---
+  const octaveOffset = Math.floor(Math.abs(semitones) / 12);
+  const numeroFinal = numeroSimple + 7 * octaveOffset;
+
+  const sign = semitones < 0 ? '-' : '+';
+  const intervalLabel = `${sign}${nature}${numeroFinal}`;
+
+  console.log(`🎵 ${noteA} → ${noteB} : ${intervalLabel} (${semitones} demi-tons)`);
 
   return intervalLabel;
 }
@@ -254,6 +300,59 @@ else if (type === "M") qualite = suiteM[diff + 3] ?? "?";
 }
 
 
+function getIntervalFromDegree(degre1, degre2, semitones) {
+  const altToChroma = {
+    "bb": -2, "b": -1,
+    "#": 1, "##": 2
+  };
+
+  function extraireInfos(degre) {
+    const match = degre.match(/(bb|b|##|#)?(\d)/);
+    if (!match) return null;
+
+    const alt = match[1] ?? "";
+    const num = parseInt(match[2]);
+    const altValue = altToChroma[alt] ?? 0;
+
+    return { num, altValue };
+  }
+
+  const infos1 = extraireInfos(degre1);
+  const infos2 = extraireInfos(degre2);
+  if (!infos1 || !infos2 || semitones == null) return null;
+
+  const ecart = infos2.num - infos1.num;
+  const numeroIntervalle = Math.abs(ecart) + 1;
+
+  const types = [null, "P", "M", "M", "P", "P", "M", "M", "P"];
+  const type = types[numeroIntervalle] ?? "?";
+
+  const chromasMajeur = [0, 2, 4, 5, 7, 9, 11];
+  const chroma1 = chromasMajeur[infos1.num - 1] + infos1.altValue;
+  const chroma2 = chromasMajeur[infos2.num - 1] + infos2.altValue;
+  if (chroma1 == null || chroma2 == null) return null;
+
+  const chromaReel = chroma2 - chroma1;
+
+  const chromasRef = {
+    1: 0,  2: 2,  3: 4,
+    4: 5,  5: 7,  6: 9,
+    7: 11, 8: 12
+  };
+
+  const chromaRef = chromasRef[numeroIntervalle];
+  const diff = chromaReel - chromaRef;
+
+  let qualite = "i?";
+  const suiteP = ["dd", "d", "P", "A", "AA"];
+  const suiteM = ["dd", "d", "m", "M", "A", "AA"];
+
+  if (type === "P") qualite = suiteP[diff + 2] ?? "?";
+  else if (type === "M") qualite = suiteM[diff + 3] ?? "?";
+
+  const signe = semitones < 0 ? "-" : "+";
+  return `${signe}${qualite}${numeroIntervalle}`;
+}
 
 
 

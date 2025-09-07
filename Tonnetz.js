@@ -1,5 +1,5 @@
 class Tonnetz {
-  constructor({ startNote = 'G', H = 8, Vn = 6, canvas, debug = true }) {
+  constructor({ startNote = 'G', H = 8, Vn = 6, canvas, debug = false }) {
     this.startPc = nameToPc(startNote);
     this.H = H;
     this.Vn = Vn;
@@ -327,7 +327,7 @@ reset() {
       const midiA = this.activeMidiNums[0];
       const midiB = this.activeMidiNums[1];
       const semitones = Math.abs(midiB - midiA);
-
+console.log(noteA, noteB, semitones);
       getIntervalFromNotes(noteA, noteB, semitones);
     }
 

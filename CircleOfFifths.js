@@ -44,12 +44,14 @@ class CircleOfFifths {
   }
 
 drawShadow() {
+  push(); 
   drawingContext.filter = 'blur(30px)';
   let bg = color(CONFIG.colors.bg);
   bg.setAlpha(255);
   fill(bg);
   ellipse(this.center.x, this.center.y, this.radius * 2.3);
   drawingContext.filter = 'none';
+  pop();
 }
 
 // Dessine le nom de note (lettre + altération) et le degré, avec effet de fade/activité

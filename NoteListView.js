@@ -8,125 +8,80 @@ class NoteListView {
 
   }
 
-// Affiche un seul intervalle choisi parmi les 3 notes actives (hack triangle).
-// - Intervalle direct: ligne entre deux bulles (A → B)
-// - Complémentaire: deux segments au même niveau, limités aux extrémités de la note list
-// - Le label du complémentaire est calculé à l'envers: getIntervalFromNotes(B, A)
 showInterval(g, canvasWidth) {
   const active = Array.from(tonnetz.activePcs ?? []);
-  if (active.length !== 3) return;
+  const midiNumbers = tonnetz.activeMidiNums ?? [];
+  if (active.length !== 2 || midiNumbers.length !== 2) return;
 
-  // 1) Choisir n'importe quel intervalle valide: on prend les deux premières bulles trouvées
-  const bubblesByPc = new Map(this.bubbles.map(b => [b.pc, b]));
-  const candidates = active.map(pc => bubblesByPc.get(pc)).filter(Boolean);
-  if (candidates.length < 2) return;
+  const semitones = midiNumbers[1] - midiNumbers[0];
+  const [pcA, pcB] = active;
+  const bubbleA = this.bubbles.find(b => b.pc === pcA);
+  const bubbleB = this.bubbles.find(b => b.pc === pcB);
+  if (!bubbleA || !bubbleB) return;
 
-  // Prendre les deux premières et ordonner visuellement (A à gauche, B à droite)
-  let [bubbleA, bubbleB] = candidates.slice(0, 2);
-  if (bubbleA.x > bubbleB.x) [bubbleA, bubbleB] = [bubbleB, bubbleA];
-
-  const pcA = bubbleA.pc;
-  const pcB = bubbleB.pc;
-
-  // 2) Bornes horizontales du composant = extrémités du note list (pas la largeur d'écran)
-  //    On se base sur les bulles visibles pour déterminer les limites.
-  const xs = this.bubbles.map(b => b.x);
-  const radii = this.bubbles.map(b => b.radius);
-  const listLeft = Math.min(...xs) - (radii[0] ?? CONFIG.nodeRadius);
-  const listRight = Math.max(...xs) + (radii[0] ?? CONFIG.nodeRadius);
-
-  // 3) Position verticale (même niveau pour direct et complémentaire)
-  const yMain = bubbleA.y + 40;
-
-  // 4) Libellés des intervalles (mêmes règles que les bulles)
   const nameA = this.gamme.getNoteName(pcA) ?? pcToName(pcA, tonnetz.noteStyle);
   const nameB = this.gamme.getNoteName(pcB) ?? pcToName(pcB, tonnetz.noteStyle);
-  const mainLabel = getIntervalFromNotes(nameA, nameB);   // A → B
-  const compLabel = getIntervalFromNotes(nameB, nameA);   // B → A (complémentaire)
+  const intervalLabel = getIntervalFromNotes(nameA, nameB, semitones);
 
-  // 5) Couleur (COF) cohérente avec les bulles, basée sur pcA
-  const INTERVAL_INDEX = {
-  "P1": 0, "P8": 0,
-  "P5": 1,
-  "M2": 2, "d3": 2,
-  "m7": 3, "A6": 3,
-  "M3": 4, "d4": 4,
-  "m6": 5, "A5": 5,
-  "M6": 6, "d7": 6,
-  "m3": 7, "A2": 7,
-  "TT": 8, "A4": 8, "d5": 8,
-  "m2": 9, "A1": 9,
-  "M7": 10, "d8": 10,
-  "P4": 11
-};
+  const mainColor = getIntervalColor(intervalLabel.replace(/^[-+]/, ""));
+  const compColor = mainColor; // même couleur pour complémentaire ici
 
-let colorIndex = INTERVAL_INDEX[mainLabel.replace(/^[-+]/, "")] ?? 0;
-let bandColor = color(CONFIG.colors.noteColors[colorIndex]);
-
-
-
-  // 6) Dessin intervalle direct (ligne entre A et B)
-  g.stroke(bandColor);
-  g.strokeWeight(CONFIG.nodeRadius * 0.9);
-  g.line(bubbleA.x, yMain, bubbleB.x, yMain);
-
-  // Pastille centrale (direct)
-  g.push();
-  g.translate((bubbleA.x + bubbleB.x) / 2, yMain);
-  g.textAlign(CENTER, CENTER);
-  g.textFont(CONFIG.fontFamily);
-  g.textStyle(CONFIG.fontWeight);
-  g.textSize(CONFIG.fontSize * 0.5);
-  g.noStroke();
-  g.fill(bandColor);
-  g.circle(0, 0, CONFIG.fontSize * 0.9);
-  g.fill(CONFIG.colors.bg);
-  g.text(mainLabel, 0, 0);
-  g.pop();
-
-  // 7) Dessin intervalle complémentaire (même niveau), limité aux extrémités de la note list
+  const xs = this.bubbles.map(b => b.x);
+  const listLeft = Math.min(...xs) - CONFIG.nodeRadius;
+  const listRight = Math.max(...xs) + CONFIG.nodeRadius;
+  const yMain = bubbleA.y + 20;
   const compWeight = CONFIG.nodeRadius * 0.6;
 
-  colorIndex = INTERVAL_INDEX[compLabel.replace(/^[-+]/, "")] ?? 0;
-  bandColor = color(CONFIG.colors.noteColors[colorIndex]);
-  // Segment 1: de B vers la droite (jusqu'à l'extrémité de la note list)
-  g.stroke(bandColor);
-  g.strokeWeight(compWeight);
-  g.line(bubbleB.x, yMain, listRight, yMain);
-
-  // Pastille segment 1 (complémentaire)
-  g.push();
-  g.translate((bubbleB.x + listRight) / 2, yMain);
+  g.stroke(mainColor);
+  g.fill(mainColor);
+  g.strokeWeight(CONFIG.nodeRadius * 0.9);
   g.textAlign(CENTER, CENTER);
   g.textFont(CONFIG.fontFamily);
   g.textStyle(CONFIG.fontWeight);
   g.textSize(CONFIG.fontSize * 0.5);
-  g.noStroke();
-  g.fill(bandColor);
-  g.circle(0, 0, CONFIG.fontSize * 0.9);
-  g.fill(CONFIG.colors.bg);
-  g.text(compLabel, 0, 0);
-  g.pop();
 
-  // Segment 2: de la gauche (extrémité) vers A
-  g.stroke(bandColor);
-  g.strokeWeight(compWeight);
-  g.line(listLeft, yMain, bubbleA.x, yMain);
+  if (semitones >= 0) {
+    // === Intervalle direct ===
+    g.line(bubbleA.x, yMain, bubbleB.x, yMain);
+    g.push();
+    g.translate((bubbleA.x + bubbleB.x) / 2, yMain);
+    g.noStroke();
+    g.circle(0, 0, CONFIG.fontSize * 0.9);
+    g.fill(CONFIG.colors.bg);
+    g.text(intervalLabel, 0, 0);
+    g.pop();
+  } else {
+    // === Intervalle complémentaire ===
 
-  // Pastille segment 2 (complémentaire)
-  g.push();
-  g.translate((listLeft + bubbleA.x) / 2, yMain);
-  g.textAlign(CENTER, CENTER);
-  g.textFont(CONFIG.fontFamily);
-  g.textStyle(CONFIG.fontWeight);
-  g.textSize(CONFIG.fontSize * 0.5);
-  g.noStroke();
-  g.fill(bandColor);
-  g.circle(0, 0, CONFIG.fontSize * 0.9);
-  g.fill(CONFIG.colors.bg);
-  g.text(compLabel, 0, 0);
-  g.pop();
+    // Segment 1 : B → droite
+    g.stroke(compColor);
+    g.strokeWeight(compWeight);
+    g.line(bubbleB.x, yMain, listRight, yMain);
+    g.push();
+    g.translate((bubbleB.x + listRight) / 2, yMain);
+    g.noStroke();
+    g.fill(compColor);
+    g.circle(0, 0, CONFIG.fontSize * 0.9);
+    g.fill(CONFIG.colors.bg);
+    g.text(intervalLabel, 0, 0);
+    g.pop();
+
+    // Segment 2 : gauche → A
+    g.stroke(compColor);
+    g.strokeWeight(compWeight);
+    g.line(listLeft, yMain, bubbleA.x, yMain);
+    g.push();
+    g.translate((listLeft + bubbleA.x) / 2, yMain);
+    g.noStroke();
+    g.fill(compColor);
+    g.circle(0, 0, CONFIG.fontSize * 0.9);
+    g.fill(CONFIG.colors.bg);
+    g.text(intervalLabel, 0, 0);
+    g.pop();
+  }
 }
+
+
 
 
 

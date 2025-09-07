@@ -74,3 +74,26 @@ function pointInTriangleInner(px, py, x1, y1, x2, y2, x3, y3, shrink = 0.75) {
   const sy3 = cy + (y3 - cy) * shrink;
   return pointInTriangle(px, py, sx1, sy1, sx2, sy2, sx3, sy3);
 }
+
+function getIntervalColor(label) {
+  const INTERVAL_INDEX = {
+    "P1": 0, "P8": 0,
+    "P5": 1,
+    "M2": 2, "d3": 2,
+    "m7": 3, "A6": 3,
+    "M3": 4, "d4": 4,
+    "m6": 5, "A5": 5,
+    "M6": 6, "d7": 6,
+    "m3": 7, "A2": 7,
+    "TT": 8, "A4": 8, "d5": 8,
+    "m2": 9, "A1": 9,
+    "M7": 10, "d8": 10,
+    "P4": 11
+  };
+
+  const cleanLabel = label.replace(/^[-+]/, "");
+  const index = INTERVAL_INDEX[cleanLabel] ?? 0;
+  const c = color(CONFIG.colors.noteColors[index]);
+  c.setAlpha(200);
+  return c;
+}
