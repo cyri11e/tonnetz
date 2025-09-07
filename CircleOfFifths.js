@@ -43,129 +43,233 @@ class CircleOfFifths {
     });
   }
 
-  drawText(txt, x, y, size, style = CONFIG.fontWeight) {
-    textFont(CONFIG.fontFamily);
-    textAlign(CENTER, CENTER);
-    textStyle(style);
-    textSize(size);
-    text(txt, x, y);
+drawShadow() {
+  drawingContext.filter = 'blur(30px)';
+  let bg = color(CONFIG.colors.bg);
+  bg.setAlpha(255);
+  fill(bg);
+  ellipse(this.center.x, this.center.y, this.radius * 2.3);
+  drawingContext.filter = 'none';
+}
+
+// Dessine le nom de note (lettre + altération) et le degré, avec effet de fade/activité
+drawNote(p, pcAbs, inScale, isActive, isRoot, fadeFactor) {
+  // 1) Récupération et normalisation des labels
+  const gamme = this.tonnetz.gamme;
+  const rawName = inScale && gamme ? gamme.getNoteName(pcAbs) : pcToName(pcAbs, this.tonnetz.noteStyle);
+  const rawDegree = gamme ? gamme.getDegreeLabel(p.relChroma, this.tonnetz.noteStyle) : '';
+  const name = toUnicodeAlteration(rawName);
+  const degree = toUnicodeAlteration(rawDegree);
+
+  // Sépare la lettre de l’altération (ex: "C#": letter="C", accidental="#")
+  const letter = name.charAt(0);
+  const accidental = name.slice(1);
+
+  // 2) Tailles typographiques
+  const baseSize = this.radius * 0.22;
+  const accidentalSize = baseSize * 0.75;
+  const degreeSize = baseSize * 0.6;
+
+  // 3) Positions polaires → cartésiennes
+  const angle = p.angle;
+  const innerR = this.radius * 0.7;
+  const noteR = (this.radius + innerR) / 2;         // position du nom de note entre les deux arcs
+  const degreeR = innerR * 0.85;                    // position du degré un peu à l’intérieur
+
+  const noteX = this.center.x + Math.cos(angle) * noteR;
+  const noteY = this.center.y + Math.sin(angle) * noteR;
+
+  const degreeX = this.center.x + Math.cos(angle) * degreeR;
+  const degreeY = this.center.y + Math.sin(angle) * degreeR;
+
+  // 4) Couleur de base (atténuée si hors gamme)
+  let labelColor = color(inScale ? CONFIG.colors.nodeLabel : CONFIG.colors.inactiveNodeLabel);
+  labelColor.setAlpha(inScale ? 155 : 60);
+  fill(labelColor);
+  noStroke();
+
+  // 5) Dessin du nom de note (lettre + altération légèrement décalée)
+  this.drawText(letter, noteX, noteY, baseSize);
+  if (accidental) {
+    const offsetR = baseSize * 0.45;               // distance du décalage de l’altération
+    const offsetA = -40 * Math.PI / 180;           // angle de décalage (léger haut-gauche)
+    this.drawText(
+      accidental,
+      noteX + Math.cos(offsetA) * offsetR,
+      noteY + Math.sin(offsetA) * offsetR,
+      accidentalSize,
+      NORMAL
+    );
   }
 
-  draw(rootPc = null) {
-    if (this.hide) return;
+  // 6) Dessin du degré (si disponible)
+  if (degree) {
+    this.drawText(degree, degreeX, degreeY, degreeSize, NORMAL);
+  }
 
-    push();
-    drawingContext.filter = 'blur(30px)';
-    let bg = color(CONFIG.colors.bg);
-    bg.setAlpha(255);
-    fill(bg);
-    ellipse(this.center.x, this.center.y, this.radius * 2.3);
-    drawingContext.filter = 'none';
+  // 7) Surcouche de surbrillance quand joué/récemment joué (fadeFactor)
+  if (isActive || fadeFactor > 0) {
+    const hl = color(CONFIG.colors.nodeLabel);
+    hl.setAlpha(255 * fadeFactor);
+    fill(hl);
+    noStroke();
 
-    noFill();
-    stroke(CONFIG.colors.inactiveNodeStroke);
-    strokeWeight(1);
+    // Lettre en gras et légèrement plus grande si c’est la tonique
+    this.drawText(letter, noteX, noteY, baseSize * (isRoot ? 1.1 : 1.0), BOLD);
 
-    const gamme = this.tonnetz.gamme;
-    const inScaleSet = new Set(gamme?.pitchClasses ?? []);
-    const playedSet = new Set(this.tonnetz.activePcs ?? []);
-
-    for (const [i, p] of this.positions.entries()) {
-      const pcAbs = mod12(this.tonnetz.keyPc + p.relChroma);
-      const inScale = gamme.pitchClasses.includes(pcAbs);
-      const isActive = playedSet.has(pcAbs);
-      const isRoot = rootPc !== null && pcAbs === rootPc;
-
-      if (isActive) this.lastActiveTimes[pcAbs] = millis();
-      const fadeFactor = getFadeFactor(this.lastActiveTimes[pcAbs]);
-
-      const angle = Math.atan2(p.ly - this.center.y, p.lx - this.center.x);
-      const arcWidth = radians(28);
-
-      if (inScale) {
-        const c = color(CONFIG.colors.noteColors[i]);
-        c.setAlpha(isActive ? 220 : 80);
-        stroke(c);
-        strokeWeight(this.radius * 0.3);
-        noFill();
-        strokeCap(SQUARE);
-        arc(this.center.x, this.center.y, this.radius * 1.7, this.radius * 1.7,
-          angle - arcWidth / 2, angle + arcWidth / 2);
-      }
-
-      const fullArcWidth = radians(30);
-      const arcExtThickness = this.radius * ((i == 0) ? 0.03 : 0.02) * (isActive ? 2 : 1);
-      strokeWeight(arcExtThickness);
-      stroke(
-        isRoot ? CONFIG.colors.rootStroke :
-        isActive ? CONFIG.colors.playedStroke :
-        inScale ? CONFIG.colors.selectedNodeStroke :
-        CONFIG.colors.inactiveNodeStroke
+    if (accidental) {
+      const offsetR = baseSize * 0.45;
+      const offsetA = -40 * Math.PI / 180;
+      this.drawText(
+        accidental,
+        noteX + Math.cos(offsetA) * offsetR,
+        noteY + Math.sin(offsetA) * offsetR,
+        accidentalSize,
+        NORMAL
       );
-      noFill();
-      arc(this.center.x, this.center.y, this.radius * 2, this.radius * 2,
-        angle - fullArcWidth / 2, angle + fullArcWidth / 2);
-
-      const innerR = this.radius * 0.7;
-      strokeWeight(this.radius * ((i == 0) ? 0.03 : 0.02) * (isActive ? 2 : 1));
-      arc(this.center.x, this.center.y, innerR * 2, innerR * 2,
-        angle - fullArcWidth / 2, angle + fullArcWidth / 2);
-
-      const rawName = inScale ? gamme.getNoteName(pcAbs) : pcToName(pcAbs, this.tonnetz.noteStyle);
-      const rawDegree = gamme.getDegreeLabel(p.relChroma, this.tonnetz.noteStyle);
-      const name = toUnicodeAlteration(rawName);
-      const degree = toUnicodeAlteration(rawDegree);
-
-      const letter = name.charAt(0);
-      const accidental = name.slice(1);
-
-      const baseSize = this.radius * 0.22;
-      const accidentalSize = baseSize * 0.75;
-      const degreeSize = baseSize * 0.6;
-
-      const noteR = (this.radius + innerR) / 2;
-      const noteX = this.center.x + Math.cos(angle) * noteR;
-      const noteY = this.center.y + Math.sin(angle) * noteR;
-
-      const degreeR = innerR * 0.85;
-      const degreeX = this.center.x + Math.cos(angle) * degreeR;
-      const degreeY = this.center.y + Math.sin(angle) * degreeR;
-
-      let baseColor = inScale ? CONFIG.colors.nodeLabel : CONFIG.colors.inactiveNodeLabel;
-      let labelColor = color(baseColor);
-      labelColor.setAlpha(inScale ? 155 : 60);
-      fill(labelColor);
-      noStroke();
-      this.drawText(letter, noteX, noteY, baseSize);
-      if (accidental) {
-        const offsetR = baseSize * 0.45;
-        const offsetA = -40 * Math.PI / 180;
-        this.drawText(accidental, noteX + Math.cos(offsetA) * offsetR, noteY + Math.sin(offsetA) * offsetR, accidentalSize, NORMAL);
-      }
-      if (degree) {
-        this.drawText(degree, degreeX, degreeY, degreeSize, NORMAL);
-      }
-
-      if (isActive || fadeFactor > 0) {
-        let hlColor = CONFIG.colors.nodeLabel;
-        labelColor = color(hlColor);
-        labelColor.setAlpha(255 * fadeFactor);
-        fill(labelColor);
-        noStroke();
-        this.drawText(letter, noteX, noteY, baseSize * (isRoot ? 1.1 : 1.0), BOLD);
-        if (accidental) {
-          const offsetR = baseSize * 0.45;
-          const offsetA = -40 * Math.PI / 180;
-          this.drawText(accidental, noteX + Math.cos(offsetA) * offsetR, noteY + Math.sin(offsetA) * offsetR, accidentalSize, NORMAL);
-        }
-        if (degree) {
-          this.drawText(degree, degreeX, degreeY, degreeSize, NORMAL);
-        }
-      }
     }
 
-    pop();
+    if (degree) {
+      this.drawText(degree, degreeX, degreeY, degreeSize, NORMAL);
+    }
   }
+}
+
+getArcColor(i, isActive, isRoot, inScale) {
+  if (isRoot) return CONFIG.colors.rootStroke;
+  if (isActive) return CONFIG.colors.playedStroke;
+  if (inScale) return CONFIG.colors.selectedNodeStroke;
+  return CONFIG.colors.inactiveNodeStroke;
+}
+  
+
+drawArcLayer({ radius, angle, angleWidth = radians(30), thickness, colorVal, alpha = 255 }) {
+  const c = color(colorVal);
+  c.setAlpha(alpha);
+  stroke(c);
+  strokeWeight(thickness);
+  noFill();
+  strokeCap(SQUARE);
+  arc(
+    this.center.x,
+    this.center.y,
+    radius * 2,
+    radius * 2,
+    angle - angleWidth / 2,
+    angle + angleWidth / 2
+  );
+}
+
+
+drawText(txt, x, y, size, style = CONFIG.fontWeight) {
+  textFont(CONFIG.fontFamily);
+  textAlign(CENTER, CENTER);
+  textStyle(style);
+  textSize(size);
+  text(txt, x, y);
+}
+
+
+draw(rootPc = null) {
+  if (this.hide) return;
+
+  push(); // Sauvegarde le contexte graphique
+
+  // 🌫️ Ombre floutée derrière le cercle
+  this.drawShadow();
+
+  const gamme = this.tonnetz.gamme;
+  const inScaleSet = new Set(gamme?.pitchClasses ?? []);
+  const playedSet = new Set(this.tonnetz.activePcs ?? []);
+
+  for (const [i, p] of this.positions.entries()) {
+    const pcAbs = mod12(this.tonnetz.keyPc + p.relChroma);
+    const inScale = inScaleSet.has(pcAbs);
+    const isActive = playedSet.has(pcAbs);
+    const isRoot = rootPc !== null && pcAbs === rootPc;
+
+    // ⏱️ Mémorise le moment où la note a été jouée
+    if (isActive) this.lastActiveTimes[pcAbs] = millis();
+    const fadeFactor = getFadeFactor(this.lastActiveTimes[pcAbs]);
+
+    
+    // 🔸 Alpha dynamique basé sur l'activité (fond)
+    const bgAlpha = fadeFactor > 0 ? 220 * fadeFactor : 90;
+    
+    // 🟡 Arc de fond (seulement pour les notes dans la gamme)
+    if (inScale) {
+      this.drawArcLayer({
+        radius: this.radius * 0.85,
+        angle: p.angle,
+        angleWidth: radians(28),
+        thickness: this.radius * 0.3,
+        colorVal: CONFIG.colors.noteColors[i],
+        alpha: bgAlpha
+      });
+    }
+    
+if ( inScale || isActive ) {
+  push();
+  drawingContext.filter = 'blur(20px)';
+
+  const glowColor = color(this.getArcColor(i, isActive, isRoot, inScale));
+  glowColor.setAlpha(180); // intensité du néon
+  stroke(glowColor);
+  strokeWeight(this.radius * 0.05); // épaisseur du liseré lumineux
+  noFill();
+
+  arc(
+    this.center.x + this.radius * 0.01,
+    this.center.y + this.radius * 0.01,
+    this.radius * 2.03,
+    this.radius * 2.03,
+    p.angle - radians(30) / 2,
+    p.angle + radians(30) / 2
+  );
+  arc(
+    this.center.x + this.radius * 0.01,
+    this.center.y + this.radius * 0.01,
+    this.radius * 1.37,
+    this.radius * 1.37,
+    p.angle - radians(30) / 2,
+    p.angle + radians(30) / 2
+  );
+  drawingContext.filter = 'none';
+  pop();
+}
+
+
+
+    // 🔸 Alpha dynamique basé sur l'activité
+    const arcAlpha = (isActive || fadeFactor > 0) ? 255 * fadeFactor : 0;
+
+    // 🔵 Arc extérieur
+    this.drawArcLayer({
+      radius: this.radius,
+      angle: p.angle,
+      thickness: this.radius * ((i === 0) ? 0.03 : 0.02) * (1 + 1.2 * fadeFactor),
+
+      colorVal: this.getArcColor(i, isActive, isRoot, inScale),
+      alpha: inScale ? 255 :  arcAlpha
+    });
+
+    // 🔵 Arc intérieur
+    this.drawArcLayer({
+      radius: this.radius * 0.7,
+      angle: p.angle,
+      thickness: this.radius * ((i === 0) ? 0.03 : 0.02) * (1 + 1.2 * fadeFactor),
+      colorVal: this.getArcColor(i, isActive, isRoot, inScale),
+      alpha: inScale ? 255 :  arcAlpha
+    });
+
+    // 🎵 Nom de la note et degré
+    this.drawNote(p, pcAbs, inScale, isActive, isRoot, fadeFactor);
+  }
+
+  pop(); // Restaure le contexte graphique
+}
+
+
 
 
   // Interactions
