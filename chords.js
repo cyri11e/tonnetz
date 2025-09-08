@@ -28,13 +28,15 @@ class ChordDetector {
       'A♭':8,'A':9,'A♯':10,'B♭':10,'B':11
     };
 
-    this.pcToNote = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
   }
 
+getNoteName(pc) {
+  return tonnetz.gamme?.getNoteName?.(pc) ?? pcToName(pc, tonnetz.noteStyle);
+}
+
+
 detect(activeNotes, midiNumbers = null) {
-  // Récupère la notation courante (dièses/bémols) selon le style choisi
-  //const currentNotation = ENHARMONIC_MAPS[tonnetz.noteStyle];
-  //this.pcToNote = currentNotation;
+
 
   let pcs, bassNote, midiList;
 
@@ -42,7 +44,7 @@ detect(activeNotes, midiNumbers = null) {
   if (Array.isArray(midiNumbers) && midiNumbers.length) {
     // Cas où on reçoit directement les numéros MIDI
     midiList = [...new Set(midiNumbers)].sort((a,b) => a - b);
-    bassNote = this.pcToNote[midiList[0] % 12]; // note la plus grave
+    bassNote = this.getNoteName(midiList[0] % 12); // note la plus grave
     pcs = [...new Set(midiList.map(n => n % 12))].sort((a,b) => a - b); // pitch classes uniques
   } else {
     // Cas où on reçoit des noms de notes (ex: ["C", "E", "G"])
@@ -124,15 +126,16 @@ pcs = [...new Set(midiList)].sort((a, b) => a - b);
       const has7 = intervalsPC.includes(10) || intervalsPC.includes(11);
       if (has7 && (name === '6' || name === 'm6')) continue;
 
-      let chordName = this.pcToNote[rootPc] + name;
+      let chordName = this.getNoteName(rootPc) + name;
+
 
       const hasMin3 = intervalsPC.includes(3);
       const hasMaj3 = intervalsPC.includes(4);
 
       // --- sus → add si tierce présente ---
       if ((name === 'sus2' || name === 'sus4') && (hasMin3 || hasMaj3)) {
-        if (name === 'sus2') chordName = this.pcToNote[rootPc] + 'add2';
-        if (name === 'sus4') chordName = this.pcToNote[rootPc] + 'add4';
+        if (name === 'sus2') chordName = this.getNoteName(rootPc) + 'add2';
+        if (name === 'sus4') chordName = this.getNoteName(rootPc) + 'add4';
       }
 
       // --- 6. Extensions ---
@@ -204,8 +207,8 @@ pcs = [...new Set(midiList)].sort((a, b) => a - b);
 
       // Ajout au tableau des résultats
       results.push({
-        root: this.pcToNote[rootPc],
-        type: chordName.replace(this.pcToNote[rootPc], ''),
+        root: this.getNoteName(rootPc),
+        type: chordName.replace(this.getNoteName(rootPc), ''),
         bass: bassNote,
         formulaSize: formula.length,
         recognizedNotes,
@@ -214,7 +217,7 @@ pcs = [...new Set(midiList)].sort((a, b) => a - b);
       });
 
       // --- LOG DEBUG : affichage accord reconnu ---
-      console.log(`✔ Accord reconnu : ${this.pcToNote[rootPc]}${chordName.replace(this.pcToNote[rootPc], '')} [basse: ${bassNote}]`);
+      console.log(`✔ Accord reconnu : ${this.getNoteName(rootPc)}${chordName.replace(this.getNoteName(rootPc), '')} [basse: ${bassNote}]`);
 
     }
   });

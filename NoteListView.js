@@ -31,7 +31,7 @@ showInterval(g, canvasWidth) {
   const listRight = Math.max(...xs) + CONFIG.nodeRadius;
   const yMain = bubbleA.y + 20;
   const compWeight = CONFIG.nodeRadius * 0.6;
-
+  g.push();
   g.stroke(mainColor);
   g.fill(mainColor);
   g.strokeWeight(CONFIG.nodeRadius * 0.9);
@@ -40,45 +40,42 @@ showInterval(g, canvasWidth) {
   g.textStyle(CONFIG.fontWeight);
   g.textSize(CONFIG.fontSize * 0.5);
 
-  if (semitones >= 0) {
+  if (semitones <= 0) {
     // === Intervalle direct ===
+
     g.line(bubbleA.x, yMain, bubbleB.x, yMain);
-    g.push();
     g.translate((bubbleA.x + bubbleB.x) / 2, yMain);
     g.noStroke();
     g.circle(0, 0, CONFIG.fontSize * 0.9);
     g.fill(CONFIG.colors.bg);
     g.text(intervalLabel, 0, 0);
-    g.pop();
+
   } else {
     // === Intervalle complémentaire ===
-
+    g.push();
     // Segment 1 : B → droite
     g.stroke(compColor);
     g.strokeWeight(compWeight);
     g.line(bubbleB.x, yMain, listRight, yMain);
-    g.push();
     g.translate((bubbleB.x + listRight) / 2, yMain);
     g.noStroke();
     g.fill(compColor);
     g.circle(0, 0, CONFIG.fontSize * 0.9);
     g.fill(CONFIG.colors.bg);
     g.text(intervalLabel, 0, 0);
-    g.pop();
 
     // Segment 2 : gauche → A
     g.stroke(compColor);
     g.strokeWeight(compWeight);
     g.line(listLeft, yMain, bubbleA.x, yMain);
-    g.push();
     g.translate((listLeft + bubbleA.x) / 2, yMain);
     g.noStroke();
     g.fill(compColor);
     g.circle(0, 0, CONFIG.fontSize * 0.9);
     g.fill(CONFIG.colors.bg);
     g.text(intervalLabel, 0, 0);
-    g.pop();
-  }
+}
+g.pop();
 }
 
 
@@ -247,7 +244,7 @@ draw(g, canvasWidth) {
   }
 
   g.pop();
-    this.showInterval(g);
+    //this.showInterval(g);
 }
 
 
