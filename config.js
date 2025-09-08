@@ -20,11 +20,11 @@ const CONFIG = {
   triangleStroke: 0,
 
   // Police utilisée pour tous les textes
-  fontFamily: 'Arial Unicode MS',  // nom de la police
+  fontFamily: `"Arial MS Unicode", "Segoe UI", "Helvetica", "Arial", sans-serif`,  // nom de la police
   fontWeight: 'bold',               // style/poids (normal, bold, etc.)
 
   //fontFamilyRoman: 'EB Garamond', // police avec empattement pour les accords
-  fontFamilyRoman: 'Arial Unicode MS',
+  fontFamilyRoman: 'Arial Unicode MS,Arial',
 
   // transparence des couleur de fond de note
   inactiveNoteBgalpha: 100,
