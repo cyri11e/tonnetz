@@ -5,6 +5,7 @@ let cof;
 
 let lastChordText = '';
 let lastChordTime = 0;
+let lastClickTime = 0;
 let noteListView;
 
 let draggedNode = null;
@@ -265,7 +266,10 @@ function keyPressed() {
     piano.hide = !piano.hide;
     console.log(`Piano ${piano.hide ? 'caché' : 'visible'}`);
   }  
-
+  if (key === 'N' || key === 'n') {
+    noteListView.hide = !noteListView.hide;
+    console.log(`Gamme/Notes ${noteListView.hide ? 'caché' : 'visible'}`);
+  } 
   const pianoSizes = { '2': 25, 'é': 25,
                        '4': 49, "'" : 49,
                        '6': 61, '§' : 61,
@@ -329,34 +333,75 @@ function windowResized() {
 function mouseWheel(event) {
   const factor = event.delta > 0 ? 0.9 : 1.1;
 
-  if (cof.isMouseOver(mouseX, mouseY)) {
-    // Zoom sur le COF
+  let isOverNoteList = false;
+
+const bubbleRadius = CONFIG.nodeRadius * noteListView.scale;
+
+if (noteListView.layoutMode === 'circle') {
+  // Centre géométrique du cercle
+  const centerX = width / 2 + noteListView.offsetX;
+  const centerY = 150 + noteListView.offsetY;
+
+  // Rayon réel du cercle (distance du centre à une bulle)
+  const radius = bubbleRadius * 3; // ← ajustable selon ton layout
+
+  // Détection si la souris est dans le cercle
+  isOverNoteList = Math.hypot(mouseX - centerX, mouseY - centerY) < radius;
+} else {
+  // Ligne horizontale de bulles
+  const y = 150 + noteListView.offsetY;
+
+  // Position réelle des bulles
+  const firstBubble = noteListView.bubbles[0];
+  const lastBubble = noteListView.bubbles[noteListView.bubbles.length - 1];
+
+const lineLeft = firstBubble.x - bubbleRadius;
+const lineRight = lastBubble.x + bubbleRadius;
+const lineTop = firstBubble.y - bubbleRadius;
+const lineBottom = firstBubble.y + bubbleRadius;
+
+  isOverNoteList = mouseX >= lineLeft && mouseX <= lineRight &&
+                   mouseY >= lineTop && mouseY <= lineBottom;
+}
+
+
+  if (isOverNoteList) {
+    noteListView.scale = constrain(noteListView.scale * factor, 0.5, 2);
+  } else if (cof.isMouseOver(mouseX, mouseY)) {
     cof.radius *= factor;
     cof.ringThickness = cof.radius * 0.40;
-    //circleOfFifths.recomputePositions();
   } else {
-    // Zoom sur le Tonnetz
     tonnetz.zoomAt(mouseX, mouseY, factor);
   }
 
-  return false; // ← empêche le scroll par défaut
+  return false;
 }
+
+
 
 
 function mouseDragged() {
   cof.handleDrag(mouseX, mouseY);
 
+  // Met à jour la position de la souris pour l'animation
+  if (noteListView) {
+    noteListView.currentMouseX = mouseX;
+    noteListView.currentMouseY = mouseY;
+  }
+
   // Déplacement de la liste de notes si on drag la tonique ou l'octave
   if (draggedBubble?.isDragTonic) {
     if (noteListStartX === null) {
-      noteListStartX = mouseX;
-      noteListStartY = mouseY;
-    } else {
-      const dx = mouseX - noteListStartX;
-      const dy = mouseY - noteListStartY;
-      noteListView.offsetX = dx;
-      noteListView.offsetY = dy;
+      // Uniformiser l'initialisation pour line et circle:
+      // on encode l'offset initial dans les starts.
+      noteListStartX = mouseX - noteListView.offsetX;
+      noteListStartY = mouseY - noteListView.offsetY;
     }
+
+    // Déplacement relatif stable (sans accumulation)
+    noteListView.offsetX = mouseX - noteListStartX;
+    noteListView.offsetY = mouseY - noteListStartY;
+
     return false;
   }
 
@@ -368,8 +413,17 @@ function mouseDragged() {
 }
 
 
+
+
+
 function mousePressed() {
   if (mouseButton.right) return;
+
+  if (mouseButton === 'left' && (millis() - lastClickTime < 300)) {
+    // Double-clic
+    if (noteListView && noteListView.handleDoubleClick(mouseX, mouseY)) return;
+  }
+  lastClickTime = millis();
 
   // Priorité au COF si nécessaire
   if (cof.handleClick(mouseX, mouseY, mouseButton)) return;
