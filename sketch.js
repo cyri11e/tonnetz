@@ -10,6 +10,8 @@ let noteListView;
 let draggedNode = null;
 let draggedBubble = null;
 let dragStartPc = null;
+let noteListStartX = null;  // Position initiale pour le drag de la liste
+let noteListStartY = null;
 
 
 function setup() {
@@ -222,6 +224,8 @@ function mouseReleased() {
     }
     draggedBubble = null;
     dragStartPc = null;
+    noteListStartX = null;
+    noteListStartY = null;
   }
 }
 
@@ -341,6 +345,21 @@ function mouseWheel(event) {
 
 function mouseDragged() {
   cof.handleDrag(mouseX, mouseY);
+
+  // Déplacement de la liste de notes si on drag la tonique ou l'octave
+  if (draggedBubble?.isDragTonic) {
+    if (noteListStartX === null) {
+      noteListStartX = mouseX;
+      noteListStartY = mouseY;
+    } else {
+      const dx = mouseX - noteListStartX;
+      const dy = mouseY - noteListStartY;
+      noteListView.offsetX = dx;
+      noteListView.offsetY = dy;
+    }
+    return false;
+  }
+
   // pan du Tonnetz
   if (mouseButton.right || (mouseButton.left && keyIsDown(SHIFT))) {
     tonnetz.pan(movedX, movedY);

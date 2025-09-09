@@ -5,7 +5,8 @@ class NoteListView {
     this.noteStyle = style;
     this.bubbles = []; // pour interaction
     this.lastActiveTimes = Array(12).fill(0);
-
+    this.offsetX = 0;
+    this.offsetY = 0;
   }
 
 showInterval(g, canvasWidth) {
@@ -102,8 +103,8 @@ draw(g, canvasWidth) {
     totalWidth = spacing * bubbleCount;
   }
 
-  const startX = (canvasWidth - totalWidth) / 2 + radius;
-  const baseY = 30 + CONFIG.fontSize * 2.2;
+  const startX = (canvasWidth - totalWidth) / 2 + radius + this.offsetX;
+  const baseY = 30 + CONFIG.fontSize * 2.2 + this.offsetY;
 
   g.push();
   g.textAlign(CENTER, CENTER);
@@ -249,55 +250,77 @@ draw(g, canvasWidth) {
 
 
 
-handleClick(mx, my) {
-  for (const bubble of this.bubbles) {
-    const dx = mx - bubble.x;
-    const dy = my - bubble.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist <= bubble.radius + 2) {
-      draggedBubble = bubble;
-      dragStartPc = bubble.pc;
-      return true;
+  handleClick(mx, my) {
+    for (const bubble of this.bubbles) {
+      const dx = mx - bubble.x;
+      const dy = my - bubble.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= bubble.radius + 2) {
+        const isTonic = bubble.pc === this.tonicPc;
+        draggedBubble = bubble;
+        dragStartPc = bubble.pc;
+        draggedBubble.isDragTonic = isTonic;
+        return true;
+      }
     }
-  }
-  return false;
-}
-
-handleRelease(mx, my) {
-  if (!draggedBubble) return false;
-
-  const dx = mx - draggedBubble.x;
-  const dy = my - draggedBubble.y;
-  const dist = Math.hypot(dx, dy);
-  if (dist > draggedBubble.radius + 2) {
-    draggedBubble = null;
     return false;
   }
 
-  const pc = draggedBubble.pc;
+  handleRelease(mx, my) {
+    if (!draggedBubble) return false;
 
-  if (keyIsDown(SHIFT)) {
-    tonnetz.setKey(pcToName(pc));
-    if (!tonnetz.gamme.chroma.includes(tonnetz.keyPc)) {
-      tonnetz.gamme.ajouter(tonnetz.keyPc);
-    }
-  } else {
-    if (pc !== tonnetz.keyPc) {
-      if (tonnetz.gamme.pitchClasses.includes(pc)) {
-        tonnetz.gamme.supprimer(pc);
+    const dx = mx - draggedBubble.x;
+    const dy = my - draggedBubble.y;
+    const dist = Math.hypot(dx, dy);
+    
+    // Si c'est un clic statique (pas de déplacement significatif)
+    if (dist <= 2) {
+      const pc = draggedBubble.pc;
+      if (keyIsDown(SHIFT)) {
+        tonnetz.setKey(pcToName(pc));
+        if (!tonnetz.gamme.chroma.includes(tonnetz.keyPc)) {
+          tonnetz.gamme.ajouter(tonnetz.keyPc);
+        }
       } else {
-        tonnetz.gamme.ajouter(pc);
+        if (pc !== tonnetz.keyPc) {
+          if (tonnetz.gamme.pitchClasses.includes(pc)) {
+            tonnetz.gamme.supprimer(pc);
+          } else {
+            tonnetz.gamme.ajouter(pc);
+          }
+        }
+      }
+      draggedBubble = null;
+      return true;
+    }
+    
+    // Si c'est un déplacement
+    if (draggedBubble.isDragTonic) {
+      // Si c'est la tonique ou l'octave, on ne fait rien (le déplacement sera géré ailleurs)
+      draggedBubble = null;
+      return true;
+    } else {
+      // Pour les autres notes, on cherche une bulle cible pour l'échange
+      for (const target of this.bubbles) {
+        const dx = mx - target.x;
+        const dy = my - target.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist <= target.radius + 2 && target.pc !== dragStartPc) {
+          // On retire l'ancienne note si elle était dans la gamme
+          if (this.gamme.pitchClasses.includes(dragStartPc)) {
+            this.gamme.supprimer(dragStartPc);
+          }
+          // On ajoute la nouvelle note si elle n'y était pas déjà
+          if (!this.gamme.pitchClasses.includes(target.pc)) {
+            this.gamme.ajouter(target.pc);
+          }
+          break;
+        }
       }
     }
+    draggedBubble = null;
+    return true;
   }
-
-  draggedBubble = null;
-  return true; // ← bloque la propagation
-}
-
-
-
-
 
   update(gamme, tonicPc, style) {
     this.gamme = gamme;
