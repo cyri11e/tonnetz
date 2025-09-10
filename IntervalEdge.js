@@ -27,9 +27,9 @@ class IntervalEdge {
     return null;
   }
 
-  isActive(activePcs) {
-    return this.a.isActive(activePcs) && this.b.isActive(activePcs);
-  }
+  // isActive(activePcs) {
+  //   return this.a.isActive(activePcs) && this.b.isActive(activePcs);
+  // }
 
   color() {
     switch (this.interval) {
@@ -48,7 +48,7 @@ draw(g, active, zoom = 1) {
 
   // Couleur et opacité du segment
   const lineColor = g.color(this.color());
-  const lineAlpha = active ? 255 : 80 + 175 * fadeFactor;
+  const lineAlpha = active ? 255 : 20 + 175 * fadeFactor;
   lineColor.setAlpha(lineAlpha);
   g.stroke(lineColor);
 
@@ -56,7 +56,9 @@ draw(g, active, zoom = 1) {
     ? CONFIG.edgeWidthThick * zoom
     : CONFIG.edgeWidthThin * zoom;
   g.strokeWeight(weight);
-  g.line(this.a.px, this.a.py, this.b.px, this.b.py);
+
+  //if (isInGamme)
+    g.line(this.a.px, this.a.py, this.b.px, this.b.py);
 
   // Affichage pastille + label si visible
   if (fadeFactor > 0 || active) {
