@@ -352,7 +352,7 @@ if (labelText) {
     g.text(labelText, 0, 0);
     g.pop();
   } else {
-    const verticalOffset = CONFIG.fontSize * (tri.type === 'min' ? 0.5 : -0.4) * zoom;
+    const verticalOffset = CONFIG.fontSize * (tri.type === 'min' ? 0.6 : -0.6) * zoom;
     g.text(labelText, baseMidX, baseMidY + verticalOffset);
   }
 }
@@ -365,13 +365,19 @@ if (tri.numeral && (tri.type === 'min' || tri.type === 'maj')) {
       ? CONFIG.colors.nodeLabel
       : CONFIG.colors.bg
   );
+  const numeralOffset =
+  tri.type === 'min' ? CONFIG.fontSize * 0.4 * zoom :
+  tri.type === 'maj' ? -CONFIG.fontSize * 0.5 * zoom :
+  0;
+
   romanColor.setAlpha(fadeFactor > 0 ? 255 * fadeFactor : 255);
   g.fill(romanColor);
   g.textFont(CONFIG.fontFamilyRoman);
   g.textStyle(BOLD);
   g.textAlign(CENTER, CENTER);
   g.textSize(CONFIG.fontSize * 1.5 * zoom);
-  g.text(tri.numeral, centerX, centerY);
+  g.text(tri.numeral, centerX, centerY + numeralOffset);
+
 }
 
         }
