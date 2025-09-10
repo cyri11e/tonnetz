@@ -320,7 +320,7 @@ class ChordTriangle {
 
             // Label text
             let labelText = zoom < 0.7 ? '' :
-                zoom < 1 ? tri.label.slice(0, 2) :
+                
                     zoom < 1.2 ? tri.label : tri.label;
 
             // Ajout du chiffre romain à la volée pour dim/aug
