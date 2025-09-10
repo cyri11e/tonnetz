@@ -194,42 +194,6 @@ function displayScaleLabel(g) {
 
 //  ---------------   INTERACTIONS ---------------
 
-// pour detecter les hover
-function mouseMoved() {
-  tonnetz.netGrid.chordTriangle.handleHover(mouseX, mouseY);
-}
-
-function mouseReleased() {
-
-  if (noteListView.handleRelease(mouseX, mouseY)) return;
-
-  tonnetz.netGrid.chordTriangle.handleRelease();
-  cof.handleRelease();
-  if (draggedBubble) {
-    for (const target of noteListView.bubbles) {
-      const dx = mouseX - target.x;
-      const dy = mouseY - target.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist <= target.radius + 2 && target.pc !== dragStartPc) {
-        const fromPc = dragStartPc;
-        const toPc = target.pc;
-
-        if (tonnetz.gamme.pitchClasses.includes(fromPc)) {
-          tonnetz.gamme.supprimer(fromPc);
-        }
-        if (!tonnetz.gamme.pitchClasses.includes(toPc)) {
-          tonnetz.gamme.ajouter(toPc);
-        }
-        break;
-      }
-    }
-    draggedBubble = null;
-    dragStartPc = null;
-    noteListStartX = null;
-    noteListStartY = null;
-  }
-}
-
 
 
 function handleTonnetzClick(node) {
@@ -381,6 +345,9 @@ const lineBottom = firstBubble.y + bubbleRadius;
 
 
 function mouseDragged() {
+  const dragHandled = cof.handleDrag(mouseX, mouseY);
+  if (dragHandled) return;
+
   cof.handleDrag(mouseX, mouseY);
 
   // Met à jour la position de la souris pour l'animation
@@ -434,5 +401,41 @@ function mousePressed() {
   // Tonnetz en arriere-plan
   if (tonnetz.handleClick(mouseX, mouseY, mouseButton)) return;
 
+}
+
+// pour detecter les hover
+function mouseMoved() {
+  tonnetz.netGrid.chordTriangle.handleHover(mouseX, mouseY);
+}
+
+function mouseReleased() {
+
+  if (noteListView.handleRelease(mouseX, mouseY)) return;
+
+  tonnetz.netGrid.chordTriangle.handleRelease();
+  cof.handleRelease();
+  if (draggedBubble) {
+    for (const target of noteListView.bubbles) {
+      const dx = mouseX - target.x;
+      const dy = mouseY - target.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= target.radius + 2 && target.pc !== dragStartPc) {
+        const fromPc = dragStartPc;
+        const toPc = target.pc;
+
+        if (tonnetz.gamme.pitchClasses.includes(fromPc)) {
+          tonnetz.gamme.supprimer(fromPc);
+        }
+        if (!tonnetz.gamme.pitchClasses.includes(toPc)) {
+          tonnetz.gamme.ajouter(toPc);
+        }
+        break;
+      }
+    }
+    draggedBubble = null;
+    dragStartPc = null;
+    noteListStartX = null;
+    noteListStartY = null;
+  }
 }
 

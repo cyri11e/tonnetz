@@ -14,6 +14,11 @@ class CircleOfFifths {
     this.dragStartAngle = 0;
     this.rotationAtDragStart = 0;
 
+    this.isDraggingNotes = false;
+    this.noteDragStartAngle = 0;
+    this.rotationAtNoteDragStart = 0;
+
+
     this.positions = [];
     this.lastActiveTimes = Array(12).fill(0);
   }
@@ -276,51 +281,57 @@ draw(rootPc = null) {
 
 
   // Interactions
-  handleClick(mx, my, mouseButton) {
+handleClick(mx, my, mouseButton) {
   if (this.hide) return false;
-  if (mouseButton && mouseButton.right) return false; // clic droit ignoré
+  if (mouseButton && mouseButton.right) return false;
 
   const d = dist(mx, my, this.center.x, this.center.y);
   const centerRadius = this.radius * 0.7;
 
-  // --- Priorité 1 : pastille ---
+  // --- Priorité 1 : pastille (note du cercle) ---
   const hit = this.hitTestNode(mx, my);
   if (hit) {
-    const pcAbs = mod12((this.tonnetz.keyPc ?? 0) + hit.relChroma);
+    this.clickedNote = hit;
 
-    if (keyIsDown(SHIFT)) {
-      this.tonnetz.setKey(pcToName(pcAbs, this.tonnetz.noteStyle));
-    } else {
-      if (this.tonnetz.gamme?.pitchClasses?.includes(pcAbs)) {
-        this.tonnetz.gamme.supprimer(pcAbs);
-      } else {
-        this.tonnetz.gamme.ajouter(pcAbs);
-      }
-    }
+    // On mémorise l'angle de départ, mais on n'active pas le drag ici
+    this.noteDragStartAngle = Math.atan2(my - this.center.y, mx - this.center.x);
+    this.rotationAtNoteDragStart = this.rotation;
 
-    this.update();
-    return true;
-  }
-
-  // --- Priorité 2 : anneau interactif (rotation) ---
-  if (this.isNearRing(mx, my)) {
-    this.isDraggingRing = true;
+    // Reset des flags de drag pour cette interaction
+    this.isDraggingNotes = false;
+    this.isDraggingRing = false;
     this.isDraggingCenter = false;
-    this.ringDragStartAngle = Math.atan2(my - this.center.y, mx - this.center.x);
-    this.rotationAtRingDragStart = this.rotation;
-    if (d > (this.radius - 40) && d < (this.radius + 40)) {
-      cursor(HAND);
-    } else {
-      cursor(ARROW);
-    }
 
+    cursor(HAND);
+    console.log(`Note cliquée: relChroma=${hit.relChroma}`);
     return true;
   }
 
-  // --- Priorité 3 : centre (déplacement) ---
+  // --- Priorité 2 : anneau interactif (rotation libre) ---
+
+if (hit && this.isInsideNoteRing(mx, my)) {
+  this.clickedNote = hit;
+  this.noteDragStartAngle = Math.atan2(my - this.center.y, mx - this.center.x);
+  this.rotationAtNoteDragStart = this.rotation;
+  this.isDraggingNotes = false; // ← sera activé si drag réel
+  cursor(HAND);
+  console.log(`Note cliquée dans l'anneau: relChroma=${hit.relChroma}`);
+  return true;
+}
+
+if (this.isNearRing(mx, my)) {
+  this.isDraggingRing = true;
+  this.ringDragStartAngle = Math.atan2(my - this.center.y, mx - this.center.x);
+  this.rotationAtRingDragStart = this.rotation;
+  cursor(HAND);
+  console.log("Drag anneau démarré");
+  return true;
+}
+
+
+  // --- Priorité 3 : centre (déplacement du COF) ---
   if (d < centerRadius) {
     this.isDraggingCenter = true;
-    this.isDraggingRing = false;
     this.dragOffset = {
       x: mx - this.center.x,
       y: my - this.center.y
@@ -334,18 +345,49 @@ draw(rootPc = null) {
 }
 
 
+
+
+
 handleDrag(mx, my) {
+  const dx = mx - this.center.x;
+  const dy = my - this.center.y;
+  const dist = Math.hypot(dx, dy);
+
+  // Seuil de mouvement pour considérer un vrai drag
+  const moveThreshPx = 3; // pixels
+  const angleNow = Math.atan2(my - this.center.y, mx - this.center.x);
+  const angleDeltaNotes = this.clickedNote
+    ? angleNow - this.noteDragStartAngle
+    : 0;
+  const angleThresh = 0.02; // radians ~1.1°
+
+  // Drag centre
   if (this.isDraggingCenter) {
+    if (dist < moveThreshPx) return false;
     this.center.x = mx - this.dragOffset.x;
     this.center.y = my - this.dragOffset.y;
     this.recomputePositions();
     return true;
   }
 
+  // Drag anneau libre
   if (this.isDraggingRing) {
-    const currentAngle = Math.atan2(my - this.center.y, mx - this.center.x);
-    const delta = currentAngle - this.ringDragStartAngle;
+    if (dist < moveThreshPx) return false;
+    const delta = angleNow - this.ringDragStartAngle;
     this.rotation = this.rotationAtRingDragStart + delta;
+    this.recomputePositions();
+    return true;
+  }
+
+  // Drag notes (rotation graphique)
+  if (this.clickedNote) {
+    // On ne bascule en "drag notes" que si on dépasse le seuil angulaire
+    if (!this.isDraggingNotes && Math.abs(angleDeltaNotes) < angleThresh) {
+      return false; // pas encore un drag
+    }
+    // Maintenant c'est un vrai drag
+    this.isDraggingNotes = true;
+    this.rotation = this.rotationAtNoteDragStart + angleDeltaNotes;
     this.recomputePositions();
     return true;
   }
@@ -354,13 +396,37 @@ handleDrag(mx, my) {
 }
 
 
-  handleRelease() {
-    this.isDraggingRing = false;
-    this.isDraggingCenter = false;
+handleRelease() {
+  // Décide clic vs drag pour les notes
+  if (this.clickedNote) {
+    const angleNow = Math.atan2(mouseY - this.center.y, mouseX - this.center.x);
+    const angleDelta = angleNow - this.noteDragStartAngle;
+    const angleThresh = 0.02; // même seuil que dans handleDrag
 
-    cursor(ARROW); // ← rétablit le curseur par défaut
+    const isClick = !this.isDraggingNotes && Math.abs(angleDelta) < angleThresh;
 
+    if (isClick) {
+      const pcAbs = mod12((this.tonnetz.keyPc ?? 0) + this.clickedNote.relChroma);
+      if (keyIsDown(SHIFT)) {
+        this.tonnetz.setKey(pcToName(pcAbs, this.tonnetz.noteStyle));
+      } else {
+        if (this.tonnetz.gamme?.pitchClasses?.includes(pcAbs)) {
+          this.tonnetz.gamme.supprimer(pcAbs);
+        } else {
+          this.tonnetz.gamme.ajouter(pcAbs);
+        }
+      }
+      this.update();
+    }
   }
+
+  // Reset flags
+  this.clickedNote = null;
+  this.isDraggingNotes = false;
+  this.isDraggingRing = false;
+  this.isDraggingCenter = false;
+  cursor(ARROW);
+}
 
   // Helpers
 
@@ -374,6 +440,10 @@ handleDrag(mx, my) {
         }
     return d > (this.radius - 40) && d < (this.radius + 40);
   }
+isInsideNoteRing(mx, my) {
+  const d = dist(mx, my, this.center.x, this.center.y);
+  return d < this.radius * 0.85; // ← même rayon que les pastilles
+}
 
   isMouseOver(mx, my) {
     const d = dist(mx, my, this.center.x, this.center.y);
