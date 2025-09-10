@@ -347,7 +347,7 @@ console.log(noteA, noteB, semitones);
   isRoot(node) {
     // Vérifie si la note est la fondamentale d'un des accords détectés
     const chords = this.getDetectedChords();
-    return chords.length && chords[0].root === node.name;
+    return chords.length ? nameToPc(chords[0].root) === node.pc : false;
   }
 
   // interaction souris
