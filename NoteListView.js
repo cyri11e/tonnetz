@@ -1,5 +1,5 @@
 class NoteListView {
-  constructor({ gamme, tonicPc, style = 'mixed', layoutMode = 'circle' }) {
+  constructor({ gamme, tonicPc, style = 'mixed', layoutMode = 'line' }) {
     this.gamme = gamme;
     this.tonicPc = tonicPc;
     this.noteStyle = style;

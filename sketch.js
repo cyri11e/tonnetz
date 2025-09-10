@@ -110,7 +110,7 @@ function displayChord(g) {
   g.textStyle(BOLD);
 
   const targetWidth = width * 0.8;
-  const baseSize = height / 3;
+  const baseSize = height / 4;
   let fontSize = baseSize;
   g.textSize(fontSize);
   let tw = g.textWidth(lastChordText);
@@ -127,9 +127,9 @@ function displayChord(g) {
   g.strokeWeight(fontSize / 16);
   g.stroke(outline);
   g.fill(c);
-  g.text(lastChordText, width / 2, height / 2);
+  g.text(lastChordText, width / 2, 3 * height / 10);
   g.noStroke();
-  g.text(lastChordText, width / 2, height / 2);
+  g.text(lastChordText, width / 2, 3 * height / 10);
   g.pop();
 }
 
@@ -295,46 +295,45 @@ function windowResized() {
 }
 
 function mouseWheel(event) {
-  const factor = event.delta > 0 ? 0.9 : 1.1;
+  const factor = event.delta > 0 ? 0.98 : 1.02;
 
-  let isOverNoteList = false;
+  // NoteListView
+  if (!noteListView.hide) {
+    let isOverNoteList = false;
+    const bubbleRadius = CONFIG.nodeRadius * noteListView.scale;
 
-const bubbleRadius = CONFIG.nodeRadius * noteListView.scale;
+    if (noteListView.layoutMode === 'circle') {
+      const centerX = width / 2 + noteListView.offsetX;
+      const centerY = 150 + noteListView.offsetY;
+      const radius = bubbleRadius * 3;
+      isOverNoteList = Math.hypot(mouseX - centerX, mouseY - centerY) < radius;
+    } else {
+      const y = 150 + noteListView.offsetY;
+      const firstBubble = noteListView.bubbles[0];
+      const lastBubble = noteListView.bubbles[noteListView.bubbles.length - 1];
+      const lineLeft = firstBubble.x - bubbleRadius;
+      const lineRight = lastBubble.x + bubbleRadius;
+      const lineTop = firstBubble.y - bubbleRadius;
+      const lineBottom = firstBubble.y + bubbleRadius;
+      isOverNoteList = mouseX >= lineLeft && mouseX <= lineRight &&
+                       mouseY >= lineTop && mouseY <= lineBottom;
+    }
 
-if (noteListView.layoutMode === 'circle') {
-  // Centre géométrique du cercle
-  const centerX = width / 2 + noteListView.offsetX;
-  const centerY = 150 + noteListView.offsetY;
+    if (isOverNoteList) {
+      noteListView.scale = constrain(noteListView.scale * factor, 0.5, 2);
+      return false;
+    }
+  }
 
-  // Rayon réel du cercle (distance du centre à une bulle)
-  const radius = bubbleRadius * 3; // ← ajustable selon ton layout
-
-  // Détection si la souris est dans le cercle
-  isOverNoteList = Math.hypot(mouseX - centerX, mouseY - centerY) < radius;
-} else {
-  // Ligne horizontale de bulles
-  const y = 150 + noteListView.offsetY;
-
-  // Position réelle des bulles
-  const firstBubble = noteListView.bubbles[0];
-  const lastBubble = noteListView.bubbles[noteListView.bubbles.length - 1];
-
-const lineLeft = firstBubble.x - bubbleRadius;
-const lineRight = lastBubble.x + bubbleRadius;
-const lineTop = firstBubble.y - bubbleRadius;
-const lineBottom = firstBubble.y + bubbleRadius;
-
-  isOverNoteList = mouseX >= lineLeft && mouseX <= lineRight &&
-                   mouseY >= lineTop && mouseY <= lineBottom;
-}
-
-
-  if (isOverNoteList) {
-    noteListView.scale = constrain(noteListView.scale * factor, 0.5, 2);
-  } else if (cof.isMouseOver(mouseX, mouseY)) {
+  // COF
+  if (!cof.hide && cof.isMouseOver(mouseX, mouseY)) {
     cof.radius *= factor;
-    cof.ringThickness = cof.radius * 0.40;
-  } else {
+    cof.ringThickness = cof.radius * 0.05;
+    return false;
+  }
+
+  // Tonnetz (fallback)
+  if (!tonnetz.hide) {
     tonnetz.zoomAt(mouseX, mouseY, factor);
   }
 
@@ -387,34 +386,41 @@ function mousePressed() {
   if (mouseButton.right) return;
 
   if (mouseButton === 'left' && (millis() - lastClickTime < 300)) {
-    // Double-clic
-    if (noteListView && noteListView.handleDoubleClick(mouseX, mouseY)) return;
+    if (!noteListView.hide && noteListView.handleDoubleClick(mouseX, mouseY)) return;
   }
   lastClickTime = millis();
 
-  // Priorité au COF si nécessaire
-  if (cof.handleClick(mouseX, mouseY, mouseButton)) return;
+  // Priorité au COF
+  if (!cof.hide && cof.isMouseOver(mouseX, mouseY)) {
+    if (cof.handleClick(mouseX, mouseY, mouseButton)) return;
+  }
 
-  // puis NoteListView
-  if (noteListView && noteListView.handleClick(mouseX, mouseY, mouseButton)) return;
+  // Puis NoteListView
+  if (!noteListView.hide) {
+    if (noteListView.handleClick(mouseX, mouseY, mouseButton)) return;
+  }
 
-  // Tonnetz en arriere-plan
-  if (tonnetz.handleClick(mouseX, mouseY, mouseButton)) return;
-
+  // Puis Tonnetz
+  if (!tonnetz.hide) {
+    if (tonnetz.handleClick(mouseX, mouseY, mouseButton)) return;
+  }
 }
-
-// pour detecter les hover
-function mouseMoved() {
-  tonnetz.netGrid.chordTriangle.handleHover(mouseX, mouseY);
-}
-
 function mouseReleased() {
+  // NoteListView
+  if (!noteListView.hide && noteListView.handleRelease(mouseX, mouseY)) return;
 
-  if (noteListView.handleRelease(mouseX, mouseY)) return;
+  // COF
+  if (!cof.hide) {
+    cof.handleRelease();
+  }
 
-  tonnetz.netGrid.chordTriangle.handleRelease();
-  cof.handleRelease();
-  if (draggedBubble) {
+  // Tonnetz
+  if (!tonnetz.hide) {
+    tonnetz.netGrid.chordTriangle.handleRelease();
+  }
+
+  // Drop sur NoteListView (swap)
+  if (!noteListView.hide && draggedBubble) {
     for (const target of noteListView.bubbles) {
       const dx = mouseX - target.x;
       const dy = mouseY - target.y;
