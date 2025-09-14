@@ -1,6 +1,6 @@
 let tonnetz;
 let midiInput;
-let piano;
+let piano, fretboard;
 let cof;
 
 let lastChordText = '';
@@ -36,6 +36,7 @@ function setup() {
   midiInput = new MidiManager((notes, midiNums) => {
     tonnetz.updateFromMidi(midiNums);
     piano.setMidiNotes(midiNums);
+    fretboard.setMidiNotes(midiNums);
   });
   midiInput.init();
 
@@ -46,6 +47,19 @@ function setup() {
   });
 
   piano = new Piano(49, width, height); // 49 touches par défaut
+// Example: width-full, height = width/8, no background fill, at the bottom
+const ratio = 1 / 5;
+fretboard = new Fretboard({
+  frets: 20,
+  orientation: 'right',
+  pov: true,
+  canvasWidth: width,
+  // canvasHeight: Math.round(width * ratio), // optional; otherwise heightRatio is used
+  heightRatio: ratio,
+  drawBg: true,         // important: don't repaint the area if you already have a global bg
+  bottomOffset: 0        // raise this if you want it above another component (e.g., piano)
+});
+
 }
 
 // --------------     AFFICHAGE -----------------
@@ -76,6 +90,7 @@ function draw() {
 
 
   piano.draw(this, rootNote);
+  fretboard.draw(this, rootNote);
 
   if (chords.length > 0) {
     push();
@@ -230,6 +245,10 @@ function keyPressed() {
     piano.hide = !piano.hide;
     console.log(`Piano ${piano.hide ? 'caché' : 'visible'}`);
   }  
+  if (key === 'G' || key === 'g') {
+    fretboard.hide = !fretboard.hide;
+    console.log(`Guitare ${fretboard.hide ? 'caché' : 'visible'}`);
+  } 
   if (key === 'N' || key === 'n') {
     noteListView.hide = !noteListView.hide;
     console.log(`Gamme/Notes ${noteListView.hide ? 'caché' : 'visible'}`);
