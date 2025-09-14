@@ -125,7 +125,6 @@ class Piano {
 
     // Intervalle si 2 notes
     const played = Array.from(this.activeKeys);
-
 if (played.length === 2) {
   const fallback = [
     "P1", "m2", "M2", "m3", "M3",
@@ -133,34 +132,35 @@ if (played.length === 2) {
     "m7", "M7"
   ];
   played.sort((a, b) => a - b);
-  const [m1, m2]      = played;
-  const x1            = this.getKeyCenter(m1);
-  const x2            = this.getKeyCenter(m2);
+  const [m1, m2] = played;
+  const x1 = this.getKeyCenter(m1);
+  const x2 = this.getKeyCenter(m2);
   if (x1 == null || x2 == null) return;
 
-  // calcul de l'intervalle en demi-tons et du nombre d'octaves
-  const semisTotal    = m2 - m1;
-  const octaves       = Math.floor(semisTotal / 12);
-  const semisMod      = semisTotal % 12;
+  const semisTotal = m2 - m1;
+  const rawOctaves = Math.floor(semisTotal / 12);
+  // On ne garde qu’au plus 1 octave d’extension
+  const octaves    = rawOctaves > 1 ? 1 : rawOctaves;
+  const semisMod   = semisTotal % 12;
 
-  // récupération du nom dans l'octave
-  const baseLabel     = fallback[semisMod] || "";
-
-  // extraction de la qualité et du degré
-  const letterMatch   = baseLabel.match(/^[^\d]+/)?.[0] || "";
-  const degreeMatch   = parseInt(baseLabel.match(/\d+/)?.[0] || "1", 10);
-
-  // degré total au-dessus de l'octave
-  const fullDegree    = degreeMatch + octaves * 7;
-  const fullLabel     = letterMatch + fullDegree;
-
-  // on affiche "m9 (m2)" si m9 au-dessus, sinon juste "M3", etc.
-  const label         = octaves > 0
-                        ? `${fullLabel} (${baseLabel})`
-                        : fullLabel;
+  let label;
+  if (semisMod === 0) {
+    // unisson/octave exacte → toujours P8
+    label = "P8";
+  } else {
+    const baseLabel = fallback[semisMod] || "";
+    if (octaves > 0) {
+      const letterMatch = baseLabel.match(/^[^\d]+/)?.[0] || "";
+      const degreeMatch = parseInt(baseLabel.match(/\d+/)?.[0] || "1", 10);
+      const fullDegree  = degreeMatch + octaves * 7;
+      label = `${letterMatch}${fullDegree} (${baseLabel})`;
+    } else {
+      label = baseLabel;
+    }
+  }
 
   // tracé de la ligne
-  const yLine         = this.yBase - this.whiteKeyHeight - 1;
+  const yLine = this.yBase - this.whiteKeyHeight - 1;
   g.push();
   g.stroke(CONFIG.colors.playedStroke);
   g.strokeWeight(2);
@@ -168,14 +168,16 @@ if (played.length === 2) {
   g.pop();
 
   // affichage du label centré
-  const xText         = (x1 + x2) / 2;
-  const yText         = yLine - 6;
+  const xText = (x1 + x2) / 2;
+  const yText = yLine - 6;
   g.push();
   g.textAlign(g.CENTER, g.BOTTOM);
-  g.textSize((CONFIG.fontSize || 16) );
+  g.textSize(CONFIG.fontSize || 16);
   g.text(label, xText, yText);
   g.pop();
 }
+
+
 
 
     g.pop();
