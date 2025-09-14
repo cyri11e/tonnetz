@@ -27,10 +27,6 @@ class IntervalEdge {
     return null;
   }
 
-  // isActive(activePcs) {
-  //   return this.a.isActive(activePcs) && this.b.isActive(activePcs);
-  // }
-
   color() {
     switch (this.interval) {
       case 'P5': return CONFIG.colors.edgeP5;
@@ -40,46 +36,44 @@ class IntervalEdge {
     }
   }
 
-draw(g, active, zoom = 1) {
+draw(g, active, inGamme, zoom = 1) {
   if (active) this.lastActiveTime = millis();
-  const fadeFactor = getFadeFactor(this.lastActiveTime);
+
+  const f = getFadeFactor(this.lastActiveTime ?? 0); // 0..1
+  const vis = active ? 1 : f;
 
   g.push();
 
-  // Couleur et opacité du segment
-  const lineColor = g.color(this.color());
-  const lineAlpha = active ? 255 : 20 + 175 * fadeFactor;
-  lineColor.setAlpha(lineAlpha);
-  g.stroke(lineColor);
+  const colorMain = g.color(this.color());
+  const alpha = Math.round(255 * vis);
+  const weight = (CONFIG.edgeWidthThin + (CONFIG.edgeWidthThick - CONFIG.edgeWidthThin) * vis) * zoom;
 
-  const weight = active
-    ? CONFIG.edgeWidthThick * zoom
-    : CONFIG.edgeWidthThin * zoom;
-  g.strokeWeight(weight);
-
-  //if (isInGamme)
+  // SEGMENT couche de base
+  if ( inGamme ) {
+    g.stroke(CONFIG.colors.selectedNodeStroke);
+    g.strokeWeight(weight);
     g.line(this.a.px, this.a.py, this.b.px, this.b.py);
+  } 
+  // SEGMENT
+  colorMain.setAlpha(alpha);
+  g.stroke(colorMain);
+  g.strokeWeight(weight);
+  g.line(this.a.px, this.a.py, this.b.px, this.b.py);
 
-  // Affichage pastille + label si visible
-  if (fadeFactor > 0 || active) {
-    const midX = (this.a.px + this.b.px) / 2;
-    const midY = (this.a.py + this.b.py) / 2;
+  // PASTILLE + LABEL
+  const midX = (this.a.px + this.b.px) / 2;
+  const midY = (this.a.py + this.b.py) / 2;
 
-    g.translate(midX, midY);
-    g.rotate(this.angle);
-    g.textAlign(g.CENTER, g.CENTER);
-    g.textFont(CONFIG.fontFamily);
-    g.textStyle(CONFIG.fontWeight);
-    g.textSize(CONFIG.fontSize * 0.5 * zoom);
-    g.noStroke();
+  g.translate(midX, midY);
+  g.rotate(this.angle);
+  g.textAlign(g.CENTER, g.CENTER);
+  g.textFont(CONFIG.fontFamily);
+  g.textStyle(CONFIG.fontWeight);
+  g.textSize(CONFIG.fontSize * 0.5 * zoom);
+  g.noStroke();
 
-    const alpha = active ? 255 : 80 + 175 * fadeFactor;
-
-    const bgColor = g.color(this.color());
-    bgColor.setAlpha(alpha);
-    g.fill(bgColor);
-    g.circle(0, 0, CONFIG.fontSize * 0.8 * zoom);
-
+  // Label (affiché uniquement si zoom ≥ 1.5)
+  if (zoom >= 1.5) {
     const labelColor = g.color(CONFIG.colors.bg);
     labelColor.setAlpha(alpha);
     g.fill(labelColor);
@@ -88,7 +82,6 @@ draw(g, active, zoom = 1) {
 
   g.pop();
 }
-
 
 
 }

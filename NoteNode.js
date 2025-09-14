@@ -38,25 +38,26 @@ class NoteNode {
     if (inGamme && gamme && typeof gamme.getNoteName === 'function') {
       displayName = gamme.getNoteName(this.pc) ?? this.name;
     }
-    const letter = displayName[0];
-    const accidental = displayName.slice(1);
-
-
 
     const radius = CONFIG.nodeRadius * zoom;
 
     // recupération du label de degré si dans la gamme
 
     let degreeLabel = null;
+    const rel = mod12(this.pc - gamme.tonicPc);
+    const idx = gamme.chroma.indexOf(rel);
     if (inGamme && gamme) {
       // absolu → relatif
-      const rel = mod12(this.pc - gamme.tonicPc);
-      const idx = gamme.chroma.indexOf(rel);
       degreeLabel = (idx !== -1) ? gamme.degres[idx] : null;
     }
 
 
-
+    const QUINTE_INDEX = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
+    const colorIndex = QUINTE_INDEX[rel % 12];
+    const baseColor = g.color(CONFIG.colors.noteColors[colorIndex]);
+    const noteColor = g.lerpColor(baseColor,
+                             color(0), active ? 0 : 0.5);
+    
     // --- Cercle de base ---
     g.push();
     g.translate(this.px, this.py);
@@ -64,13 +65,13 @@ class NoteNode {
     g.stroke(CONFIG.colors.inactiveNodeStroke);
 
     if (isTonic) {
-      g.fill(CONFIG.colors.tonicFillLight);
+      g.fill(noteColor);
       g.stroke(CONFIG.colors.selectedNodeStroke); // Optionnel si tu veux un contour spécifique
-      g.strokeWeight(2 * zoom);          // ← Ajoute ça !
+      g.strokeWeight(2 * zoom);         
     } else if (inGamme) {
-      g.fill(CONFIG.colors.selectedNodeFill);
+      g.fill(noteColor);
       g.stroke(CONFIG.colors.selectedNodeStroke);
-      g.strokeWeight(zoom);          // ← Et ici aussi !
+      g.strokeWeight(zoom);        
     } else {
       g.noFill();
       g.stroke(CONFIG.colors.inactiveNodeStroke);
@@ -85,26 +86,16 @@ class NoteNode {
     g.textStyle(CONFIG.fontWeight);
     g.textSize(CONFIG.fontSize * zoom);
     g.noStroke();
-    g.fill(isTonic ? CONFIG.colors.tonicTextDark : CONFIG.colors.inactiveNodeLabel);
-    g.text(letter, 0, 0);
+    g.fill(CONFIG.colors.inactiveNodeLabel);
+    textNote(g, displayName, 0, 0);
 
-    if (accidental) {
-      g.textSize(CONFIG.fontSize * 0.75 * zoom);
-      const angle = -60 * Math.PI / 180;
-      const r = CONFIG.fontSize * 0.6 * zoom;
-      g.text(accidental, Math.cos(angle) * r, Math.sin(angle) * r);
-    }
-    if (degreeLabel && degreeLabel !== "♪") {
-      const match = degreeLabel.match(/(bb|b|##|#)?(\d)/);
-      if (match) {
-        const alt = match[1] ?? "";
-        const num = match[2];
-        const unicode = alt.replace(/bb/, '𝄫').replace(/b/, '♭').replace(/##/, '𝄪').replace(/#/, '♯');
-        const formatted = `${unicode}${num}`;
-        g.textSize(CONFIG.fontSize * 0.6 * zoom);
-        g.textStyle(NORMAL); // plus fin
-        g.fill(CONFIG.colors.degreeLabel); // couleur à définir
-        g.text(formatted, 0, CONFIG.fontSize * 0.7 * zoom); // position sous la lettre
+    if ( zoom >= 1.5 )
+    {    
+      if (degreeLabel && degreeLabel !== "♪") {
+          g.textSize(CONFIG.fontSize * 0.6 * zoom);
+          g.textStyle(NORMAL); // plus fin
+          g.fill(CONFIG.colors.degreeLabel); // couleur à définir
+          g.textDegree(g, degreeLabel, 0, CONFIG.fontSize * 0.6 * zoom); // position sous la lettre
       }
     }
 
@@ -130,7 +121,7 @@ class NoteNode {
       g.push();
       g.translate(this.px, this.py);
       g.noFill();
-      g.strokeWeight(active ? 3.2 * zoom : 1 * zoom);
+      g.strokeWeight(active || fadeFactor ? 3.2 * zoom : 1 * zoom);
       const baseColor = isRoot ? CONFIG.colors.rootStroke : CONFIG.colors.playedStroke;
       const c = g.color(baseColor);
       c.setAlpha(255 * fadeFactor);
@@ -146,13 +137,8 @@ class NoteNode {
       g.textFont(CONFIG.fontFamily);
       g.textStyle(CONFIG.fontWeight);
       g.textSize(CONFIG.fontSize * zoom);
-      g.text(letter, 0, 0);
-      if (accidental) {
-        g.textSize(CONFIG.fontSize * 0.75 * zoom);
-        const angle = -60 * Math.PI / 180;
-        const r = CONFIG.fontSize * 0.6 * zoom;
-        g.text(accidental, Math.cos(angle) * r, Math.sin(angle) * r);
-      }
+      textNote(g, displayName, 0, 0);
+
       g.pop();
     }
   }

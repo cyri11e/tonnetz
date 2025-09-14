@@ -1,7 +1,7 @@
 // Configuration globale de l’application
 const CONFIG = {
   // Durée (en ms) du fondu pour l’overlay des notes jouées
-  fadeTime: 300,
+  fadeTime: 3000,
 
   // Échelle de la grille Tonnetz (en pixels)
   unitX: 18,        // largeur d’une unité horizontale
@@ -11,8 +11,8 @@ const CONFIG = {
   zoomMax: 3,     // zoom maximum
 
   // Propriétés des nœuds
-  nodeRadius: 22,   // rayon de chaque nœud (px)
-  fontSize: 22,     // taille de police de base pour les étiquettes (px)
+  nodeRadius: 15,   // rayon de chaque nœud (px)
+  fontSize: 18,     // taille de police de base pour les étiquettes (px)
 
   // Épaisseurs de traits pour les arêtes et triangles
   edgeWidthThin: 1,
@@ -44,7 +44,7 @@ const CONFIG = {
     edgeM3:              '#5fa8ff',           // bleu ciel pour les liens M3
     edgem3:              '#29d3c2',           // bleu turquoise les liens m3
     triangleMajor:       '#5fa8ff',           // bleu clair
-    triangleMinor:       '#29d3c2',           // bleu foncé
+    triangleMinor:       '#6df1e4ff',           // bleu foncé
     selectedNodeFill:    '#2a2a2a',           // fond gris pour notes dans la gamme
     selectedNodeStroke:  '#60b4feff',         // contour animé pour notes dans la gamme
     playedStroke:        '#ffd400',           // contour animé pour notes jouées

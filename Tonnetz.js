@@ -134,7 +134,8 @@ reset() {
   drawEdges(g) {
   for (const e of this.netGrid.edges) {
     const active = this.activePcs.has(e.a.pc) && this.activePcs.has(e.b.pc);
-    e.draw(g, active, this.zoom);
+    const inGamme = this.gamme.pitchClasses.includes(e.a.pc) && this.gamme.pitchClasses.includes(e.b.pc);
+    e.draw(g, active, inGamme, this.zoom);
   }
 
   }

@@ -15,9 +15,13 @@ function mod12(n) {
 
 // Facteur de fondu (0 → invisible, 1 → plein) selon le temps écoulé
 function getFadeFactor(lastTime) {
+  if (typeof lastTime !== 'number' || isNaN(lastTime)) return 0;
   const elapsed = millis() - lastTime;
-  return 1 - Math.min(elapsed / CONFIG.fadeTime, 1);
+  const t = constrain(elapsed / CONFIG.fadeTime, 0, 1);
+  const value = pow(1 - t, 2.5);
+  return value; // ou autre courbe douce
 }
+
 
 
 // Gère le style d'altération des noms affichés dans le Tonnetz

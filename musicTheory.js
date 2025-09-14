@@ -366,10 +366,20 @@ function toUnicodeAlteration(rawNoteLabel) {
     .replace(/♮/g, '♮');   // naturel
 }
 
-function parseLabel(label='') {
-  const degree = label.replace(/^[^0-9]+/, '');
-  const alteration = toUnicodeAlteration(label.replace(/[0-9]/g, ''));
-  return { degree, alteration };
+function parseDegree(rawDegree = '') {
+  // 1) altération optionnelle, 2) chiffre obligatoire 1–7
+  const match = rawDegree.match(/^(bb|b|##|#|♭|♯|𝄫|𝄪|♮)?([1-7])$/);
+  if (!match) return null;
+
+  // match[1] peut être undefined si pas d'altération
+  let accidental = match[1] || '';
+  // on convertit en caractère Unicode standard si nécessaire
+  if (accidental) {
+    accidental = toUnicodeAlteration(accidental);
+  }
+
+  const digit = match[2];
+  return { digit, accidental };
 }
 
 function parseNoteName(noteName='') {
@@ -385,6 +395,56 @@ function parseNoteName(noteName='') {
 
   return { letter, accidental };
 }
+
+const ACC_ANGLE_NOTE = -30 * Math.PI / 180;
+const ACC_ANGLE_DEGREE = -180 * Math.PI / 180;
+const ACC_COS_NOTE   = Math.cos(ACC_ANGLE_NOTE);
+const ACC_COS_DEGREE   = Math.cos(ACC_ANGLE_DEGREE);
+const ACC_SIN_NOTE   = Math.sin(ACC_ANGLE_NOTE);
+const ACC_SIN_DEGREE   = Math.sin(ACC_ANGLE_DEGREE);
+
+
+function textNote(g, rawNote, x, y) {
+  const parsed = parseNoteName(rawNote);
+  if (!parsed) return;
+
+  // dessine la lettre
+  g.text(parsed.letter, x, y);
+
+  // si altération, dessine à côté avec décalage
+  if (parsed.accidental) {
+    // récupère la taille de police courante (p5 stocke ça en interne)
+    const fs = g._curTextSize || 16;
+    // rayon d’éloignement proportionnel à fs
+    const r = fs * 0.8;
+    const dx = ACC_COS_NOTE * r;
+    const dy = ACC_SIN_NOTE * r;
+
+    g.text(parsed.accidental, x + dx, y + dy);
+  }
+}
+
+function textDegree(g, rawNote, x, y) {
+  const parsed = parseDegree(rawNote);
+  if (!parsed) return;
+
+  // dessine la lettre
+  g.text(parsed.digit, x, y);
+
+  // si altération, dessine à côté avec décalage
+  if (parsed.accidental) {
+    // récupère la taille de police courante (p5 stocke ça en interne)
+    const fs = g._curTextSize || 16;
+    // rayon d’éloignement proportionnel à fs
+    const r = fs * 0.4;
+    const dx = ACC_COS_DEGREE * r;
+    const dy = ACC_SIN_DEGREE * r;
+
+    g.text(parsed.accidental, x + dx, y + dy);
+  }
+}
+
+
 
 // Noms de notes selon le style d'altération
 const ENHARMONIC_MAPS = {
