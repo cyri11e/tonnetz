@@ -1,41 +1,186 @@
 class Piano {
-  constructor(size = 88) {
-    this.hide = false;
-    // Définition des différentes tailles de piano
-    this.PIANO_SIZES = {
-      88: { start: 21, end: 108 },  // A0 à C8  (piano complet)
-      76: { start: 28, end: 103 },  // E1 à G7  (piano 76 touches)
-      61: { start: 36, end: 96 },   // C2 à C7  (piano 61 touches)
-      49: { start: 36, end: 84 },   // C2 à C6  (piano 4 octaves)
-      25: { start: 48, end: 72 }    // C3 à C5  (piano 2 octaves)
-    };
+  constructor(size = 88, canvasWidth, canvasHeight) {
+    this.hide           = false;
+    this.activeKeys     = new Set();
+    this.keyLayouts     = [];
+    this.keyXPositions  = {};
+    this.yBase          = 0;
+    this.whiteKeyHeight = 0;
 
-    const range = this.PIANO_SIZES[size] || this.PIANO_SIZES[88];
-    this.startMidi = range.start;
-    this.endMidi = range.end;
-    
-    // Pattern des touches pour un octave (0 = C)
+    // 1) Ta config de tailles
+    this.PIANO_SIZES = {
+      88: { start: 21, end: 108 },
+      76: { start: 28, end: 103 },
+      61: { start: 36, end: 96  },
+      49: { start: 36, end: 84  },
+      25: { start: 48, end: 72  }
+    };
+    const range      = this.PIANO_SIZES[size] || this.PIANO_SIZES[88];
+    this.startMidi   = range.start;
+    this.endMidi     = range.end;
+
+    // 2) Tonalité d’octave (blanche vs noire)
     this.keyPattern = [
-      true,  // C  (0)
-      false, // C# (1)
-      true,  // D  (2)
-      false, // D# (3)
-      true,  // E  (4)
-      true,  // F  (5)
-      false, // F# (6)
-      true,  // G  (7)
-      false, // G# (8)
-      true,  // A  (9)
-      false, // A# (10)
-      true   // B  (11)
+      true, false, true, false, true, true,
+      false, true, false, true, false, true
     ];
 
-    this.activeKeys = new Set();  // Uniquement les notes MIDI actives
+    // 3) Maintenant que tout est en place, on initialise la grille
+    this.initLayout(canvasWidth, canvasHeight);
+  }
+
+  /**
+   * Calcule une seule fois les coordonnées/taille de chaque touche
+   * et remplit keyLayouts & keyXPositions.
+   */
+  initLayout(canvasWidth, canvasHeight) {
+    const margin    = 20;
+    this.yBase      = canvasHeight - margin;
+
+    // Midi total
+    const countMidi = this.endMidi - this.startMidi + 1;
+    const allMidis  = Array.from(
+      { length: countMidi },
+      (_, i) => this.startMidi + i
+    );
+
+    // Filtre les blanches
+    const whiteMidis = allMidis.filter(m => this.keyPattern[m % 12]);
+    const numWhite   = whiteMidis.length;
+
+    // Dimensions
+    const whiteW = (canvasWidth - margin * 2) / numWhite;
+    const whiteH = whiteW * 4;
+    const blackW = whiteW - 1;
+    const blackH = whiteH ;
+    const startX = margin;
+
+    this.whiteKeyHeight = whiteH;
+    this.keyLayouts     = [];
+    this.keyXPositions  = {};
+
+    // 1) Blanches
+    let wc = 0;
+    for (const midi of allMidis) {
+      const pc = midi % 12;
+      if (!this.keyPattern[pc]) continue;
+
+      const x0      = startX + wc * whiteW;
+      const w       = whiteW - 1;
+      const h       = whiteH;
+      const xCenter = x0 + w / 2;
+
+      this.keyLayouts.push({
+        midi, type:'white',
+        x: x0, y: this.yBase - h,
+        w, h,
+        keyType: {0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'B'}[pc]
+      });
+      this.keyXPositions[midi] = xCenter;
+      wc++;
+    }
+
+    // 2) Noires
+    wc = 0;
+    for (const midi of allMidis) {
+      const pc = midi % 12;
+      if (this.keyPattern[pc]) {
+        wc++;
+        continue;
+      }
+      const x0      = startX + wc * whiteW;
+      const xCenter = x0 - whiteW / 3 + (blackW * 0.67) / 2;
+
+      this.keyLayouts.push({
+        midi, type:'black',
+        x: x0, y: this.yBase - whiteH,
+        w: blackW, h: blackH
+      });
+      this.keyXPositions[midi] = xCenter;
+    }
+  }
+
+  getKeyCenter(midi) {
+    return this.keyXPositions[midi] ?? null;
   }
 
   setMidiNotes(midiNums = []) {
     this.activeKeys = new Set(midiNums);
   }
+
+  draw(g, rootPc = null) {
+    if (this.hide) return;
+    g.push();
+
+    // Dessin touches
+    for (const key of this.keyLayouts) {
+      const active = this.activeKeys.has(key.midi);
+      const root   = active && rootPc !== null && (key.midi % 12) === rootPc;
+      if (key.type === 'white') {
+        this.drawWhiteKey(g, key.x, key.y, key.w, key.h, key.keyType, active, root);
+      } else {
+        this.drawBlackKey(g, key.x, key.y, key.w, key.h, active, root);
+      }
+    }
+
+    // Intervalle si 2 notes
+    const played = Array.from(this.activeKeys);
+
+if (played.length === 2) {
+  const fallback = [
+    "P1", "m2", "M2", "m3", "M3",
+    "P4", "d5", "P5", "m6", "M6",
+    "m7", "M7"
+  ];
+  played.sort((a, b) => a - b);
+  const [m1, m2]      = played;
+  const x1            = this.getKeyCenter(m1);
+  const x2            = this.getKeyCenter(m2);
+  if (x1 == null || x2 == null) return;
+
+  // calcul de l'intervalle en demi-tons et du nombre d'octaves
+  const semisTotal    = m2 - m1;
+  const octaves       = Math.floor(semisTotal / 12);
+  const semisMod      = semisTotal % 12;
+
+  // récupération du nom dans l'octave
+  const baseLabel     = fallback[semisMod] || "";
+
+  // extraction de la qualité et du degré
+  const letterMatch   = baseLabel.match(/^[^\d]+/)?.[0] || "";
+  const degreeMatch   = parseInt(baseLabel.match(/\d+/)?.[0] || "1", 10);
+
+  // degré total au-dessus de l'octave
+  const fullDegree    = degreeMatch + octaves * 7;
+  const fullLabel     = letterMatch + fullDegree;
+
+  // on affiche "m9 (m2)" si m9 au-dessus, sinon juste "M3", etc.
+  const label         = octaves > 0
+                        ? `${fullLabel} (${baseLabel})`
+                        : fullLabel;
+
+  // tracé de la ligne
+  const yLine         = this.yBase - this.whiteKeyHeight - 1;
+  g.push();
+  g.stroke(CONFIG.colors.playedStroke);
+  g.strokeWeight(2);
+  g.line(x1, yLine, x2, yLine);
+  g.pop();
+
+  // affichage du label centré
+  const xText         = (x1 + x2) / 2;
+  const yText         = yLine - 6;
+  g.push();
+  g.textAlign(g.CENTER, g.BOTTOM);
+  g.textSize((CONFIG.fontSize || 16) );
+  g.text(label, xText, yText);
+  g.pop();
+}
+
+
+    g.pop();
+  }
+
 
   // Nouvelle méthode pour dessiner une touche blanche selon son type
   drawWhiteKey(g, x, y, w, h, type, isActive, isRoot) {
@@ -100,69 +245,4 @@ class Piano {
     g.pop();
   }
 
-  draw(g, rootPc = null) {
-    if (this.hide) return;
-    g.push();
-    
-    const margin = 20;
-    const y = g.height - margin;
-    const totalWidth = g.width - (margin * 2);
-    
-    // Calculer le nombre de touches blanches pour cette taille de piano
-    const numWhiteKeys = Array.from(
-      { length: this.endMidi - this.startMidi + 1 },
-      (_, i) => this.startMidi + i
-    ).filter(midi => this.keyPattern[midi % 12]).length;
-
-    const whiteKeyWidth = totalWidth / numWhiteKeys;
-    const whiteKeyHeight = whiteKeyWidth * 4;
-    const blackKeyWidth = whiteKeyWidth * 0.6;
-    const blackKeyHeight = whiteKeyHeight * 0.6;
-    const startX = margin;
-
-    // Touches blanches avec formes spécifiques
-    g.strokeWeight(1);
-    g.stroke(40);
-    let whiteKeyCount = 0;
-    
-    for (let midi = this.startMidi; midi <= this.endMidi; midi++) {
-      const pc = midi % 12;
-      const isWhite = this.keyPattern[pc];
-      if (isWhite) {
-        const x = startX + (whiteKeyWidth * whiteKeyCount);
-        const isActive = this.activeKeys.has(midi);
-        const isRoot = isActive && rootPc !== null && pc === rootPc;
-        const isLastC = midi === this.endMidi && pc === 0;
-        
-        const noteTypes = {0:'C', 2:'D', 4:'E', 5:'F', 7:'G', 9:'A', 11:'B'};
-        const keyType = noteTypes[pc];
-        
-        this.drawWhiteKey(g, x, y - whiteKeyHeight, whiteKeyWidth - 1, 
-                         whiteKeyHeight, keyType, isActive, isRoot);
-        whiteKeyCount++;
-      }
-    }
-
-    // Touches noires
-    g.noStroke();
-    whiteKeyCount = 0;
-    
-    for (let midi = this.startMidi; midi <= this.endMidi; midi++) {
-      const pc = midi % 12;
-      const isWhite = this.keyPattern[pc];
-      if (!isWhite) {
-        // Position ajustée : utilise la position de la touche blanche précédente
-        const x = startX + (whiteKeyWidth * (whiteKeyCount));
-        const isActive = this.activeKeys.has(midi);
-        const isRoot = isActive && rootPc !== null && (midi % 12 === rootPc);
-        
-        this.drawBlackKey(g, x, y - whiteKeyHeight, whiteKeyWidth, whiteKeyHeight, 
-                         isActive, isRoot);
-      } else {
-        whiteKeyCount++;
-      }
-    }
-    
-    g.pop();
-  }
 }

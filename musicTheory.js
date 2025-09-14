@@ -414,9 +414,9 @@ function textNote(g, rawNote, x, y) {
   // si altération, dessine à côté avec décalage
   if (parsed.accidental) {
     // récupère la taille de police courante (p5 stocke ça en interne)
-    const fs = g._curTextSize || 16;
+    const fs = g.textSize() || 16;
     // rayon d’éloignement proportionnel à fs
-    const r = fs * 0.8;
+    const r = fs * 0.6;
     const dx = ACC_COS_NOTE * r;
     const dy = ACC_SIN_NOTE * r;
 
@@ -434,7 +434,7 @@ function textDegree(g, rawNote, x, y) {
   // si altération, dessine à côté avec décalage
   if (parsed.accidental) {
     // récupère la taille de police courante (p5 stocke ça en interne)
-    const fs = g._curTextSize || 16;
+    const fs = g.textSize() || 16;
     // rayon d’éloignement proportionnel à fs
     const r = fs * 0.4;
     const dx = ACC_COS_DEGREE * r;

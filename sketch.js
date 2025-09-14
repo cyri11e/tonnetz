@@ -45,7 +45,7 @@ function setup() {
     style: tonnetz.noteStyle
   });
 
-  piano = new Piano(49);
+  piano = new Piano(49, width, height); // 49 touches par défaut
 }
 
 // --------------     AFFICHAGE -----------------
@@ -240,7 +240,7 @@ function keyPressed() {
                        '7': 76, 'è' : 76,
                        '8': 88, '!' : 88 };
   if (pianoSizes[key]) {
-    piano = new Piano(pianoSizes[key]);
+    piano = new Piano(pianoSizes[key], width, height);
     return;
   }
 
