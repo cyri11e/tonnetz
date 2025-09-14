@@ -232,14 +232,31 @@ pcs = [...new Set(midiList)].sort((a, b) => a - b);
 
   // --- 11. Tri des résultats ---
   // Priorité aux accords les plus complets, puis ratio reconnu/total, puis taille de formule
-  results.sort((a, b) => {
-    if (b.recognizedNotes !== a.recognizedNotes) return b.recognizedNotes - a.recognizedNotes;
-    if (b.totalNotes !== a.totalNotes) return b.totalNotes - a.totalNotes;
-    const ra = a.recognizedNotes / a.totalNotes;
-    const rb = b.recognizedNotes / b.totalNotes;
-    if (rb !== ra) return rb - ra;
-    return b.formulaSize - a.formulaSize;
-  });
+// --- 11. Tri des résultats ---
+results.sort((a, b) => {
+  // 1) Priorité aux accords en position fondamentale (root === bass)
+  const aIsRootPos = a.bass === a.root;
+  const bIsRootPos = b.bass === b.root;
+  if (aIsRootPos && !bIsRootPos) return -1;
+  if (!aIsRootPos && bIsRootPos) return 1;
+
+  // 2) Accords les plus complets
+  if (b.recognizedNotes !== a.recognizedNotes) 
+    return b.recognizedNotes - a.recognizedNotes;
+
+  // 3) Accords avec le plus d’intervalles au total
+  if (b.totalNotes !== a.totalNotes) 
+    return b.totalNotes - a.totalNotes;
+
+  // 4) Meilleur ratio reconnu/total
+  const ra = a.recognizedNotes / a.totalNotes;
+  const rb = b.recognizedNotes / b.totalNotes;
+  if (rb !== ra) return rb - ra;
+
+  // 5) Formule la plus longue (favorise 11, 13…)
+  return b.formulaSize - a.formulaSize;
+});
+
 
   // --- 12. Filtrage des doublons et sous-ensembles ---
   // On élimine les accords qui sont des sous-ensembles d'accords plus riches
