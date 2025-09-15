@@ -52,7 +52,7 @@ const ratio = 1 / 5;
 fretboard = new Fretboard({
   frets: 20,
   orientation: 'right',
-  pov: true,
+  pov: false,
   canvasWidth: width,
   // canvasHeight: Math.round(width * ratio), // optional; otherwise heightRatio is used
   heightRatio: ratio,
