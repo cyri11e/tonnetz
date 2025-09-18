@@ -1,5 +1,8 @@
 class Piano {
   constructor(size = 88, canvasWidth, canvasHeight) {
+    this.canvasWidth  = canvasWidth;
+    this.canvasHeight = canvasHeight;
+
     this.hide           = false;
     this.activeKeys     = new Set();
     this.keyLayouts     = [];
@@ -15,6 +18,11 @@ class Piano {
       49: { start: 36, end: 84  },
       25: { start: 48, end: 72  }
     };
+    //this.availableSizes = Object.keys(this.PIANO_SIZES).map(Number).sort((a, b) => a - b);
+    //this.currentSizeIndex = this.availableSizes.indexOf(size);
+this.zoomLevel = 1.0;      // 1.0 = taille normale
+this.panOffset = 0;        // en pixels
+
     const range      = this.PIANO_SIZES[size] || this.PIANO_SIZES[88];
     this.startMidi   = range.start;
     this.endMidi     = range.end;
@@ -29,76 +37,137 @@ class Piano {
     this.initLayout(canvasWidth, canvasHeight);
   }
 
+  changeSize(delta) {
+    console.log("changeSize", delta);
+    const len = this.availableSizes.length;
+    this.currentSizeIndex = (this.currentSizeIndex + delta + len) % len;
+    const newSize = this.availableSizes[this.currentSizeIndex];
+
+    const range = this.PIANO_SIZES[newSize];
+    this.startMidi = range.start;
+    this.endMidi   = range.end;
+
+    this.initLayout(this.canvasWidth, this.canvasHeight);
+  }
+
   /**
    * Calcule une seule fois les coordonnées/taille de chaque touche
    * et remplit keyLayouts & keyXPositions.
    */
-  initLayout(canvasWidth, canvasHeight) {
-    const margin    = 20;
-    this.yBase      = canvasHeight - margin;
+ initLayout(canvasWidth, canvasHeight) {
+  // mémorise les dimensions pour les recalculs (zoom/pan/redraw)
+  this.canvasWidth  = canvasWidth;
+  this.canvasHeight = canvasHeight;
 
-    // Midi total
-    const countMidi = this.endMidi - this.startMidi + 1;
-    const allMidis  = Array.from(
-      { length: countMidi },
-      (_, i) => this.startMidi + i
-    );
+  const margin = 20;
+  this.yBase   = canvasHeight - margin;
 
-    // Filtre les blanches
-    const whiteMidis = allMidis.filter(m => this.keyPattern[m % 12]);
-    const numWhite   = whiteMidis.length;
+  // ensemble MIDI courant (tu peux garder this.startMidi/this.endMidi — ici ça supporte 88 ou autre)
+  const countMidi = this.endMidi - this.startMidi + 1;
+  const allMidis  = Array.from({ length: countMidi }, (_, i) => this.startMidi + i);
 
-    // Dimensions
-    const whiteW = (canvasWidth - margin * 2) / numWhite;
-    const whiteH = whiteW * 4;
-    const blackW = whiteW - 1;
-    const blackH = whiteH ;
-    const startX = margin;
+  // filtrage des blanches (pattern modulo 12)
+  const whiteMidis = allMidis.filter(m => this.keyPattern[m % 12]);
+  const numWhite   = whiteMidis.length;
 
-    this.whiteKeyHeight = whiteH;
-    this.keyLayouts     = [];
-    this.keyXPositions  = {};
+  // dimensions de base + zoom/pan
+  const baseWhiteW = (canvasWidth - margin * 2) / numWhite;
+  const zoom       = this.zoomLevel ?? 1.0;
+  const whiteW     = baseWhiteW * zoom;
+  const whiteH     = whiteW * 4;
+  const blackW     = whiteW ;   // largeur relative des noires
+  const blackH     = whiteH ;    // hauteur relative des noires
+  const startX     = margin - (this.panOffset ?? 0);
 
-    // 1) Blanches
-    let wc = 0;
-    for (const midi of allMidis) {
-      const pc = midi % 12;
-      if (!this.keyPattern[pc]) continue;
+  this.whiteKeyHeight = whiteH;
+  this.keyLayouts     = [];
+  this.keyXPositions  = {};
 
-      const x0      = startX + wc * whiteW;
-      const w       = whiteW - 1;
-      const h       = whiteH;
-      const xCenter = x0 + w / 2;
+  // 1) Prépare un tableau des touches blanches avec géométrie complète
+// 1) Blanches
+const whiteKeys = []; // ← tableau temporaire pour placement des noires
+let wc = 0;
+for (const midi of allMidis) {
+  const pc = midi % 12;
+  if (!this.keyPattern[pc]) continue;
 
-      this.keyLayouts.push({
-        midi, type:'white',
-        x: x0, y: this.yBase - h,
-        w, h,
-        keyType: {0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'B'}[pc]
-      });
-      this.keyXPositions[midi] = xCenter;
-      wc++;
-    }
+  const x0      = startX + wc * whiteW;
+  const w       = whiteW - 1;
+  const h       = whiteH;
+  const xCenter = x0 + w / 2;
 
-    // 2) Noires
-    wc = 0;
-    for (const midi of allMidis) {
-      const pc = midi % 12;
-      if (this.keyPattern[pc]) {
-        wc++;
-        continue;
-      }
-      const x0      = startX + wc * whiteW;
-      const xCenter = x0 - whiteW / 3 + (blackW * 0.67) / 2;
+  const keyType = {0:'C',2:'D',4:'E',5:'F',7:'G',9:'A',11:'B'}[pc];
+  const isLeftEdge  = midi === 21;   // A0
+  const isRightEdge = midi === 108;  // C8
 
-      this.keyLayouts.push({
-        midi, type:'black',
-        x: x0, y: this.yBase - whiteH,
-        w: blackW, h: blackH
-      });
-      this.keyXPositions[midi] = xCenter;
-    }
+  const key = {
+    midi, type:'white',
+    x: x0, y: this.yBase - h,
+    w, h,
+    keyType,
+    isLeftEdge,
+    isRightEdge
+  };
+
+  this.keyLayouts.push(key);
+  this.keyXPositions[midi] = xCenter;
+  whiteKeys.push(key); // ← stocké pour placement des noires
+  wc++;
+}
+
+
+
+  // 2) Enregistre les blanches dans keyLayouts et centers
+  // for (const k of whiteKeys) {
+  //   const xCenter = k.x + k.w / 2;
+  //   this.keyLayouts.push({
+  //     midi: k.midi,
+  //     type: 'white',
+  //     x: k.x, y: k.y, w: k.w, h: k.h,
+  //     keyType: k.keyType
+  //   });
+  //   this.keyXPositions[k.midi] = xCenter;
+  // }
+
+  // 3) Place les noires précisément entre blanches adjacentes
+  //    Pour chaque noire, on trouve la blanche à gauche et à droite dans whiteMidis,
+  //    puis on place le centre au milieu de l’espace entre leurs bords.
+  for (const midi of allMidis) {
+    const pc = midi % 12;
+    if (this.keyPattern[pc]) continue; // skip blanches
+
+    // index de la première blanche strictement > midi
+    let rightIdx = whiteMidis.findIndex(m => m > midi);
+    if (rightIdx === -1) continue; // aucune blanche à droite (ne devrait pas arriver au milieu de la tessiture)
+
+    const leftIdx = rightIdx - 1;
+    if (leftIdx < 0) continue;      // aucune blanche à gauche (idem)
+
+    const leftWhite  = whiteKeys[leftIdx];
+    const rightWhite = whiteKeys[rightIdx];
+
+    const leftEdge  = leftWhite.x + leftWhite.w; // bord droit de la blanche de gauche
+    const rightEdge = rightWhite.x;               // bord gauche de la blanche de droite
+    const xCenter   = (leftEdge + rightEdge) / 2;
+
+    // géométrie de la touche noire (drawBlack attend x comme "centre" puisque rect(x - w/3, ...))
+    const x = xCenter;
+    const y = this.yBase - whiteH;
+
+    this.keyLayouts.push({
+      midi, type: 'black',
+      x, y, w: blackW, h: blackH
+    });
+    this.keyXPositions[midi] = xCenter;
   }
+
+  // 4) Option: ordonner pour dessiner blanches puis noires au-dessus (si besoin)
+  this.keyLayouts.sort((a, b) => {
+    if (a.type === b.type) return a.midi - b.midi;
+    return a.type === 'white' ? -1 : 1; // blanches d'abord
+  });
+}
+
 
   getKeyCenter(midi) {
     return this.keyXPositions[midi] ?? null;
@@ -117,7 +186,7 @@ class Piano {
       const active = this.activeKeys.has(key.midi);
       const root   = active && rootPc !== null && (key.midi % 12) === rootPc;
       if (key.type === 'white') {
-        this.drawWhiteKey(g, key.x, key.y, key.w, key.h, key.keyType, active, root);
+        this.drawWhiteKey(g, key.x, key.y, key.w, key.h, key.keyType, active, root, key.isLeftEdge, key.isRightEdge);
       } else {
         this.drawBlackKey(g, key.x, key.y, key.w, key.h, active, root);
       }
@@ -185,56 +254,83 @@ if (played.length === 2) {
 
 
   // Nouvelle méthode pour dessiner une touche blanche selon son type
-  drawWhiteKey(g, x, y, w, h, type, isActive, isRoot) {
-    g.fill(isRoot ? CONFIG.colors.rootStroke :
-           isActive ? CONFIG.colors.playedStroke :
-           '#ffffff');
-    g.stroke(40);
-    g.strokeWeight(1);
+drawWhiteKey(g, x, y, w, h, type, isActive, isRoot, isLeftEdge, isRightEdge) {
+  g.fill(isRoot ? CONFIG.colors.rootStroke :
+         isActive ? CONFIG.colors.playedStroke :
+         '#ffffff');
+  g.stroke(40);
+  g.strokeWeight(1);
 
-    g.beginShape();
-    switch(type) {
-      case 'C': 
-      case 'F': // Forme en L
-        g.vertex(x, y);
-        g.vertex(x, y + h);
-        g.vertex(x + w, y + h);
-        g.vertex(x + w, y + h * 0.6);
-        g.vertex(x + w/1.5, y + h * 0.6);
-        g.vertex(x + w/1.5, y);
-        break;
+  g.beginShape();
 
-      case 'E':
-      case 'B': // Miroir du C
-        g.vertex(x + w/3, y);
-        g.vertex(x + w, y);
-        g.vertex(x + w, y + h);
-        g.vertex(x, y + h);
-        g.vertex(x, y + h * 0.6);
-        g.vertex(x + w/3, y + h * 0.6);
-        break;
-
-      case 'D':
-      case 'G':
-      case 'A': // Forme en T avec partie haute fine
-        g.vertex(x + w/3, y);
-        g.vertex(x + w/1.5, y);
-        g.vertex(x + w/1.5, y + h * 0.6);
-        g.vertex(x + w, y + h * 0.6);
-        g.vertex(x + w, y + h);
-        g.vertex(x, y + h);
-        g.vertex(x, y + h * 0.6);
-        g.vertex(x + w/3, y + h * 0.6);
-        break;
-
-      default: // Rectangle simple pour le dernier C
-        g.vertex(x, y);
-        g.vertex(x + w, y);
-        g.vertex(x + w, y + h);
-        g.vertex(x, y + h);
-    }
+  // 🧨 Cas extrêmes : A0, C8, B final
+  if (isLeftEdge && type === 'A') {
+    // A0 → forme en L (déjà gérée dans switch, donc rien à faire ici)
+  } else if (isRightEdge && type === 'C') {
+    // C8 → rectangle plein
+    g.vertex(x, y);
+    g.vertex(x + w, y);
+    g.vertex(x + w, y + h);
+    g.vertex(x, y + h);
     g.endShape(CLOSE);
+    return;
+  } else if (isRightEdge && type === 'B') {
+    // B final → rectangle plein
+    g.vertex(x, y);
+    g.vertex(x + w, y);
+    g.vertex(x + w, y + h);
+    g.vertex(x, y + h);
+    g.endShape(CLOSE);
+    return;
   }
+
+  // 🎹 Formes normales selon type
+  switch(type) {
+    case 'C': 
+    case 'F':
+    case 'A': // Forme en L
+      g.vertex(x, y);
+      g.vertex(x, y + h);
+      g.vertex(x + w, y + h);
+      g.vertex(x + w, y + h * 0.6);
+      g.vertex(x + w/1.5, y + h * 0.6);
+      g.vertex(x + w/1.5, y);
+      break;
+
+    case 'E':
+    case 'B': // Miroir du C
+      g.vertex(x + w/3, y);
+      g.vertex(x + w, y);
+      g.vertex(x + w, y + h);
+      g.vertex(x, y + h);
+      g.vertex(x, y + h * 0.6);
+      g.vertex(x + w/3, y + h * 0.6);
+      break;
+
+    case 'D':
+    case 'G': // Forme en T
+      g.vertex(x + w/3, y);
+      g.vertex(x + w/1.5, y);
+      g.vertex(x + w/1.5, y + h * 0.6);
+      g.vertex(x + w, y + h * 0.6);
+      g.vertex(x + w, y + h);
+      g.vertex(x, y + h);
+      g.vertex(x, y + h * 0.6);
+      g.vertex(x + w/3, y + h * 0.6);
+      break;
+
+    default: // Rectangle simple
+      g.vertex(x, y);
+      g.vertex(x + w, y);
+      g.vertex(x + w, y + h);
+      g.vertex(x, y + h);
+  }
+
+  g.endShape(CLOSE);
+}
+
+
+
 
   drawBlackKey(g, x, y, w, h, isActive, isRoot) {
     g.push();
@@ -246,5 +342,57 @@ if (played.length === 2) {
     g.rect(x - w/3, y, w * 0.67, h * 0.6);
     g.pop();
   }
+
+
+
+  handleScroll(mouseY) {
+  const zoneHeight = this.canvasHeight;
+  const ratio = 1 - mouseY / zoneHeight; // haut = 1, bas = 0
+
+  const index = Math.floor(ratio * this.availableSizes.length);
+  const clampedIndex = Math.max(0, Math.min(this.availableSizes.length - 1, index));
+
+  if (clampedIndex !== this.currentSizeIndex) {
+    this.currentSizeIndex = clampedIndex;
+    const newSize = this.availableSizes[clampedIndex];
+    const range = this.PIANO_SIZES[newSize];
+    this.startMidi = range.start;
+    this.endMidi   = range.end;
+    this.initLayout(this.canvasWidth, this.canvasHeight);
+  }
+}
+
+setZoom(factor) {
+  this.zoomLevel = constrain(this.zoomLevel * factor, 1, 3.0);
+  this.initLayout(this.canvasWidth, this.canvasHeight);
+}
+
+setPan(deltaX) {
+  const margin = 20;
+
+  // 1. Calcul du nombre de touches blanches
+  const whiteMidis = Array.from(
+    { length: this.endMidi - this.startMidi + 1 },
+    (_, i) => this.startMidi + i
+  ).filter(m => this.keyPattern[m % 12]);
+
+  const numWhite = whiteMidis.length;
+
+  // 2. Largeur réelle du clavier (zoomée)
+  const baseWhiteW = (this.canvasWidth - margin * 2) / numWhite;
+  const whiteW     = baseWhiteW * this.zoomLevel;
+  const totalWidth = numWhite * whiteW;
+
+  // 3. Limites du pan
+  const maxPan = Math.max(0, totalWidth - this.canvasWidth + margin * 2);
+
+  // 4. Mise à jour du panOffset (inversé pour déplacement du composant)
+  this.panOffset = constrain(this.panOffset - deltaX, 0, maxPan);
+
+  // 5. Recalcul du layout
+  this.initLayout(this.canvasWidth, this.canvasHeight);
+}
+
+
 
 }

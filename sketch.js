@@ -46,7 +46,7 @@ function setup() {
     style: tonnetz.noteStyle
   });
 
-  piano = new Piano(49, width, height); // 49 touches par défaut
+  piano = new Piano(88, width, height); // 49 touches par défaut
 // Example: width-full, height = width/8, no background fill, at the bottom
 const ratio = 1 / 5;
 fretboard = new Fretboard({
@@ -317,6 +317,13 @@ function windowResized() {
 function mouseWheel(event) {
   const factor = event.delta > 0 ? 0.98 : 1.02;
 
+  if (!piano.hide && mouseY > height - piano.whiteKeyHeight - 20) {
+
+      piano.setZoom(factor);
+      return false;
+    
+  }
+
   // NoteListView
   if (!noteListView.hide) {
     let isOverNoteList = false;
@@ -364,6 +371,16 @@ function mouseWheel(event) {
 
 
 function mouseDragged() {
+  const isOverPiano = !piano.hide &&
+                    mouseY > height - piano.whiteKeyHeight - 20;
+
+if (isOverPiano){
+  if (mouseButton.right || (mouseButton.left && keyIsDown(SHIFT))) {   
+     piano.setPan(movedX);
+     return false;
+   }
+}
+
   const dragHandled = cof.handleDrag(mouseX, mouseY);
   if (dragHandled) return;
 
