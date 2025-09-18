@@ -311,6 +311,7 @@ function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   tonnetz.resize(width, height);
   cof.build();
+  piano.initLayout(width, height);
 }
 
 function mouseWheel(event) {
