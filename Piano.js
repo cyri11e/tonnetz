@@ -23,6 +23,17 @@ class Piano {
 this.zoomLevel = 1.0;      // 1.0 = taille normale
 this.panOffset = 0;        // en pixels
 
+this.targetZoomLevel = this.zoomLevel;
+this.targetPanOffset = this.panOffset;
+
+this.userZoomLevel = this.zoomLevel;     // référence MANUELLE persistante
+this.userPanOffset = this.panOffset;     // référence MANUELLE persistante
+
+this.autoPanZoomEnabled = false;
+this.lastZoomChangeTime = 0;
+this.minZoomHoldTime = 5000; // en ms
+
+
     const range      = this.PIANO_SIZES[size] || this.PIANO_SIZES[88];
     this.startMidi   = range.start;
     this.endMidi     = range.end;
@@ -160,85 +171,129 @@ for (const midi of allMidis) {
     return this.keyXPositions[midi] ?? null;
   }
 
-  setMidiNotes(midiNums = []) {
-    this.activeKeys = new Set(midiNums);
-  }
+setMidiNotes(midiNums = []) {
+  this.activeKeys = new Set(midiNums);
+  this.autoPanZoomEnabled = true;
+  this.autoPanZoom(midiNums);
+}
 
-  draw(g, rootPc = null) {
-    if (this.hide) return;
-    g.push();
 
-    // Dessin touches
-    for (const key of this.keyLayouts) {
-      const active = this.activeKeys.has(key.midi);
-      const root   = active && rootPc !== null && (key.midi % 12) === rootPc;
-      if (key.type === 'white') {
-        this.drawWhiteKey(g, key.x, key.y, key.w, key.h, key.keyType, active, root, key.isLeftEdge, key.isRightEdge);
-      } else {
-        this.drawBlackKey(g, key.x, key.y, key.w, key.h, active, root);
+
+ draw(g, rootPc = null) {
+  if (this.hide) return;
+  this.updateTransition();
+
+  g.push();
+
+  // Initialisation du tracking visible
+  this.visibleMinMidi = null;
+  this.visibleMaxMidi = null;
+
+  let previousMidi = null;
+  let foundFirstVisible = false;
+
+  // Coordonnées écran
+  const canvasW = this.canvasWidth;
+  const canvasH = this.canvasHeight;
+
+  // Dessin des touches
+  for (const key of this.keyLayouts) {
+    const active = this.activeKeys.has(key.midi);
+    const root   = active && rootPc !== null && (key.midi % 12) === rootPc;
+
+    if (key.type === 'white') {
+      // Détection visibilité écran
+      const keyLeft  = key.x;
+      const keyRight = key.x + key.w;
+      const isVisible = keyRight >= 0 && keyLeft <= canvasW;
+
+      if (!foundFirstVisible && isVisible) {
+        this.visibleMinMidi = previousMidi ?? key.midi;
+        foundFirstVisible = true;
       }
+
+      if (foundFirstVisible && !isVisible && this.visibleMaxMidi === null) {
+        this.visibleMaxMidi = previousMidi;
+      }
+
+      previousMidi = key.midi;
+
+      this.drawWhiteKey(g, key.x, key.y, key.w, key.h, key.keyType, active, root, key.isLeftEdge, key.isRightEdge);
+    } else {
+      this.drawBlackKey(g, key.x, key.y, key.w, key.h, active, root);
     }
-
-    // Intervalle si 2 notes
-    const played = Array.from(this.activeKeys);
-if (played.length === 2) {
-  const fallback = [
-    "P1", "m2", "M2", "m3", "M3",
-    "P4", "d5", "P5", "m6", "M6",
-    "m7", "M7"
-  ];
-  played.sort((a, b) => a - b);
-  const [m1, m2] = played;
-  const x1 = this.getKeyCenter(m1);
-  const x2 = this.getKeyCenter(m2);
-  if (x1 == null || x2 == null) return;
-
-  const semisTotal = m2 - m1;
-  const rawOctaves = Math.floor(semisTotal / 12);
-  // On ne garde qu’au plus 1 octave d’extension
-  const octaves    = rawOctaves > 1 ? 1 : rawOctaves;
-  const semisMod   = semisTotal % 12;
-
-let label;
-if (semisMod === 0) {
-  label = "P8"; // unisson ou octave exacte
-} else {
-  const baseLabel = fallback[semisMod] || "";
-  const parsed = parseDegree(baseLabel);
-
-  if (!parsed) {
-    label = baseLabel; // fallback brut si parsing échoue
-  } else {
-    const { digit, accidental } = parsed;
-    const fullDegree = parseInt(digit, 10) + octaves * 7;
-    label = `${accidental}${fullDegree} (${baseLabel})`;
   }
-}
 
+  // Si aucune touche hors champ détectée, on prend la dernière blanche
+  if (this.visibleMaxMidi === null) {
+    this.visibleMaxMidi = previousMidi;
+  }
 
-  // tracé de la ligne
-  const yLine = this.yBase - this.whiteKeyHeight - 1;
+  // Affichage de l'intervalle si 2 notes
+  const played = Array.from(this.activeKeys);
+  if (played.length === 2) {
+    const fallback = [
+      "P1", "m2", "M2", "m3", "M3",
+      "P4", "d5", "P5", "m6", "M6",
+      "m7", "M7"
+    ];
+    played.sort((a, b) => a - b);
+    const [m1, m2] = played;
+    const x1 = this.getKeyCenter(m1);
+    const x2 = this.getKeyCenter(m2);
+    if (x1 != null && x2 != null) {
+      const semisTotal = m2 - m1;
+      const rawOctaves = Math.floor(semisTotal / 12);
+      const octaves    = rawOctaves > 1 ? 1 : rawOctaves;
+      const semisMod   = semisTotal % 12;
+
+      let label;
+      if (semisMod === 0) {
+        label = "P8";
+      } else {
+        const baseLabel = fallback[semisMod] || "";
+        const parsed = parseDegree(baseLabel);
+        if (!parsed) {
+          label = baseLabel;
+        } else {
+          const { digit, accidental } = parsed;
+          const fullDegree = parseInt(digit, 10) + octaves * 7;
+          label = `${accidental}${fullDegree} (${baseLabel})`;
+        }
+      }
+
+      const yLine = this.yBase - this.whiteKeyHeight - 1;
+      g.push();
+      g.stroke(CONFIG.colors.playedStroke);
+      g.strokeWeight(2);
+      g.line(x1, yLine, x2, yLine);
+      g.pop();
+
+      const xText = (x1 + x2) / 2;
+      const yText = yLine - 6;
+      g.push();
+      g.textAlign(g.CENTER, g.BOTTOM);
+      g.textSize(CONFIG.fontSize || 16);
+      g.text(label, xText, yText);
+      g.pop();
+    }
+  }
+
+  // Affichage des infos de debug (coordonnées souris + plage visible)
   g.push();
-  g.stroke(CONFIG.colors.playedStroke);
-  g.strokeWeight(2);
-  g.line(x1, yLine, x2, yLine);
+  g.fill(0);
+  g.textAlign(g.LEFT, g.TOP);
+  g.textSize(14);
+  g.text(
+    `Mouse: x=${Math.round(mouseX)}, y=${Math.round(mouseY)}\n` +
+    `Visible range: ${this.visibleMinMidi} → ${this.visibleMaxMidi}`,
+    10, 10
+  );
   g.pop();
 
-  // affichage du label centré
-  const xText = (x1 + x2) / 2;
-  const yText = yLine - 6;
-  g.push();
-  g.textAlign(g.CENTER, g.BOTTOM);
-  g.textSize(CONFIG.fontSize || 16);
-  g.text(label, xText, yText);
   g.pop();
 }
 
-
-
-
-    g.pop();
-  }
 
 
   // Nouvelle méthode pour dessiner une touche blanche selon son type
@@ -351,35 +406,166 @@ drawWhiteKey(g, x, y, w, h, type, isActive, isRoot, isLeftEdge, isRightEdge) {
 }
 
 setZoom(factor) {
-  this.zoomLevel = constrain(this.zoomLevel * factor, 1, 3.0);
+  this.autoPanZoomEnabled = false;
+
+  const next = constrain(this.zoomLevel * factor, 1, 3.0);
+  this.zoomLevel = next;
+  this.userZoomLevel = next;            // ← on mémorise le choix utilisateur
+  this.targetZoomLevel = next;          // ← stoppe toute transition en cours
   this.initLayout(this.canvasWidth, this.canvasHeight);
 }
 
 setPan(deltaX) {
+  this.autoPanZoomEnabled = false;
   const margin = 20;
 
-  // 1. Calcul du nombre de touches blanches
   const whiteMidis = Array.from(
     { length: this.endMidi - this.startMidi + 1 },
     (_, i) => this.startMidi + i
   ).filter(m => this.keyPattern[m % 12]);
 
   const numWhite = whiteMidis.length;
-
-  // 2. Largeur réelle du clavier (zoomée)
   const baseWhiteW = (this.canvasWidth - margin * 2) / numWhite;
   const whiteW     = baseWhiteW * this.zoomLevel;
   const totalWidth = numWhite * whiteW;
+  const maxPan     = Math.max(0, totalWidth - this.canvasWidth + margin * 2);
 
-  // 3. Limites du pan
-  const maxPan = Math.max(0, totalWidth - this.canvasWidth + margin * 2);
-
-  // 4. Mise à jour du panOffset (inversé pour déplacement du composant)
   this.panOffset = constrain(this.panOffset - deltaX, 0, maxPan);
+  this.userPanOffset = this.panOffset;  // ← on mémorise le choix utilisateur
+  this.targetPanOffset = this.panOffset; // ← stoppe toute transition en cours
 
-  // 5. Recalcul du layout
   this.initLayout(this.canvasWidth, this.canvasHeight);
 }
+
+autoPanZoom(notes = []) {
+  if (!notes.length) return;
+
+  const margin   = 20;
+  const canvasW  = this.canvasWidth;
+  const visibleW = canvasW - margin * 2;
+
+  const minNote = Math.min(...notes);
+  const maxNote = Math.max(...notes);
+
+  const getKey = (midi) =>
+    this.keyLayouts.find(k => k.midi === midi && k.type === 'white') ||
+    this.keyLayouts.find(k => k.midi === midi);
+
+  const minKey = getKey(minNote);
+  const maxKey = getKey(maxNote);
+  if (!minKey || !maxKey) return;
+
+  const groupLeft  = minKey.x;
+  const groupRight = maxKey.x + maxKey.w;
+  const groupWidth = groupRight - groupLeft;
+
+  const allMidis    = Array.from({ length: this.endMidi - this.startMidi + 1 }, (_, i) => this.startMidi + i);
+  const whiteMidis  = allMidis.filter(m => this.keyPattern[m % 12]);
+  const baseWhiteW  = (canvasW - margin * 2) / whiteMidis.length;
+  const whiteW      = baseWhiteW * this.zoomLevel;
+  const marginPx    = 2 * whiteW;
+  const totalWidth  = whiteMidis.length * whiteW;
+  const maxPan      = Math.max(0, totalWidth - canvasW + margin * 2);
+
+  const setTargetZoom = (z) => {
+    if (Math.abs(this.targetZoomLevel - z) > 1e-4) {
+      this.targetZoomLevel = z;
+      this.autoPanZoomEnabled = true;
+    }
+  };
+
+  const setTargetPan = (p) => {
+    if (Math.abs(this.targetPanOffset - p) > 0.25) {
+      this.targetPanOffset = p;
+      this.autoPanZoomEnabled = true;
+    }
+  };
+
+  // 🧨 Si le groupe est trop large → dézoom, et on ignore le pan
+  if (groupWidth > visibleW) {
+    const spanCount   = whiteMidis.filter(m => m >= minNote && m <= maxNote).length;
+    const targetCount = spanCount + 4; // marge de 2 blanches de chaque côté
+    const maxZoomFit  = visibleW / (baseWhiteW * targetCount);
+const targetZoom = Math.max(0.4, Math.min(this.userZoomLevel, maxZoomFit));
+const zoomRatio  = targetZoom / this.zoomLevel;
+
+const groupCenter   = (groupLeft + groupRight) / 2;
+const canvasCenter  = canvasW / 2;
+
+// Compensation du zoom pour garder le centre musical à l’écran
+const newPan = this.panOffset + (groupCenter - canvasCenter) * (1 - zoomRatio);
+const clampedPan = Math.max(0, Math.min(newPan, maxPan));
+
+this.targetZoomLevel     = targetZoom;
+this.targetPanOffset     = clampedPan;
+this.autoPanZoomEnabled  = true;
+this.lastZoomChangeTime  = Date.now();
+return;
+
+  }
+
+  // ✅ Si le groupe tient dans le cadre → pan vers les extrémités si besoin
+  if (minKey.x < 0) {
+    const targetL = marginPx;
+    const delta = targetL - minKey.x;
+    if (delta > 0) {
+      const p = Math.max(0, Math.min(this.panOffset - delta, maxPan));
+      setTargetPan(p);
+      return;
+    }
+  }
+
+  if (maxKey.x + maxKey.w > canvasW) {
+    const targetR = canvasW - marginPx;
+    const delta = (maxKey.x + maxKey.w) - targetR;
+    if (delta > 0) {
+      const p = Math.max(0, Math.min(this.panOffset + delta, maxPan));
+      setTargetPan(p);
+      return;
+    }
+  }
+
+  // ✅ Tout est visible → retour au zoom manuel, pan conservé
+  const now = Date.now();
+const zoomHeldLongEnough = now - this.lastZoomChangeTime > this.minZoomHoldTime;
+
+if (zoomHeldLongEnough) {
+  setTargetZoom(this.userZoomLevel);
+}
+
+}
+
+
+
+
+updateTransition() {
+  if (!this.autoPanZoomEnabled) return;
+
+  const now = Date.now();
+  const easingZoom = (this.zoomLevel < this.userZoomLevel && now - this.lastZoomChangeTime > this.minZoomHoldTime)
+    ? 0.01  // retour lent au zoom manuel
+    : 0.12; // zoom rapide quand on élargit
+
+  const easingPan = 0.12;
+
+  const panDelta  = this.targetPanOffset - this.panOffset;
+  const zoomDelta = this.targetZoomLevel - this.zoomLevel;
+
+  const movingPan  = Math.abs(panDelta)  > 0.25;
+  const movingZoom = Math.abs(zoomDelta) > 1e-3;
+
+  if (movingPan || movingZoom) {
+    this.panOffset += panDelta * easingPan;
+    this.zoomLevel += zoomDelta * easingZoom;
+    this.initLayout(this.canvasWidth, this.canvasHeight);
+  } else {
+    this.panOffset = this.targetPanOffset;
+    this.zoomLevel = this.targetZoomLevel;
+    this.autoPanZoomEnabled = false;
+  }
+}
+
+
 
 
 
