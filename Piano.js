@@ -116,19 +116,6 @@ for (const midi of allMidis) {
 }
 
 
-
-  // 2) Enregistre les blanches dans keyLayouts et centers
-  // for (const k of whiteKeys) {
-  //   const xCenter = k.x + k.w / 2;
-  //   this.keyLayouts.push({
-  //     midi: k.midi,
-  //     type: 'white',
-  //     x: k.x, y: k.y, w: k.w, h: k.h,
-  //     keyType: k.keyType
-  //   });
-  //   this.keyXPositions[k.midi] = xCenter;
-  // }
-
   // 3) Place les noires précisément entre blanches adjacentes
   //    Pour chaque noire, on trouve la blanche à gauche et à droite dans whiteMidis,
   //    puis on place le centre au milieu de l’espace entre leurs bords.
@@ -212,21 +199,22 @@ if (played.length === 2) {
   const octaves    = rawOctaves > 1 ? 1 : rawOctaves;
   const semisMod   = semisTotal % 12;
 
-  let label;
-  if (semisMod === 0) {
-    // unisson/octave exacte → toujours P8
-    label = "P8";
+let label;
+if (semisMod === 0) {
+  label = "P8"; // unisson ou octave exacte
+} else {
+  const baseLabel = fallback[semisMod] || "";
+  const parsed = parseDegree(baseLabel);
+
+  if (!parsed) {
+    label = baseLabel; // fallback brut si parsing échoue
   } else {
-    const baseLabel = fallback[semisMod] || "";
-    if (octaves > 0) {
-      const letterMatch = baseLabel.match(/^[^\d]+/)?.[0] || "";
-      const degreeMatch = parseInt(baseLabel.match(/\d+/)?.[0] || "1", 10);
-      const fullDegree  = degreeMatch + octaves * 7;
-      label = `${letterMatch}${fullDegree} (${baseLabel})`;
-    } else {
-      label = baseLabel;
-    }
+    const { digit, accidental } = parsed;
+    const fullDegree = parseInt(digit, 10) + octaves * 7;
+    label = `${accidental}${fullDegree} (${baseLabel})`;
   }
+}
+
 
   // tracé de la ligne
   const yLine = this.yBase - this.whiteKeyHeight - 1;
