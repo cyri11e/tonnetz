@@ -46,7 +46,13 @@ function setup() {
     style: tonnetz.noteStyle
   });
 
-  piano = new Piano(88, width, height); // 49 touches par défaut
+  //piano = new Piano(88, width, height); // 49 touches par défaut
+
+  piano = new Piano(88, width, height, {
+  gamme: tonnetz.gamme,
+  tonicPc: tonnetz.keyPc,
+  style: tonnetz.noteStyle
+});
 // Example: width-full, height = width/8, no background fill, at the bottom
 const ratio = 1 / 5;
 fretboard = new Fretboard({
@@ -108,6 +114,7 @@ function draw() {
   displayChord(this);
 
   noteListView.update(tonnetz.gamme, tonnetz.keyPc);
+  piano.updateTheory(tonnetz.gamme, tonnetz.keyPc, tonnetz.noteStyle);
   noteListView.draw(this, width, tonnetz.zoom);
   displayScaleLabel(this);
   displayFPS(this);

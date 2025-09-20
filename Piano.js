@@ -1,5 +1,9 @@
 class Piano {
-  constructor(size = 88, canvasWidth, canvasHeight) {
+  constructor(size = 88, canvasWidth, canvasHeight, {
+    gamme = null,
+    tonicPc = 0,
+    style = 'mixed'
+  } = {}) {
     this.canvasWidth  = canvasWidth;
     this.canvasHeight = canvasHeight;
 
@@ -230,7 +234,15 @@ setMidiNotes(midiNums = []) {
     } else {
       this.drawBlackKey(g, key.x, key.y, key.w, key.h, active, root);
     }
+    if (this.activeKeys.has(key.midi)) {
+    const pc   = key.midi % 12;
+    const name = this.gamme?.getNoteName(pc) ?? pcToName(pc, this.noteStyle);
+    console.log("name", name);
+    if (name) this.drawNoteLabel(g, key, name);
   }
+
+}
+
 
   // Si aucune touche hors champ détectée, on prend la dernière blanche
   if (this.visibleMaxMidi === null) {
@@ -290,6 +302,21 @@ setMidiNotes(midiNums = []) {
   g.pop();
 }
 
+drawNoteLabel(g, key, name) {
+  g.push();
+  g.fill(CONFIG.colors.noteLabel);
+  g.noStroke();
+  g.textAlign(g.CENTER, g.CENTER);
+  g.textSize(Math.min(key.w, key.h) * 0.8);
+
+  const cx = key.type === 'white' ? key.x + key.w / 2 : key.x;
+  const cy = key.type === 'white'
+    ? key.y + key.h * 0.9
+    : key.y + key.h * 0.5;
+
+  g.text(name, cx, cy);
+  g.pop();
+}
 
 
   // Nouvelle méthode pour dessiner une touche blanche selon son type
@@ -589,7 +616,11 @@ updateTransition() {
 }
 
 
-
+  updateTheory(gamme, tonicPc, style) {
+    this.gamme     = gamme;
+    this.tonicPc   = tonicPc;
+    this.noteStyle = style;
+  }
 
 
 }
