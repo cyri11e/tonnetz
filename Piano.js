@@ -287,18 +287,6 @@ setMidiNotes(midiNums = []) {
     }
   }
 
-  // Affichage des infos de debug (coordonnées souris + plage visible)
-  g.push();
-  g.fill(0);
-  g.textAlign(g.LEFT, g.TOP);
-  g.textSize(14);
-  g.text(
-    `Mouse: x=${Math.round(mouseX)}, y=${Math.round(mouseY)}\n` +
-    `Visible range: ${this.visibleMinMidi} → ${this.visibleMaxMidi}`,
-    10, 10
-  );
-  g.pop();
-
   g.pop();
 }
 
@@ -566,13 +554,7 @@ return;
     }
   }
 
-  // ✅ Tout est visible → retour au zoom manuel, pan conservé
-  const now = Date.now();
-const zoomHeldLongEnough = now - this.lastZoomChangeTime > this.minZoomHoldTime;
 
-if (zoomHeldLongEnough) {
-  setTargetZoom(this.userZoomLevel);
-}
 
 }
 
