@@ -33,6 +33,8 @@ this.autoPanZoomEnabled = false;
 this.lastZoomChangeTime = 0;
 this.minZoomHoldTime = 5000; // en ms
 
+// à l'init ou via un setter depuis l'UI parent
+this.viewportLeft = 0; // x écran où commence le piano
 
     const range      = this.PIANO_SIZES[size] || this.PIANO_SIZES[88];
     this.startMidi   = range.start;
@@ -47,6 +49,12 @@ this.minZoomHoldTime = 5000; // en ms
     // 3) Maintenant que tout est en place, on initialise la grille
     this.initLayout(canvasWidth, canvasHeight);
   }
+getLocalMouseX(screenMouseX) {
+  const local = screenMouseX - this.viewportLeft;
+  // ancrer dans la zone utile pour éviter les sauts près des bords
+  const margin = 20;
+  return Math.max(margin, Math.min(this.canvasWidth - margin, local));
+}
 
   changeSize(delta) {
     console.log("changeSize", delta);
@@ -405,15 +413,48 @@ drawWhiteKey(g, x, y, w, h, type, isActive, isRoot, isLeftEdge, isRightEdge) {
   }
 }
 
-setZoom(factor) {
+setZoom(factor, screenMouseX = null) {
   this.autoPanZoomEnabled = false;
 
-  const next = constrain(this.zoomLevel * factor, 1, 3.0);
-  this.zoomLevel = next;
-  this.userZoomLevel = next;            // ← on mémorise le choix utilisateur
-  this.targetZoomLevel = next;          // ← stoppe toute transition en cours
+  const margin      = 20;
+  const canvasW     = this.canvasWidth;
+  const currentZoom = this.zoomLevel;
+  const nextZoom    = constrain(currentZoom * factor, 1.0, 3.0);
+
+  // 1) Souris en repère local piano
+  const mouseXLocal = screenMouseX == null
+    ? this.canvasWidth / 2
+    : this.getLocalMouseX(screenMouseX);
+
+  // 2) Point logique sous la souris (repère musical)
+  const logicalX = (mouseXLocal - margin + this.panOffset) / currentZoom;
+
+  // 3) Nouveau pan pour garder logicalX sous la souris après zoom
+  let newPan = (logicalX * nextZoom) - (mouseXLocal - margin);
+
+  // 4) Clamp du pan avec la largeur “monde” au nouveau zoom
+  const whiteMidis  = Array.from({ length: this.endMidi - this.startMidi + 1 }, (_, i) => this.startMidi + i)
+                        .filter(m => this.keyPattern[m % 12]);
+  const baseWhiteW  = (canvasW - margin * 2) / whiteMidis.length;
+  const totalWidth  = whiteMidis.length * baseWhiteW * nextZoom;
+  const maxPan      = Math.max(0, totalWidth - canvasW + margin * 2);
+  newPan = Math.max(0, Math.min(newPan, maxPan));
+
+  // 5) Appliquer (manuel = vérité)
+  this.zoomLevel        = nextZoom;
+  this.userZoomLevel    = nextZoom;
+  this.targetZoomLevel  = nextZoom;
+  this.panOffset        = newPan;
+  this.userPanOffset    = newPan;
+  this.targetPanOffset  = newPan;
+
   this.initLayout(this.canvasWidth, this.canvasHeight);
 }
+
+
+
+
+
 
 setPan(deltaX) {
   this.autoPanZoomEnabled = false;
@@ -543,7 +584,7 @@ updateTransition() {
 
   const now = Date.now();
   const easingZoom = (this.zoomLevel < this.userZoomLevel && now - this.lastZoomChangeTime > this.minZoomHoldTime)
-    ? 0.01  // retour lent au zoom manuel
+    ? 0.08  // retour lent au zoom manuel
     : 0.12; // zoom rapide quand on élargit
 
   const easingPan = 0.12;
