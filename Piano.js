@@ -269,6 +269,7 @@ bufferOverlayNotes(midiNums) {
   // Affichage de l'intervalle si 2 notes
   let played = Array.from(this.overlayKeys);
   if (played.length === 2) {
+    if (this.whiteKeyHeight * 0.15 < 20 ) return;
     const fallback = [
       "P1", "m2", "M2", "m3", "M3",
       "P4", "d5", "P5", "m6", "M6",
@@ -326,6 +327,10 @@ const fallback = [
 played = Array.from(this.overlayKeys).sort((a, b) => a - b);
 
 if (played.length >= 2 && rootPc != null) {
+  if ( this.whiteKeyHeight * 0.15 < 20 ) return;
+  // --- référence TONIQUE et non plus played[0] ---
+  const rootMidi = played.find(m => m % 12 === rootPc) ?? played[0];
+
   for (const midi of played) {
     const x = this.getKeyCenter(midi);
     if (x == null) continue;
@@ -335,7 +340,8 @@ if (played.length >= 2 && rootPc != null) {
       label = "P1";
       color = CONFIG.colors.rootStroke;
     } else {
-      const semis = (midi - played[0] + 120) % 12;
+      // on part de rootMidi pour calculer l’intervalle
+      const semis = (midi - rootMidi + 120) % 12;
       label = fallback[semis] || "";
       color = CONFIG.colors.playedStroke;
     }
@@ -343,25 +349,24 @@ if (played.length >= 2 && rootPc != null) {
     const yText = this.yBase - this.whiteKeyHeight - 6;
     g.push();
     g.textAlign(g.CENTER, g.BOTTOM);
-    g.textSize(CONFIG.fontSize || 14);
+    g.textSize(this.whiteKeyHeight * 0.15);
     g.fill(color);
     g.text(label, x, yText);
     g.pop();
   }
 }
 
-
-
   g.pop();
 }
 
 drawNoteLabel(g, key, name) {
+  if (key.w < 20 ) return;
   g.push();
   g.fill(CONFIG.colors.noteLabel);
   g.noStroke();
   g.textAlign(g.CENTER, g.CENTER);
-  g.textSize(Math.min(key.w, key.h) * 0.8);
-
+  const size = key.w * (key.type === 'black' ? 0.6 : 0.8)
+  g.textSize(size);
   const cx = key.type === 'white' ? key.x + key.w / 2 : key.x;
   const cy = key.type === 'white'
     ? key.y + key.h * 0.9
