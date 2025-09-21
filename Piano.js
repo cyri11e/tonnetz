@@ -9,6 +9,8 @@ class Piano {
 
     this.hide           = false;
     this.activeKeys     = new Set();
+    this.overlayKeys = new Set(); // lissé pour overlays
+    this.overlayTimer = null;
     this.keyLayouts     = [];
     this.keyXPositions  = {};
     this.yBase          = 0;
@@ -187,8 +189,24 @@ setMidiNotes(midiNums = []) {
   this.activeKeys = new Set(midiNums);
   this.autoPanZoomEnabled = true;
   this.autoPanZoom(midiNums);
+
+  // Déclenche un buffer pour les overlays
+  this.bufferOverlayNotes(midiNums);
 }
 
+bufferOverlayNotes(midiNums) {
+  // On garde la dernière série reçue
+  this._pendingOverlay = new Set(midiNums);
+
+  // Si un timer est déjà en cours, on ne fait rien
+  if (this.overlayTimer) return;
+
+  // Lance un délai court (ex. 40 ms)
+  this.overlayTimer = setTimeout(() => {
+    this.overlayKeys = this._pendingOverlay;
+    this.overlayTimer = null;
+  }, 40);
+}
 
 
  draw(g, rootPc = null) {
@@ -237,7 +255,6 @@ setMidiNotes(midiNums = []) {
     if (this.activeKeys.has(key.midi)) {
     const pc   = key.midi % 12;
     const name = this.gamme?.getNoteName(pc) ?? pcToName(pc, this.noteStyle);
-    console.log("name", name);
     if (name) this.drawNoteLabel(g, key, name);
   }
 
@@ -250,7 +267,7 @@ setMidiNotes(midiNums = []) {
   }
 
   // Affichage de l'intervalle si 2 notes
-  const played = Array.from(this.activeKeys);
+  let played = Array.from(this.overlayKeys);
   if (played.length === 2) {
     const fallback = [
       "P1", "m2", "M2", "m3", "M3",
@@ -293,11 +310,47 @@ setMidiNotes(midiNums = []) {
       const yText = yLine - 6;
       g.push();
       g.textAlign(g.CENTER, g.BOTTOM);
-      g.textSize(CONFIG.fontSize || 16);
+      g.textSize(this.whiteKeyHeight * 0.15);
       g.text(label, xText, yText);
       g.pop();
     }
   }
+
+
+const fallback = [
+  "P1", "m2", "M2", "m3", "M3",
+  "P4", "d5", "P5", "m6", "M6",
+  "m7", "M7"
+];
+
+played = Array.from(this.overlayKeys).sort((a, b) => a - b);
+
+if (played.length >= 2 && rootPc != null) {
+  for (const midi of played) {
+    const x = this.getKeyCenter(midi);
+    if (x == null) continue;
+
+    let label, color;
+    if ((midi % 12) === rootPc) {
+      label = "P1";
+      color = CONFIG.colors.rootStroke;
+    } else {
+      const semis = (midi - played[0] + 120) % 12;
+      label = fallback[semis] || "";
+      color = CONFIG.colors.playedStroke;
+    }
+
+    const yText = this.yBase - this.whiteKeyHeight - 6;
+    g.push();
+    g.textAlign(g.CENTER, g.BOTTOM);
+    g.textSize(CONFIG.fontSize || 14);
+    g.fill(color);
+    g.text(label, x, yText);
+    g.pop();
+  }
+}
+
+
 
   g.pop();
 }
