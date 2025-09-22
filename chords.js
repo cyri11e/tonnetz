@@ -233,27 +233,56 @@ pcs = [...new Set(midiList)].sort((a, b) => a - b);
   // --- 11. Tri des résultats ---
   // Priorité aux accords les plus complets, puis ratio reconnu/total, puis taille de formule
 // --- 11. Tri des résultats ---
-results.sort((a, b) => {
-  // 1) Priorité aux accords en position fondamentale (root === bass)
-  const aIsRootPos = a.bass === a.root;
-  const bIsRootPos = b.bass === b.root;
-  if (aIsRootPos && !bIsRootPos) return -1;
-  if (!aIsRootPos && bIsRootPos) return 1;
+// results.sort((a, b) => {
+//   // 1) Priorité aux accords en position fondamentale (root === bass)
+//   const aIsRootPos = a.bass === a.root;
+//   const bIsRootPos = b.bass === b.root;
+//   if (aIsRootPos && !bIsRootPos) return -1;
+//   if (!aIsRootPos && bIsRootPos) return 1;
 
-  // 2) Accords les plus complets
-  if (b.recognizedNotes !== a.recognizedNotes) 
+//   // 2) Accords les plus complets
+//   if (b.recognizedNotes !== a.recognizedNotes) 
+//     return b.recognizedNotes - a.recognizedNotes;
+
+//   // 3) Accords avec le plus d’intervalles au total
+//   if (b.totalNotes !== a.totalNotes) 
+//     return b.totalNotes - a.totalNotes;
+
+//   // 4) Meilleur ratio reconnu/total
+//   const ra = a.recognizedNotes / a.totalNotes;
+//   const rb = b.recognizedNotes / b.totalNotes;
+//   if (rb !== ra) return rb - ra;
+
+//   // 5) Formule la plus longue (favorise 11, 13…)
+//   return b.formulaSize - a.formulaSize;
+// });
+results.sort((a, b) => {
+  // 1) complete match (toutes les notes reconnues)
+  const aFull = (a.recognizedNotes === a.totalNotes);
+  const bFull = (b.recognizedNotes === b.totalNotes);
+  if (aFull && !bFull) return -1;
+  if (!aFull && bFull) return 1;
+
+  // 2) nombre de notes reconnues (descendant)
+  if (b.recognizedNotes !== a.recognizedNotes)
     return b.recognizedNotes - a.recognizedNotes;
 
-  // 3) Accords avec le plus d’intervalles au total
-  if (b.totalNotes !== a.totalNotes) 
-    return b.totalNotes - a.totalNotes;
-
-  // 4) Meilleur ratio reconnu/total
+  // 3) meilleur ratio reconnu/total
   const ra = a.recognizedNotes / a.totalNotes;
   const rb = b.recognizedNotes / b.totalNotes;
   if (rb !== ra) return rb - ra;
 
-  // 5) Formule la plus longue (favorise 11, 13…)
+  // 4) préférence position fondamentale
+  const aIsRoot = (a.bass === a.root);
+  const bIsRoot = (b.bass === b.root);
+  if (aIsRoot && !bIsRoot) return -1;
+  if (!aIsRoot && bIsRoot) return 1;
+
+  // 5) plus d’extensions (plus grand totalNotes)
+  if (b.totalNotes !== a.totalNotes)
+    return b.totalNotes - a.totalNotes;
+
+  // 6) formule la plus longue
   return b.formulaSize - a.formulaSize;
 });
 
