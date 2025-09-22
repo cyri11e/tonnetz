@@ -10,13 +10,46 @@ class ChordTriangle {
     this.trianglesAll = [];   // Tous les triangles géométriques détectés
     this.triangles = [];      // Triangles filtrés selon la gamme
     this.lastActiveTime = 0;
+    this.diamonds = []; // Liste des losanges détectés
+
   }
+
+linkTrianglesHorizontally() {
+  const keyOfNode = (n) => `${n.i},${n.j}`;
+
+  for (const tri of this.trianglesAll) {
+    for (const other of this.trianglesAll) {
+      if (tri === other) continue;
+
+      const shared = tri.nodes.filter(n => other.nodes.some(m => keyOfNode(m) === keyOfNode(n)));
+      if (shared.length !== 2) continue;
+      if (!['maj', 'min'].includes(tri.type) || !['maj', 'min'].includes(other.type)) {
+        continue; // on ne chaîne que les triades classiques
+      }
+
+      // Calcul des centres horizontaux
+      const avgX1 = tri.nodes.reduce((sum, n) => sum + n.px, 0) / 3;
+      const avgX2 = other.nodes.reduce((sum, n) => sum + n.px, 0) / 3;
+
+      if (Math.abs(avgX1 - avgX2) < 1e-3) continue; // même position → ignorer
+
+      if (avgX1 < avgX2) {
+        tri.next = other;
+        other.prev = tri;
+      }
+    }
+  }
+}
 
   // Méthode principale appelée partout
   build() {
     this.buildFromEdges(); // construit les triangles min maj
     this.buildSpecialFromEdges();   // triangles plats (aug/dim)
     this.filterByScale();
+
+    this.linkTrianglesHorizontally();
+
+
     console.log(`🔺 ChordTriangle: ${this.triangles.length}/${this.trianglesAll.length} triangles dans la gamme`);
   }
 
@@ -334,7 +367,19 @@ class ChordTriangle {
       const baseMidY = (n1.py + n2.py) / 2;
 
       // Label texte
+      if (tri.prev && tri.prev.nodes.every(n => activePcs.has(n.pc)) &&
+          tri.nodes.every(n => activePcs.has(n.pc))) {
+        continue; // triangle secondaire dans un losange actif → on masque
+      }
+
+      const isLinkedToActiveLeft = tri.prev?.nodes.every(n => activePcs.has(n.pc));
+
+      // Masquage dynamique + persistance pendant le fade
+      const isInTetradFade = tri.prev?.lastActiveTime &&
+        millis() - tri.prev.lastActiveTime < CONFIG.fadeDuration;
+
       let labelText = zoom < 0.7 ? '' : tri.label;
+
       if ((tri.type === 'dim' || tri.type === 'aug') && tri.numeral) {
         labelText += ` ${tri.numeral}`;
       }
@@ -348,7 +393,7 @@ class ChordTriangle {
         g.textSize(
           tri.type === 'dim' || tri.type === 'aug'
             ? CONFIG.fontSize * 0.6 * zoom
-            : CONFIG.fontSize * 0.75 * zoom
+            : CONFIG.fontSize * 1.2 * zoom
         );
 
         if (tri.type === 'aug' || tri.type === 'dim') {
@@ -359,7 +404,7 @@ class ChordTriangle {
           g.pop();
         } else {
           const verticalOffset =
-            CONFIG.fontSize * (tri.type === 'min' ? 0.6 : -0.6) * zoom;
+            CONFIG.fontSize * (tri.type === 'min' ? 0.8 : -0.6) * zoom;
           g.text(labelText, baseMidX, baseMidY + verticalOffset);
         }
       }
@@ -442,6 +487,7 @@ class ChordTriangle {
       }
       this.currentPressedTriangle = null;
     }
+
   }
 
 }
