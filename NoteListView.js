@@ -7,7 +7,7 @@ class NoteListView {
     this.bubbles = [];
     this.lastActiveTimes = Array(12).fill(0);
     this.offsetX = 0;
-    this.offsetY = 0;
+    this.offsetY = width / 2 ;
     this.scale = 1.5;
     this.currentMouseX = 0;
     this.currentMouseY = 0;
@@ -38,11 +38,11 @@ class NoteListView {
     } else if (mode === 'circle') {
       const centerX = canvasWidth / 2 + this.offsetX;
       const centerY = 150 + this.offsetY;  // position fixe en haut
-      const angleStep = TWO_PI / (bubbleCount -1);
+      const angleStep = TWO_PI / (bubbleCount - 1);
       const circleRadius = radius * 4;
       const degreeRadius = circleRadius * 0.65; // rayon interne pour les degrés
 
-      for (let i = 0; i < bubbleCount -1; i++) {
+      for (let i = 0; i < bubbleCount - 1; i++) {
         const angle = -HALF_PI + i * angleStep;
         const x = centerX + Math.cos(angle) * circleRadius;
         const y = centerY + Math.sin(angle) * circleRadius;
@@ -54,6 +54,53 @@ class NoteListView {
 
     return positions;
   }
+
+
+displayScaleLabel(g, positions, radius) {
+  const gamme = this.gamme;
+  const scaleInfo = gamme?.getScaleMode();
+
+  const tonicName = gamme?.tonicNote ?? '—';
+  let scaleText;
+
+  if (scaleInfo && scaleInfo.nom) {
+    const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
+    scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
+  } else {
+    scaleText = `${tonicName} Gamme inconnue`;
+  }
+
+  const targetWidth = width * 0.9;
+  let fontSize = CONFIG.fontSize * 2;
+  g.textSize(fontSize);
+  let tw = g.textWidth(scaleText);
+  if (tw > targetWidth) {
+    fontSize *= targetWidth / tw;
+    g.textSize(fontSize);
+  }
+
+  g.push();
+  g.fill(CONFIG.colors.selectedNodeStroke);
+  g.noStroke();
+  g.textAlign(CENTER, BOTTOM);
+  g.textStyle(BOLD);
+
+  let labelX, labelY;
+
+  if (this.layoutMode === 'line') {
+    const firstY = positions[0].y;
+    labelX = width / 2;
+    labelY = firstY - radius ;
+  } else if (this.layoutMode === 'circle') {
+    const centerY = positions[0].y; // ou recalculer centerY si besoin
+    labelX = width / 2;
+    labelY = centerY - radius ;
+  }
+
+  g.text(scaleText, labelX, labelY);
+  g.pop();
+}
+
 
   draw(g, canvasWidth) {
     if (this.hide) return;
@@ -115,7 +162,7 @@ class NoteListView {
     const chords = tonnetz.getDetectedChords?.() ?? [];
     const rootPc = chords.length ? nameToPc(chords[0].root) : -1;
 
-    for (let i = 0; i < bubbleCount -1; i++) {
+    for (let i = 0; i < bubbleCount - 1; i++) {
       const isOctave = (i === 12);
       const pc = pcs[i];
       const relIndex = mod12(pc - this.tonicPc);
@@ -153,9 +200,9 @@ class NoteListView {
 
       const strokeColor =
         isRoot && isActive ? CONFIG.colors.rootStroke :
-        isActive ? CONFIG.colors.playedStroke :
-        inGamme ? CONFIG.colors.selectedNodeStroke :
-        CONFIG.colors.inactiveNodeStroke;
+          isActive ? CONFIG.colors.playedStroke :
+            inGamme ? CONFIG.colors.selectedNodeStroke :
+              CONFIG.colors.inactiveNodeStroke;
 
       const outlineWeight = radius * ((relIndex === 0) ? 0.08 : 0.04) * (isActive ? 3 : 1);
 
@@ -183,15 +230,15 @@ class NoteListView {
       let degreeColor = color(CONFIG.colors.degreeLabel);
       degreeColor.setAlpha(inGamme ? 225 : 80);
       if (degrees && degrees !== "♪") {
-          g.textSize(radius * 0.6);
-          g.textStyle(NORMAL);
-          g.fill(degreeColor);
-          if (this.layoutMode === 'circle' && positions[i].degreeX !== undefined) {
-            textDegree(g, degrees, positions[i].degreeX, positions[i].degreeY);
-          } else {
-            textDegree(g, degrees, x, y + radius * 0.6 );
-          }
-          g.textStyle(CONFIG.fontWeight); // rétablir le style par défaut
+        g.textSize(radius * 0.6);
+        g.textStyle(NORMAL);
+        g.fill(degreeColor);
+        if (this.layoutMode === 'circle' && positions[i].degreeX !== undefined) {
+          textDegree(g, degrees, positions[i].degreeX, positions[i].degreeY);
+        } else {
+          textDegree(g, degrees, x, y + radius * 0.6);
+        }
+        g.textStyle(CONFIG.fontWeight); // rétablir le style par défaut
       }
 
       if (fadeFactor > 0) {
@@ -203,15 +250,15 @@ class NoteListView {
 
         if (degrees && degrees !== "♪") {
 
-            g.textSize(radius * 0.6);
-            g.textStyle(NORMAL);
-            g.fill(degreeColor);
-            if (this.layoutMode === 'circle' && positions[i].degreeX !== undefined) {
-              textDegree(g, degrees, positions[i].degreeX, positions[i].degreeY);
-            } else {
-              textDegree(g, degrees, x, y + radius * 0.6 );
-            }  
-            g.textStyle(CONFIG.fontWeight);
+          g.textSize(radius * 0.6);
+          g.textStyle(NORMAL);
+          g.fill(degreeColor);
+          if (this.layoutMode === 'circle' && positions[i].degreeX !== undefined) {
+            textDegree(g, degrees, positions[i].degreeX, positions[i].degreeY);
+          } else {
+            textDegree(g, degrees, x, y + radius * 0.6);
+          }
+          g.textStyle(CONFIG.fontWeight);
         }
       }
 
@@ -219,6 +266,7 @@ class NoteListView {
         this.bubbles.push({ x, y, radius, pc });
       }
     }
+    this.displayScaleLabel(g, positions, radius);
 
     g.pop();
   }
@@ -235,7 +283,7 @@ class NoteListView {
           this.layoutMode = this.layoutMode === 'line' ? 'circle' : 'line';
           this.offsetX = 0;
           this.offsetY = 0;
-            // IMPORTANT: réinitialiser la base de drag pour le nouveau mode
+          // IMPORTANT: réinitialiser la base de drag pour le nouveau mode
           noteListStartX = null;
           noteListStartY = null;
 
@@ -243,7 +291,7 @@ class NoteListView {
           draggedBubble = null;
           return true;
         }
-        
+
         // Initialisation du drag
         draggedBubble = bubble;
         dragStartPc = bubble.pc;
@@ -284,7 +332,7 @@ class NoteListView {
       draggedBubble = null;
       return true;
     }
-    
+
     // Si c'est un déplacement
     if (draggedBubble.isDragTonic) {
       // Si c'est la tonique ou l'octave, on ne fait rien (le déplacement sera géré ailleurs)

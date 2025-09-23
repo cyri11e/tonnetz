@@ -1,7 +1,4 @@
-let tonnetz;
-let midiInput;
-let piano, fretboard;
-let cof;
+let tonnetz, midiInput, piano, fretboard, cof, history
 
 let lastChordText = '';
 let lastChordTime = 0;
@@ -24,8 +21,8 @@ function setup() {
 
   tonnetz = new Tonnetz({
     startNote: 'G',
-    H: 6,
-    Vn: 3,
+    H: 4,
+    Vn: 2,
     canvas
   });
 
@@ -49,23 +46,26 @@ function setup() {
   //piano = new Piano(88, width, height); // 49 touches par défaut
 
   piano = new Piano(88, width, height, {
-  gamme: tonnetz.gamme,
-  tonicPc: tonnetz.keyPc,
-  style: tonnetz.noteStyle
-});
-// Example: width-full, height = width/8, no background fill, at the bottom
-const ratio = 1 / 5;
-fretboard = new Fretboard({
-  frets: 20,
-  orientation: 'right',
-  pov: false,
-  canvasWidth: width,
-  // canvasHeight: Math.round(width * ratio), // optional; otherwise heightRatio is used
-  heightRatio: ratio,
-  drawBg: true,         // important: don't repaint the area if you already have a global bg
-  bottomOffset: 0        // raise this if you want it above another component (e.g., piano)
-});
+    gamme: tonnetz.gamme,
+    tonicPc: tonnetz.keyPc,
+    style: tonnetz.noteStyle
+  });
 
+  // Example: width-full, height = width/8, no background fill, at the bottom
+  const ratio = 1 / 5;
+  fretboard = new Fretboard({
+    frets: 20,
+    orientation: 'right',
+    pov: false,
+    canvasWidth: width,
+    // canvasHeight: Math.round(width * ratio), // optional; otherwise heightRatio is used
+    heightRatio: ratio,
+    drawBg: true,         // important: don't repaint the area if you already have a global bg
+    bottomOffset: 0        // raise this if you want it above another component (e.g., piano)
+  });
+  fretboard.hide = true ;
+  // hsitorique des accords
+  history = new ChordsHistory(0, 0, width/3, height-80); // zone initiale
 }
 
 // --------------     AFFICHAGE -----------------
@@ -74,7 +74,7 @@ function draw() {
   background(CONFIG.colors.bg);
 
   let rootNote = null;
-  
+
   const activeNotes = tonnetz.getActiveNotes();
   const chords = activeNotes.length >= 3 ? tonnetz.getDetectedChords() : [];
   const chordIsActive = chords.length > 0;
@@ -84,6 +84,10 @@ function draw() {
 
   if (chordIsActive) {
     const chord = chords[0];
+    const newTextChord = `${chord.root}${chord.type}`
+    if ((newTextChord !== lastChordText) || !lastChordText)
+      history.addChord(newTextChord);
+    
     lastChordText = `${chord.root}${chord.type}`;
     lastChordTime = millis();
   }
@@ -99,14 +103,16 @@ function draw() {
   fretboard.draw(this, rootNote);
 
   if (chords.length > 0) {
+    const margin = 10;
+    const lineHeight = 14;
     push();
     fill(255);
     noStroke();
-    textAlign(LEFT, TOP);
+    textAlign(RIGHT, TOP);
     textSize(16);
-    text('Accords détectés:', 10, 10);
+    text('Accords détectés:', width - margin,margin + 3 *lineHeight);
     chords.forEach((chord, i) => {
-      text(`${chord.root}${chord.type}`, 10, 35 + i * 25);
+      text(`${chord.root}${chord.type}`, width - margin, 5 *lineHeight + i * 25);
     });
     pop();
   }
@@ -116,8 +122,11 @@ function draw() {
   noteListView.update(tonnetz.gamme, tonnetz.keyPc);
   piano.updateTheory(tonnetz.gamme, tonnetz.keyPc, tonnetz.noteStyle);
   noteListView.draw(this, width, tonnetz.zoom);
-  displayScaleLabel(this);
+
   displayFPS(this);
+
+  history.update();
+  history.display();
 }
 
 function displayChord(g) {
@@ -176,43 +185,51 @@ function displayFPS(g) {
   g.noStroke();
   g.textAlign(RIGHT, TOP);
   g.textSize(12);
-  g.text(`FPS: ${Math.round(frameRate())}`, width - 80, 10);
-  g.textAlign(LEFT, TOP);
-  g.text(`Zoom: ${Math.round(tonnetz.zoom * 100)}%`, 10, 10);
+
+  const fpsText = `FPS: ${Math.round(frameRate())}`;
+  const zoomText = `Zoom: ${Math.round(tonnetz.zoom * 100)}%`;
+  const bpm = `BPM: ${history.bpm}`;
+  const margin = 10;
+  const lineHeight = 14;
+
+  g.text(fpsText, width - margin, margin);
+  g.text(zoomText, width - margin, margin + lineHeight);
+  g.text(bpm, width - margin,margin + 2 *lineHeight )
   g.pop();
 }
 
-function displayScaleLabel(g) {
-  const gamme = tonnetz.gamme;
-  const scaleInfo = gamme?.getScaleMode();
 
-  const tonicName = gamme?.tonicNote ?? '—';
-  let scaleText;
+// function displayScaleLabel(g) {
+//   const gamme = tonnetz.gamme;
+//   const scaleInfo = gamme?.getScaleMode();
 
-  if (scaleInfo && scaleInfo.nom) {
-    const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
-    scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
-  } else {
-    scaleText = `${tonicName} Gamme inconnue`;
-  }
+//   const tonicName = gamme?.tonicNote ?? '—';
+//   let scaleText;
 
-  const targetWidth = width * 0.9;
-  let fontSize = CONFIG.fontSize * 2;
-  g.textSize(fontSize);
-  let tw = g.textWidth(scaleText);
-  if (tw > targetWidth) {
-    fontSize *= targetWidth / tw;
-    g.textSize(fontSize);
-  }
-  g.push();
-  g.stroke(CONFIG.colors.selectedNodeStroke);
-  g.noFill();
-  g.strokeWeight(0.5);
-  g.textAlign(CENTER, TOP);
-  g.textStyle(BOLD);
-  g.text(scaleText, width / 2, 10);
-  g.pop();
-}
+//   if (scaleInfo && scaleInfo.nom) {
+//     const modeName = GAMMES.find(g => g.nom === scaleInfo.nom)?.modes[scaleInfo.mode] ?? `Mode ${scaleInfo.mode}`;
+//     scaleText = `${tonicName} ${modeName} (${scaleInfo.nom})`;
+//   } else {
+//     scaleText = `${tonicName} Gamme inconnue`;
+//   }
+
+//   const targetWidth = width * 0.9;
+//   let fontSize = CONFIG.fontSize * 2;
+//   g.textSize(fontSize);
+//   let tw = g.textWidth(scaleText);
+//   if (tw > targetWidth) {
+//     fontSize *= targetWidth / tw;
+//     g.textSize(fontSize);
+//   }
+//   g.push();
+//   g.stroke(CONFIG.colors.selectedNodeStroke);
+//   g.noFill();
+//   g.strokeWeight(0.5);
+//   g.textAlign(CENTER, TOP);
+//   g.textStyle(BOLD);
+//   g.text(scaleText, width / 2, 10);
+//   g.pop();
+// }
 
 //  ---------------   INTERACTIONS ---------------
 
@@ -233,7 +250,9 @@ function handleTonnetzClick(node) {
 
 
 function keyPressed() {
-  if ( key === 'D' || key === 'd' ) {
+  //if (key === 'x') history.addRandomChord();
+
+  if (key === 'D' || key === 'd') {
     tonnetz.debug = !tonnetz.debug;
     console.log(`Debug mode ${tonnetz.debug ? 'ON' : 'OFF'}`);
     return;
@@ -251,20 +270,22 @@ function keyPressed() {
   if (key === 'P' || key === 'p') {
     piano.hide = !piano.hide;
     console.log(`Piano ${piano.hide ? 'caché' : 'visible'}`);
-  }  
+  }
   if (key === 'G' || key === 'g') {
     fretboard.hide = !fretboard.hide;
     console.log(`Guitare ${fretboard.hide ? 'caché' : 'visible'}`);
-  } 
+  }
   if (key === 'N' || key === 'n') {
     noteListView.hide = !noteListView.hide;
     console.log(`Gamme/Notes ${noteListView.hide ? 'caché' : 'visible'}`);
-  } 
-  const pianoSizes = { '2': 25, 'é': 25,
-                       '4': 49, "'" : 49,
-                       '6': 61, '§' : 61,
-                       '7': 76, 'è' : 76,
-                       '8': 88, '!' : 88 };
+  }
+  const pianoSizes = {
+    '2': 25, 'é': 25,
+    '4': 49, "'": 49,
+    '6': 61, '§': 61,
+    '7': 76, 'è': 76,
+    '8': 88, '!': 88
+  };
   if (pianoSizes[key]) {
     piano = new Piano(pianoSizes[key], width, height);
     return;
@@ -273,7 +294,7 @@ function keyPressed() {
   if (key === BACKSPACE) {
     // Forcer le rafraîchissement visuel
     tonnetz.reset(); // ← très important
-   //circleOfFifths.update(); // ← si le COF dépend aussi de la gamme
+    //circleOfFifths.update(); // ← si le COF dépend aussi de la gamme
     console.log('🔄 Gamme recréée sur C');
   }
 
@@ -326,9 +347,9 @@ function mouseWheel(event) {
 
   if (!piano.hide && mouseY > height - piano.whiteKeyHeight - 20) {
 
-      piano.setZoom(factor);
-      return false;
-    
+    piano.setZoom(factor);
+    return false;
+
   }
 
   // NoteListView
@@ -350,7 +371,7 @@ function mouseWheel(event) {
       const lineTop = firstBubble.y - bubbleRadius;
       const lineBottom = firstBubble.y + bubbleRadius;
       isOverNoteList = mouseX >= lineLeft && mouseX <= lineRight &&
-                       mouseY >= lineTop && mouseY <= lineBottom;
+        mouseY >= lineTop && mouseY <= lineBottom;
     }
 
     if (isOverNoteList) {
@@ -378,15 +399,16 @@ function mouseWheel(event) {
 
 
 function mouseDragged() {
+  history.mouseDragged(mouseX, mouseY);
   const isOverPiano = !piano.hide &&
-                    mouseY > height - piano.whiteKeyHeight - 20;
+    mouseY > height - piano.whiteKeyHeight - 20;
 
-if (isOverPiano){
-  if (mouseButton.right || (mouseButton.left && keyIsDown(SHIFT))) {   
-     piano.setPan(movedX);
-     return false;
-   }
-}
+  if (isOverPiano) {
+    if (mouseButton.right || (mouseButton.left && keyIsDown(SHIFT))) {
+      piano.setPan(movedX);
+      return false;
+    }
+  }
 
   const dragHandled = cof.handleDrag(mouseX, mouseY);
   if (dragHandled) return;
@@ -427,6 +449,7 @@ if (isOverPiano){
 
 
 function mousePressed() {
+  history.mousePressed(mouseX, mouseY);
   if (mouseButton.right) return;
 
   if (mouseButton === 'left' && (millis() - lastClickTime < 300)) {
@@ -450,6 +473,7 @@ function mousePressed() {
   }
 }
 function mouseReleased() {
+  history.mouseReleased();
   // NoteListView
   if (!noteListView.hide && noteListView.handleRelease(mouseX, mouseY)) return;
 

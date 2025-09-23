@@ -7,12 +7,12 @@ class Tonnetz {
     this.debug = debug;
     this.hide = false;
 
-    this.keyNote = 'E';
+    this.keyNote = 'C';
     this.keyPc = nameToPc(this.keyNote);
 
     this.gamme = new Gamme(this.keyNote);
 
-    this.origin = { x: canvas.width / 2, y: canvas.height / 2 };
+    this.origin = { x: canvas.width / 2, y: 3 * canvas.height / 4 };
 
     this.zoom = 1;
     this.panX = 0;
