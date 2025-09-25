@@ -141,7 +141,7 @@ function displayChord(g) {
   g.textStyle(BOLD);
 
   const targetWidth = width * 0.8;
-  const baseSize = height / 4;
+  const baseSize = height / 6;
   let fontSize = baseSize;
   g.textSize(fontSize);
   let tw = g.textWidth(lastChordText);
@@ -158,9 +158,9 @@ function displayChord(g) {
   g.strokeWeight(fontSize / 16);
   g.stroke(outline);
   g.fill(c);
-  g.text(lastChordText, width / 2, 3 * height / 10);
+  g.text(lastChordText, width / 2, 5 * height / 10);
   g.noStroke();
-  g.text(lastChordText, width / 2, 3 * height / 10);
+  g.text(lastChordText, width / 2, 5 * height / 10);
   g.pop();
 }
 

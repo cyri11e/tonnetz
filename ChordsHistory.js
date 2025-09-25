@@ -48,11 +48,18 @@ constructor(x, y) {
     }
 
     // coin de redimensionnement
-    noStroke();
-    fill(this.resizing ? 'orange' : 'grey');
-    rect(this.zone.x + this.zone.w - this.resizeHandleSize,
-         this.zone.y + this.zone.h - this.resizeHandleSize,
-         this.resizeHandleSize, this.resizeHandleSize);
+// coin de redimensionnement discret
+
+translate(this.zone.x + this.zone.w, this.zone.y + this.zone.h);
+noStroke();
+fill(this.resizing ? 'orange' : 'rgba(150,150,150,0.3)');
+beginShape();
+vertex(-this.resizeHandleSize, 0);
+vertex(0, -this.resizeHandleSize);
+vertex(0, 0);
+endShape(CLOSE);
+
+
   }
 
   addRandomChord() {
@@ -126,12 +133,15 @@ constructor(x, y) {
 updateGrid() {
   let spacing = this.r * 2 + this.margin;
   let cols = max(1, floor(this.zone.w / spacing));
-  let maxRows = max(1, floor((this.zone.h - this.r * 2) / spacing));
+
+  // 🧠 Limite stricte : on ne garde que les lignes qui tiennent entièrement dans zone.h
+  let availableHeight = this.zone.h - this.r * 2; // marge haute + bulle
+  let maxRows = floor(availableHeight / spacing); // PAS de ceil → pas de ligne partielle
   let maxItems = cols * maxRows;
 
-  // purge des éléments hors grille
+  // 🔥 Purge des éléments hors grille
   if (this.grid.length > maxItems) {
-    this.grid.splice(maxItems); // retire les accords invisibles
+    this.grid.splice(maxItems);
   }
 
   for (let i = 0; i < this.grid.length; i++) {
@@ -146,19 +156,23 @@ updateGrid() {
 
 
 
-  drawDebugGrid() {
-    let spacing = this.r * 2 + this.margin;
-    let cols = max(1, floor(this.zone.w / spacing));
-    let rows = ceil(this.grid.length / cols) || 1;
-    stroke(80);
-    noFill();
-    for (let c = 0; c <= cols; c++) {
-      let x = this.zone.x + c * spacing;
-      line(x, this.zone.y, x, this.zone.y + rows * spacing);
-    }
-    for (let r = 0; r <= rows; r++) {
-      let y = this.zone.y + r * spacing;
-      line(this.zone.x, y, this.zone.x + this.zone.w, y);
-    }
+drawDebugGrid() {
+  let spacing = this.r * 2 + this.margin;
+  let cols = max(1, floor(this.zone.w / spacing));
+  let maxRows = floor((this.zone.h - this.r * 2) / spacing); // lignes entières uniquement
+
+  stroke(80);
+  noFill();
+
+  for (let c = 0; c <= cols; c++) {
+    let x = this.zone.x + c * spacing;
+    line(x, this.zone.y, x, this.zone.y + maxRows * spacing);
   }
+
+  for (let r = 0; r <= maxRows; r++) {
+    let y = this.zone.y + r * spacing;
+    line(this.zone.x, y, this.zone.x + this.zone.w, y);
+  }
+}
+
 }

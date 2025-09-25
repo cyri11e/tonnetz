@@ -3,7 +3,7 @@ class ChordBubble {
     this.label = label;
     this.r = parent.r;
     this.x = zone.x + this.r + 5;
-    this.y = height - 20;
+    this.y = height - 80;
 
     this.vy = -map(parent.bpm, 40, 180, 1, 4);
     this.color = color(random(100,255), random(100,255), random(100,255));
@@ -42,8 +42,8 @@ display() {
   noFill();
   beginShape();
   for (let a = -PI/8; a <= PI/8; a += 0.05) {
-    let px = this.x + (w/2) * cos(a);
-    let py = this.y + (h/2) * sin(a);
+    let px = this.x + 0.95*(w/2) * cos(a);
+    let py = this.y + 0.95*(h/2) * sin(a);
     vertex(px, py);
   }
   endShape();
@@ -51,11 +51,10 @@ display() {
   // --- second reflet : petit arc en bas à gauche ---
   stroke(255, 120);
   strokeWeight(0.6);
-  noFill();
   beginShape();
   for (let a = PI*0.65; a <= PI*0.95; a += 0.05) {
-    let px = this.x + (w/2) * cos(a);
-    let py = this.y + (h/2) * sin(a);
+    let px = this.x + 0.99*(w/2) * cos(a);
+    let py = this.y + 0.99*(h/2) * sin(a);
     vertex(px, py);
   }
   endShape();
@@ -105,13 +104,15 @@ repel(others) {
 checkExplosion(zone, grid) {
   let spacing = this.r * 2 + this.parent.margin;
   let cols = max(1, floor(zone.w / spacing));
-  let maxRows = max(1, floor((zone.h - this.r * 2) / spacing));
+  let maxRows = floor((zone.h - this.r * 2) / spacing);
   let maxItems = cols * maxRows;
 
-  if (grid.length >= maxItems) return;
+  if (grid.length >= maxItems) return; // grille pleine
 
-  let explosionY = zone.y + this.r + maxRows * spacing;
-  if (this.y - this.r < explosionY) {
+  // seuil d'entrée dans la grille : haut de la première ligne
+  let entryY = zone.y + this.r + 0 * spacing;
+
+  if (this.y - this.r < entryY) {
     this.explode(this.parent.particles);
     grid.push({ label: this.label, color: this.color, r: this.r });
     this.parent.updateGrid();
