@@ -65,7 +65,7 @@ function setup() {
   });
   fretboard.hide = true ;
   // hsitorique des accords
-  history = new ChordsHistory(0, 0, width/3, height-80); // zone initiale
+  //history = new ChordsHistory(0, 0, width/3, height-80); // zone initiale
 }
 
 // --------------     AFFICHAGE -----------------
@@ -85,8 +85,6 @@ function draw() {
   if (chordIsActive) {
     const chord = chords[0];
     const newTextChord = `${chord.root}${chord.label}`
-    if ((newTextChord !== lastChordText) || !lastChordText)
-      history.addChord(newTextChord);
     
     lastChordText = `${chord.label}`;
     lastChordTime = millis();
@@ -112,7 +110,7 @@ function draw() {
     textSize(16);
     text('Accords détectés:', width - margin,margin + 3 *lineHeight);
     chords.forEach((chord, i) => {
-      text(`{chord.label}`, width - margin, 5 *lineHeight + i * 25);
+      text(`${chord.label}`, width - margin, 5 *lineHeight + i * 25);
     });
     pop();
   }
@@ -125,8 +123,8 @@ function draw() {
 
   displayFPS(this);
 
-  history.update();
-  history.display();
+  //history.update();
+  //history.display();
 }
 
 function displayChord(g) {
@@ -188,13 +186,13 @@ function displayFPS(g) {
 
   const fpsText = `FPS: ${Math.round(frameRate())}`;
   const zoomText = `Zoom: ${Math.round(tonnetz.zoom * 100)}%`;
-  const bpm = `BPM: ${history.bpm}`;
+ // const bpm = `BPM: ${history.bpm}`;
   const margin = 10;
   const lineHeight = 14;
 
   g.text(fpsText, width - margin, margin);
   g.text(zoomText, width - margin, margin + lineHeight);
-  g.text(bpm, width - margin,margin + 2 *lineHeight )
+  //g.text(bpm, width - margin,margin + 2 *lineHeight )
   g.pop();
 }
 
@@ -399,7 +397,7 @@ function mouseWheel(event) {
 
 
 function mouseDragged() {
-  history.mouseDragged(mouseX, mouseY);
+  //history.mouseDragged(mouseX, mouseY);
   const isOverPiano = !piano.hide &&
     mouseY > height - piano.whiteKeyHeight - 20;
 
@@ -449,7 +447,7 @@ function mouseDragged() {
 
 
 function mousePressed() {
-  history.mousePressed(mouseX, mouseY);
+  //history.mousePressed(mouseX, mouseY);
   if (mouseButton.right) return;
 
   if (mouseButton === 'left' && (millis() - lastClickTime < 300)) {
@@ -473,7 +471,7 @@ function mousePressed() {
   }
 }
 function mouseReleased() {
-  history.mouseReleased();
+  //history.mouseReleased();
   // NoteListView
   if (!noteListView.hide && noteListView.handleRelease(mouseX, mouseY)) return;
 
