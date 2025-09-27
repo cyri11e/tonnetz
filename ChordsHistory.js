@@ -1,83 +1,113 @@
 class ChordsHistory {
-constructor(x, y) {
-  const r = 30;
-  const margin = 10;
-  const spacing = r * 2 + margin;
+  constructor(x, y, w, h) {
+    this.zone = {x, y, w, h};
+    this.sepX = w;
+    this.sepY = h;
+    this.draggingX = false;
+    this.draggingY = false;
+    this.bubbles = [];
+    this.grid = [];
+    this.particles = [];
+    this.r = 30;
+    this.margin = 10;
+    this.bpm = 120;
+    this.maxGridSize = 0;
+    this.lastChordLabel = null;
+    this.lastChordCount = 0;
 
-  const cols = 2;
-  const rows = 2;
 
-  const w = cols * spacing;
-  const h = rows * spacing + r * 2;
-
-  this.zone = { x, y, w, h };
-  this.resizeHandleSize = 20;
-  this.resizing = false;
-  this.bubbles = [];
-  this.grid = [];
-  this.particles = [];
-  this.r = r;
-  this.margin = margin;
-  this.bpm = 120;
-}
-
+  }
 
   update() {
+    this.zone.w = this.sepX;
+    this.zone.h = this.sepY;
+
     for (let b of this.bubbles) {
       b.update(this.bubbles, this.zone, this.grid);
     }
 
-    for (let i = this.particles.length - 1; i >= 0; i--) {
+    for (let i=this.particles.length-1; i>=0; i--) {
       this.particles[i].update();
-      if (this.particles[i].isDead()) this.particles.splice(i, 1);
+      if (this.particles[i].isDead()) this.particles.splice(i,1);
     }
   }
 
+  
   display() {
-    this.drawDebugGrid();
+  this.drawDebugGrid();
 
-    for (let b of this.bubbles) b.display();
-    for (let p of this.particles) p.display();
+  // Curseurs de redimensionnement
+  stroke(this.draggingX ? 'orange' : 'white');
+  line(this.sepX, 0, this.sepX, height);
 
-    for (let g of this.grid) {
-      noStroke();
-      textSize(CONFIG.nodeRadius);
-      fill(230);
-      textAlign(CENTER, CENTER);
-      text(g.label, g.x, g.y);
-    }
+  stroke(this.draggingY ? 'orange' : 'white');
+  line(0, this.sepY, width, this.sepY);
 
-    // coin de redimensionnement
-// coin de redimensionnement discret
+  // Bulles
+  for (let b of this.bubbles) b.display();
 
-translate(this.zone.x + this.zone.w, this.zone.y + this.zone.h);
-noStroke();
-fill(this.resizing ? 'orange' : 'rgba(150,150,150,0.3)');
-beginShape();
-vertex(-this.resizeHandleSize, 0);
-vertex(0, -this.resizeHandleSize);
-vertex(0, 0);
-endShape(CLOSE);
+  // Particules
+  for (let p of this.particles) p.display();
 
+  // Accords dans la grille
+for (let g of this.grid) {
+  noStroke();
+  fill(230);
+  textAlign(CENTER, CENTER);
+  const chordCount = this.lastChordCount > 1 ? 'x'+this.lastChordCount : ''
+  text(`${g.label} ${chordCount}`, g.x, g.y);
+}
+
+
+  // BPM
+  noStroke(); fill(200);
+  textAlign(RIGHT, TOP);
+  text("BPM: " + this.bpm, width - 10, 10);
+
+
+}
+
+addChord(chord) { 
+  if (!chord) return; 
+  let isDuplicate = (chord === this.lastChordLabel);
+  if (isDuplicate) {
+    this.lastChordCount++;
+    console.log(this.lastChordCount)
+  } else {
+    this.lastChordLabel = chord;
+    this.lastChordCount = 1;
+  }
+      
+  this.bubbles.push(new ChordBubble(chord, this.zone, this, isDuplicate));
+  
 
   }
 
-  addRandomChord() {
-    let roots = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    let qualities = ["maj", "min", "7", "m7"];
-    let chord = random(roots) + random(qualities);
-    this.bubbles.push(new ChordBubble(chord, this.zone, this));
-  }
-
-  addChord(chord) {
-    if (!chord) return;
-    this.bubbles.push(new ChordBubble(chord, this.zone, this));
+  addRandomChord(chord = 'Cmaj7') {
+    //let roots = ["C","D","Eb","E","F","G","A"];
+    //let qualities = ["maj7","min7","7","m7"];
+    let roots = ["C"];
+    let qualities = ["maj7"];
+    //let chord = random(roots) + random(qualities);
+    
+let isDuplicate = (chord === this.lastChordLabel);
+if (isDuplicate) {
+  this.lastChordCount++;
+  console.log(this.lastChordCount)
+} else {
+  this.lastChordLabel = chord;
+  this.lastChordCount = 1;
+}
+    
+    this.bubbles.push(new ChordBubble(chord, this.zone, this, isDuplicate));
   }
 
   reset() {
     this.bubbles = [];
     this.grid = [];
     this.particles = [];
+    this.lastChordLabel = null;
+    this.lastChordCount = 0;
   }
 
   changeBpm(delta) {
@@ -87,67 +117,60 @@ endShape(CLOSE);
     }
   }
 
-  mousePressed(mx, my) {
-    let rx = this.zone.x + this.zone.w - this.resizeHandleSize;
-    let ry = this.zone.y + this.zone.h - this.resizeHandleSize;
-    if (mx > rx && my > ry) {
-      this.resizing = true;
-      return;
-    }
+  mousePressed(mx,my) {
+    if (abs(mx - this.sepX) < 10) this.draggingX = true;
+    if (abs(my - this.sepY) < 10) this.draggingY = true;
 
-    for (let i = this.bubbles.length - 1; i >= 0; i--) {
-      if (this.bubbles[i].isClicked(mx, my)) {
+    for (let i=this.bubbles.length-1; i>=0; i--) {
+      if (this.bubbles[i].isClicked(mx,my)) {
         this.bubbles[i].explode(this.particles);
-        this.bubbles.splice(i, 1);
+        this.bubbles.splice(i,1);
         return;
       }
     }
 
-    for (let i = this.grid.length - 1; i >= 0; i--) {
+    for (let i=this.grid.length-1; i>=0; i--) {
       let g = this.grid[i];
-      if (dist(mx, my, g.x, g.y) < g.r) {
-        this.explodeAt(g.x, g.y, g.color);
-        this.grid.splice(i, 1);
+      if (dist(mx,my,g.x,g.y) < g.r) {
+        this.explodeAt(g.x,g.y,g.color);
+        this.grid.splice(i,1);
         this.updateGrid();
         return;
       }
     }
   }
 
-  mouseDragged(mx, my) {
-    if (this.resizing) {
-      this.zone.w = constrain(mx - this.zone.x, 100, width - this.zone.x);
-      this.zone.h = constrain(my - this.zone.y, 100, height - this.zone.y);
-      this.updateGrid();
-    }
+  mouseDragged(mx,my) {
+    if (this.draggingX) this.sepX = constrain(mx, this.r*2, width - this.r*2);
+    if (this.draggingY) this.sepY = constrain(my, this.r*2, height - this.r*2);
+    this.updateGrid();
   }
 
   mouseReleased() {
-    this.resizing = false;
+    this.draggingX = false;
+    this.draggingY = false;
   }
 
-  explodeAt(x, y, col) {
-    for (let i = 0; i < 30; i++) this.particles.push(new Particle(x, y, col));
+  explodeAt(x,y,col) {
+    for (let i=0;i<30;i++) this.particles.push(new Particle(x,y,col));
   }
 
 updateGrid() {
   let spacing = this.r * 2 + this.margin;
-  let cols = max(1, floor(this.zone.w / spacing));
+  let cols = max(0, floor(this.sepX / spacing));
+  let rows = max(0, floor(this.sepY / spacing));
+  this.maxGridSize = cols * rows;
 
-  // 🧠 Limite stricte : on ne garde que les lignes qui tiennent entièrement dans zone.h
-  let availableHeight = this.zone.h - this.r * 2; // marge haute + bulle
-  let maxRows = floor(availableHeight / spacing); // PAS de ceil → pas de ligne partielle
-  let maxItems = cols * maxRows;
-
-  // 🔥 Purge des éléments hors grille
-  if (this.grid.length > maxItems) {
-    this.grid.splice(maxItems);
+  // Purge les éléments en trop si la grille est réduite
+  if (this.grid.length > this.maxGridSize) {
+    this.grid.splice(this.maxGridSize); // coupe à la taille max
   }
 
+  // Repositionne les éléments restants
   for (let i = 0; i < this.grid.length; i++) {
+    let g = this.grid[i];
     let col = i % cols;
     let row = floor(i / cols);
-    let g = this.grid[i];
     g.x = this.zone.x + spacing / 2 + col * spacing;
     g.y = this.zone.y + this.r + row * spacing;
     g.r = this.r;
@@ -155,24 +178,17 @@ updateGrid() {
 }
 
 
-
-drawDebugGrid() {
-  let spacing = this.r * 2 + this.margin;
-  let cols = max(1, floor(this.zone.w / spacing));
-  let maxRows = floor((this.zone.h - this.r * 2) / spacing); // lignes entières uniquement
-
-  stroke(80);
-  noFill();
-
-  for (let c = 0; c <= cols; c++) {
-    let x = this.zone.x + c * spacing;
-    line(x, this.zone.y, x, this.zone.y + maxRows * spacing);
+  drawDebugGrid() {
+    let spacing = this.r*2 + this.margin;
+    let cols = max(1, floor(this.sepX / spacing));
+    let rows = max(1, floor(this.sepY / spacing));
+    stroke(80); noFill();
+    for (let r=0; r<rows; r++) {
+      for (let c=0; c<cols; c++) {
+        let x = this.zone.x + c*spacing;
+        let y = this.zone.y + r*spacing;
+        rect(x, y, spacing, spacing);
+      }
+    }
   }
-
-  for (let r = 0; r <= maxRows; r++) {
-    let y = this.zone.y + r * spacing;
-    line(this.zone.x, y, this.zone.x + this.zone.w, y);
-  }
-}
-
 }
