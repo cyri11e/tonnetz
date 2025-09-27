@@ -15,15 +15,31 @@ class ChordDetector {
       'E':4,'F':5,'F♯':6,'G♭':6,'G':7,'G♯':8,
       'A♭':8,'A':9,'A♯':10,'B♭':10,'B':11
     };
+    // dans constructor()
+    this._lastMidiKey = '';   // représentation canonique du dernier jeu de midis
+    this._lastResults = [];   // cache des résultats pour ce jeu
+
   }
 
   detect(activeNotesNames, midiNumbers = null) {
-    const chords = this.recognizeChord(midiNumbers)
-    console.log(chords)
-    return chords
+    const midiNums = Array.isArray(midiNumbers) ? midiNumbers : [];
+    const key = midiNums.slice().sort((a, b) => a - b).join(',');
+
+    // si identique au dernier jeu, renvoyer le cache
+    if (key === this._lastMidiKey) {
+      return this._lastResults;
+    }
+
+    // sinon recalculer, mettre à jour le cache et retourner
+    const chords = this.recognizeChord(midiNums);
+    this._lastMidiKey = key;
+    this._lastResults = chords;
+    return chords;
   }
 
+
   recognizeChord(midiNums, options = {}, missingFifthRecursed =false) {
+    console.log('detection d accords ');
     const {
       strict        = true,
       preferSixth   = false,
@@ -184,16 +200,26 @@ matchesSkeleton(skelIntervals, semisMod, allowMissingFifth = true) {
 
   // 8. génération du résultat pur et slash
   buildChordResults(midiNums, rootPc, chordLabel, usedIntervals) {
-    const rootName = this.pcToName(rootPc);
-    const bassMidi = Math.min(...midiNums);
-    const bassPc   = this.midiToPc(bassMidi);
-    const bassName = this.pcToName(bassPc);
+const rootName = this.pcToName(rootPc);
+const bassMidi = Math.min(...midiNums);
+const bassPc   = this.midiToPc(bassMidi);
+const bassName = this.pcToName(bassPc);
+const chordType = (chordLabel && rootName) ? chordLabel.slice(rootName.length) : null;
+const baseChord = this.chordLibrary.find(c => c.label === chordType || c.chordType === chordType) || null;
 
-    const final = {
-      label:   chordLabel + (bassPc !== rootPc ? `/${bassName}` : ''),
-      root:  rootName,
-      basse: bassName
-    };
+const final = {
+  label:         chordLabel + (bassPc !== rootPc ? `/${bassName}` : ''),
+  chordType:     baseChord ? baseChord.chordType : chordType,
+  fullName:      baseChord ? (baseChord.fullName || null) : null,
+  altLabel:      baseChord ? (baseChord.altLabel || null) : null,
+  intervalsNames: baseChord ? (baseChord.intervalsNames || null) : null,
+  intervals:     baseChord ? baseChord.intervals.slice() : usedIntervals.slice(),
+  usedIntervals: usedIntervals.slice(),
+  root:          rootName,
+  basse:         bassName
+};
+
+
 
     return [ final ];
   }

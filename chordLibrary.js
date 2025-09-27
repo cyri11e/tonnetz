@@ -8,7 +8,7 @@ const chordLibrary = [
   { chordType: 'dim',     label: 'dim',     intervals: [0,3,6],    fullName: 'Diminished',              altLabel: ['°','dim'],                 intervalsNames: ['P1','m3','d5'] },
   { chordType: 'minMaj7', label: 'minMaj7', intervals: [0,3,7,11], fullName: 'Minor Major Seventh',     altLabel: ['mM7','m△7','mMaj7'],      intervalsNames: ['P1','m3','P5','M7'] },
   { chordType: 'maj',     label: '',     intervals: [0,4,7],    fullName: 'Major',                   altLabel: ['M','maj'],                 intervalsNames: ['P1','M3','P5'] },
-  { chordType: 'min',     label: 'min',     intervals: [0,3,7],    fullName: 'Minor',                   altLabel: ['m','-','min'],             intervalsNames: ['P1','m3','P5'] },
+  { chordType: 'min',     label: 'm',     intervals: [0,3,7],    fullName: 'Minor',                   altLabel: ['m','-','min'],             intervalsNames: ['P1','m3','P5'] },
   { chordType: 'sus2',    label: 'sus2',    intervals: [0,2,7],    fullName: 'Suspended Second',        altLabel: ['sus2'],                    intervalsNames: ['P1','M2','P5'] },
   { chordType: 'sus4',    label: 'sus4',    intervals: [0,5,7],    fullName: 'Suspended Fourth',        altLabel: ['sus4','sus'],              intervalsNames: ['P1','P4','P5'] },
   { chordType: 'aug',     label: 'aug',     intervals: [0,4,8],    fullName: 'Augmented',               altLabel: ['+','aug'],                 intervalsNames: ['P1','M3','A5'] }
