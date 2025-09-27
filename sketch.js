@@ -84,11 +84,11 @@ function draw() {
 
   if (chordIsActive) {
     const chord = chords[0];
-    const newTextChord = `${chord.root}${chord.type}`
+    const newTextChord = `${chord.root}${chord.label}`
     if ((newTextChord !== lastChordText) || !lastChordText)
       history.addChord(newTextChord);
     
-    lastChordText = `${chord.root}${chord.type}`;
+    lastChordText = `${chord.label}`;
     lastChordTime = millis();
   }
 
@@ -112,7 +112,7 @@ function draw() {
     textSize(16);
     text('Accords détectés:', width - margin,margin + 3 *lineHeight);
     chords.forEach((chord, i) => {
-      text(`${chord.root}${chord.type}`, width - margin, 5 *lineHeight + i * 25);
+      text(`{chord.label}`, width - margin, 5 *lineHeight + i * 25);
     });
     pop();
   }
@@ -141,7 +141,7 @@ function displayChord(g) {
   g.textStyle(BOLD);
 
   const targetWidth = width * 0.8;
-  const baseSize = height / 6;
+  const baseSize = height / 3;
   let fontSize = baseSize;
   g.textSize(fontSize);
   let tw = g.textWidth(lastChordText);

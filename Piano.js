@@ -269,7 +269,7 @@ bufferOverlayNotes(midiNums) {
   // Affichage de l'intervalle si 2 notes
   let played = Array.from(this.overlayKeys);
   if (played.length === 2) {
-    if (this.whiteKeyHeight * 0.15 < 20 ) return;
+    if (this.whiteKeyHeight * 0.20 < 20 ) return;
     const fallback = [
       "P1", "m2", "M2", "m3", "M3",
       "P4", "d5", "P5", "m6", "M6",
@@ -286,19 +286,30 @@ bufferOverlayNotes(midiNums) {
       const semisMod   = semisTotal % 12;
 
       let label;
-      if (semisMod === 0) {
-        label = "P8";
-      } else {
-        const baseLabel = fallback[semisMod] || "";
-        const parsed = parseDegree(baseLabel);
-        if (!parsed) {
-          label = baseLabel;
-        } else {
-          const { digit, accidental } = parsed;
-          const fullDegree = parseInt(digit, 10) + octaves * 7;
-          label = `${accidental}${fullDegree} (${baseLabel})`;
-        }
-      }
+// Cas des intervalles parfaits
+if (semisMod === 0) {
+  // unisson ou octave (tout >0 devient P8 car bridé)
+  label = semisTotal === 0 ? "P1" : "P8";
+
+} else {
+  const baseLabel = fallback[semisMod] || "";
+  
+  // strictement dans l'octave → pas de parenthèse
+  if (octaves === 0) {
+    label = baseLabel;
+
+  } else {
+    // au-delà de l'octave → on compose nature+degré et on garde l'équivalent
+    const parsed = parseInterval(baseLabel);
+    if (!parsed) {
+      label = baseLabel;
+    } else {
+      const { digit, nature } = parsed;
+      const fullDegree = parseInt(digit, 10) + octaves * 7;
+      label = `${nature}${fullDegree} (${baseLabel})`;
+    }
+  }
+}
 
       const yLine = this.yBase - this.whiteKeyHeight - 1;
       g.push();
@@ -327,7 +338,7 @@ const fallback = [
 played = Array.from(this.overlayKeys).sort((a, b) => a - b);
 
 if (played.length >= 2 && rootPc != null) {
-  if ( this.whiteKeyHeight * 0.15 < 20 ) return;
+  if ( this.whiteKeyHeight * 0.20 < 20 ) return;
   // --- référence TONIQUE et non plus played[0] ---
   const rootMidi = played.find(m => m % 12 === rootPc) ?? played[0];
 

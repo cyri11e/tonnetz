@@ -1,262 +1,234 @@
 class ChordDetector {
   constructor() {
-    this.chordFormulas = {
-      '':     [0, 4, 7],
-      'm':    [0, 3, 7],
-      'dim':  [0, 3, 6],
-      'aug':  [0, 4, 8],
-      'sus2': [0, 2, 7],
-      'sus4': [0, 5, 7],
-      '7':    [0, 4, 7, 10],
-      'm7':   [0, 3, 7, 10],
-      'maj7': [0, 4, 7, 11],
-      'mMaj7':[0, 3, 7, 11],
-      'dim7': [0, 3, 6, 9],
-      'm7♭5': [0, 3, 6, 10],
-      '6':    [0, 4, 7, 9],
-      'm6':   [0, 3, 7, 9],
-      '9':    [0, 4, 7, 10, 14],
-      'maj9': [0, 4, 7, 11, 14],
-      'm9':   [0, 3, 7, 10, 14],
-      '11':   [0, 4, 7, 10, 17],
-      '13':   [0, 4, 7, 10, 21]
-    };
+    // 1) on trie la librairie par taille décroissante
+    // prevoir un pré tri
+    this.chordLibrary = this.buildChordLibrary()
+      .sort((a, b) => b.intervals.length - a.intervals.length);
 
+    // 2) signatures d’extensions 
+    this.extSignatures = extSignatures
+   
+    this.noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  
     this.noteToPc = {
       'C':0, 'C♯':1,'D♭':1,'D':2,'D♯':3,'E♭':3,
       'E':4,'F':5,'F♯':6,'G♭':6,'G':7,'G♯':8,
       'A♭':8,'A':9,'A♯':10,'B♭':10,'B':11
     };
-
   }
 
-
-computeScore(r, midiList) {
-  const playedPCs = new Set(midiList.map(n => n % 12));
-  const chordPCs = new Set(r.chordSignature.split(',').map(Number));
-
-  const coverageCount = [...playedPCs].filter(pc => chordPCs.has(pc)).length;
-  const orphanCount = playedPCs.size - coverageCount;
-  const coverageRatio = coverageCount / playedPCs.size;
-
-  const accuracyRatio = r.recognizedNotes / r.totalNotes;
-  const isRootPosition = r.bass === r.root ? 1 : 0;
-  const richness = r.totalNotes + r.formulaSize;
-
-  // 🔻 Pénalité dynamique selon le nombre de notes non couvertes
-  const orphanPenalty = orphanCount * 20;
-
-  // 🔻 Pénalité pour accords trop courts
-  const shortPenalty = r.formulaSize <= 3 ? 10 * (5 - r.formulaSize) : 0;
-
-  // 🔻 Pénalité légère pour les accords "6" (hors m7)
-  const is6 = r.type.includes('6') && !r.type.includes('7');
-  const sixPenalty = is6 ? 1 : 0;
-
-  r.score =
-    coverageRatio * 100 +
-    accuracyRatio * 50 +
-    isRootPosition * 20 +
-    richness -
-    orphanPenalty -
-    shortPenalty -
-    sixPenalty;
-}
-
-
-sanitizeAddVsBass(chordName, rootPc, bassPc) {
-  const suppressIfBass = (label, interval) => {
-    const pc = (rootPc + interval) % 12;
-    return bassPc === pc ? chordName.replace(label, '') : chordName;
-  };
-
-  chordName = suppressIfBass('add2', 2);
-  chordName = suppressIfBass('add4', 5);
-  chordName = suppressIfBass('add9', 14);
-  chordName = suppressIfBass('add11', 17);
-  chordName = suppressIfBass('add13', 21);
-
-  return chordName;
-}
-
-
-getNoteName(pc) {
-  return tonnetz.gamme?.getNoteName?.(pc) ?? pcToName(pc, tonnetz.noteStyle);
-}
-
-
-detect(activeNotes, midiNumbers = null) {
-  let pcs, bassNote, midiList;
-
-  // --- 1. Normalisation des entrées ---
-  if (Array.isArray(midiNumbers) && midiNumbers.length) {
-    midiList = [...new Set(midiNumbers)].sort((a, b) => a - b);
-    bassNote = this.getNoteName(midiList[0] % 12);
-    pcs = [...new Set(midiList.map(n => n % 12))].sort((a, b) => a - b);
-  } else {
-    const map = {};
-    for (let pc = 0; pc < 12; pc++) {
-      const name = tonnetz.gamme?.getNoteName?.(pc) ?? pcToName(pc, tonnetz.noteStyle);
-      map[name] = pc;
-    }
-    midiList = activeNotes.map(n => map[n]);
-    bassNote = activeNotes[0];
-    pcs = [...new Set(midiList)].sort((a, b) => a - b);
+  detect(activeNotesNames, midiNumbers = null) {
+    const chords = this.recognizeChord(midiNumbers)
+    console.log(chords)
+    return chords
   }
 
-  const results = [];
+  recognizeChord(midiNums, options = {}, missingFifthRecursed =false) {
+    const {
+      strict        = true,
+      preferSixth   = false,
+      omitFifth     = true
+    } = options;
+    if (!midiNums || midiNums.length === 0) return [];
 
-  // --- 2. Détection des accords ---
-  pcs.forEach(rootPc => {
-    const medianNote = midiList[Math.floor(midiList.length / 2)];
-    const midiListForAnalysis = midiList.filter(n => {
-      const isSamePc = (n % 12) === rootPc;
-      const tooLow = n < medianNote - 12;
-      return !(isSamePc && tooLow);
-    });
+    // 1. extraction des pitch-classes
+    const pcs     = this.getUniquePcs(midiNums);
+    const results = [];
 
-    const rootMidi = midiListForAnalysis.find(n => n % 12 === rootPc);
-    const bassPc = midiList[0] % 12;
-    const intervalBassToRoot = (rootPc - bassPc + 12) % 12;
-    if (intervalBassToRoot === 3 || intervalBassToRoot === 4) {
-      rootPc = (bassPc - intervalBassToRoot + 12) % 12;
+    // 2–7. détection pour chaque root candidate
+    for (const rootPc of this.findRootCandidates(pcs)) {
+      const { semis, semisMod, rootName } = this.computeSemis(midiNums, rootPc);
+
+      for (const chord of this.chordLibrary) {
+        if (!this.matchesSkeleton(chord.intervals, semisMod)) continue;
+
+        let usedIntervals = chord.intervals.slice();
+        let chordLabel         = rootName + chord.label;
+
+        const extInfo = this.detectExtension(chord.label, semis, semisMod);
+        if (extInfo) {
+          usedIntervals = extInfo.usedIntervals.slice();
+          chordLabel         = rootName + extInfo.label;
+        }
+
+        if (!this.coversAll(usedIntervals, semisMod)) continue;
+
+        results.push(
+          ...this.buildChordResults(midiNums, rootPc, chordLabel, usedIntervals)
+        );
+      }
     }
 
-    const intervalsAbs = rootMidi == null ? [] : midiListForAnalysis.map(n => {
-      let iv = n - rootMidi;
-      while (iv < 0) iv += 12;
-      while (iv > 23) iv -= 12;
-      return iv;
-    });
+    // 8. déduplication
+    let unique = this.deduplicate(results);
 
-    let intervalsPC = pcs.map(pc => (pc - rootPc + 12) % 12).sort((a, b) => a - b);
-    if (intervalsPC.includes(3) && intervalsPC.includes(4)) intervalsPC = intervalsPC.filter(iv => iv !== 4);
-    if (intervalsPC.includes(4) && intervalsPC.includes(1)) intervalsPC = intervalsPC.filter(iv => iv !== 1);
+    // 9. tri selon priorité pure vs slash
+    let ordered = this.sortByPriority(unique, strict);
 
-    for (const [name, formula] of Object.entries(this.chordFormulas)) {
-      if (!formula.every(iv => intervalsPC.includes(iv))) continue;
-      const has7 = intervalsPC.includes(10) || intervalsPC.includes(11);
-      if (has7 && (name === '6' || name === 'm6')) continue;
+    // 10. option preferSixth
+    if (preferSixth) {
+      ordered = this.filterPreferSixth(ordered);
+    }
 
-      let chordName = this.getNoteName(rootPc) + name;
-      const hasMin3 = intervalsPC.includes(3);
-      const hasMaj3 = intervalsPC.includes(4);
-
-      if ((name === 'sus2' || name === 'sus4') && (hasMin3 || hasMaj3)) {
-        if (name === 'sus2') chordName = this.getNoteName(rootPc) + 'add2';
-        if (name === 'sus4') chordName = this.getNoteName(rootPc) + 'add4';
-      }
-
-      if (intervalsAbs.length) {
-        const has2 = intervalsAbs.includes(2);
-        const has9 = intervalsAbs.includes(14);
-        const has4 = intervalsAbs.includes(5);
-        const has11 = intervalsAbs.includes(17);
-        const has13 = intervalsAbs.includes(21);
-
-        if (!chordName.includes('sus2') && !chordName.includes('add2')) {
-          if (has9) chordName += 'add9';
-          else if (has2) chordName += 'add2';
-        } else if (chordName.includes('add2') && has9) {
-          chordName = chordName.replace('add2', 'add9');
-        }
-
-        if (!chordName.includes('sus4') && !chordName.includes('add4')) {
-          if (has11) chordName += 'add11';
-          else if (has4) chordName += 'add4';
-        } else if (chordName.includes('add4') && has11) {
-          chordName = chordName.replace('add4', 'add11');
-        }
-
-        if (has13) chordName += 'add13';
-
-        if (has7) {
-          if (intervalsAbs.includes(21)) chordName = chordName.replace('7', '13');
-          else if (intervalsAbs.includes(17)) chordName = chordName.replace('7', '11');
-          else if (intervalsAbs.includes(14)) chordName = chordName.replace('7', '9');
+      if (
+      ordered.length === 0 &&
+      omitFifth &&
+      !missingFifthRecursed &&
+      midiNums.length >= 4
+    ) {
+      // on tente de retirer la quinte une fois pour chaque root possible
+      const pcs = this.getUniquePcs(midiNums);
+      for (const rootPc of pcs) {
+        const fifthPc = (rootPc + 7) % 12;
+        const idx = midiNums.findIndex(n => this.midiToPc(n) === fifthPc);
+        if (idx !== -1) {
+          // on retire la quinte et on relance la reconnaissance
+          const reduced = midiNums.slice(0, idx).concat(midiNums.slice(idx + 1));
+          const retry = this.recognizeChord(
+            reduced,
+            options,    // omitFifth reste true mais on bloque la récursion
+            true        // missingFifthRecursed = true
+          );
+          if (retry.length > 0) {
+            return retry;
+          }
         }
       }
+    }
 
-      const alts = [];
-      if (intervalsAbs.includes(13) && !hasMaj3) alts.push('b9');
-      if (intervalsAbs.includes(15) && !hasMin3) alts.push('♯9');
-      if (intervalsAbs.includes(18)) alts.push('♯11');
-      if (intervalsAbs.includes(20)) alts.push('♭13');
-      if (alts.length) chordName += `(${alts.join(',')})`;
+    return ordered;
+  }
+  
 
-      const baseCount = formula.filter(iv => intervalsPC.includes(iv)).length;
-      let extIntervals = [14, 17, 21];
-      if (chordName.includes('add2') && !chordName.includes('add9')) extIntervals.push(2);
-      if (chordName.includes('add4') && !chordName.includes('add11')) extIntervals.push(5);
-      const extCount = extIntervals.filter(iv => intervalsAbs.includes(iv)).length;
-      const altCount = alts.length;
-      const recognizedNotes = baseCount + extCount + altCount;
-      const totalNotes = formula.length + extCount + altCount;
+  // Utilitaires pipeline
 
-      const chordPCs = new Set([
-        ...formula,
-        ...extIntervals.filter(iv => intervalsAbs.includes(iv)),
-        ...alts.map(a => {
-          if (a === 'b9') return 13;
-          if (a === '♯9') return 15;
-          if (a === '♯11') return 18;
-          if (a === '♭13') return 20;
-          return null;
-        }).filter(v => v !== null)
-      ]);
-      const chordPCsAbs = [...chordPCs].map(iv => (rootPc + iv) % 12).sort((a, b) => a - b);
-      const chordSignature = chordPCsAbs.join(',');
+  // 1. pitch-classes uniques et triées
+  getUniquePcs(midiNums) {
+    return Array
+      .from(new Set(midiNums.map(n => this.midiToPc(n))))
+      .sort((a, b) => a - b);
+  }
 
-      chordName = this.sanitizeAddVsBass(chordName, rootPc, midiList[0] % 12);
+  // 2. ici, tous les pcs sont candidats racines
+  findRootCandidates(pcs) {
+    return pcs;
+  }
 
-      const r = {
-        root: this.getNoteName(rootPc),
-        type: chordName.replace(this.getNoteName(rootPc), ''),
-        bass: bassNote,
-        formulaSize: formula.length,
-        recognizedNotes,
-        totalNotes,
-        chordSignature
+  // 3 & 4. calcul des semis bruts et modulo 12 + rootName
+  computeSemis(midiNums, rootPc) {
+    const rootMidis = midiNums.filter(n => this.midiToPc(n) === rootPc);
+    const rootMidi  = Math.min(...rootMidis);
+    const semis     = midiNums
+      .map(n => n - rootMidi)
+      .sort((a, b) => a - b);
+    const semisMod  = Array
+      .from(new Set(semis.map(iv => ((iv % 12) + 12) % 12)))
+      .sort((a, b) => a - b);
+
+    return {
+      semis,
+      semisMod,
+      rootName: this.pcToName(rootPc)
+    };
+  }
+
+  // 5. matching du squelette triade/tétrade
+matchesSkeleton(skelIntervals, semisMod, allowMissingFifth = true) {
+  const skelPC = skelIntervals.map(iv => ((iv % 12) + 12) % 12);
+  const fifthPC = ((7 % 12) + 12) % 12;
+
+  return skelPC.every(pc => {
+    if (allowMissingFifth && pc === fifthPC) return true;
+    return semisMod.includes(pc);
+  });
+}
+
+  // 6. détection de l’extension la plus riche
+ detectExtension(chordLabel, semis, semisMod, allowMissingFifth = true) {
+  const exts = this.extSignatures[chordLabel] || [];
+  for (const ext of exts) {
+    const sigPCs = Array
+      .from(new Set(ext.intervals.map(iv => ((iv % 12) + 12) % 12)))
+      .sort((a, b) => a - b);
+
+    const fifthPC = ((7 % 12) + 12) % 12;
+    const filteredSig = allowMissingFifth
+      ? sigPCs.filter(pc => pc !== fifthPC)
+      : sigPCs;
+
+    const filteredSemis = allowMissingFifth
+      ? semisMod.filter(pc => pc !== fifthPC)
+      : semisMod;
+
+    if (
+      filteredSig.length === filteredSemis.length &&
+      filteredSig.every((v, i) => v === filteredSemis[i])
+    ) {
+      return {
+        label:         ext.label,
+        usedIntervals: ext.intervals
       };
-
-      this.computeScore(r, midiList);
-      results.push(r);
-    }
-  });
-
-  // --- 3. Ajout des slash chords ---
-  results.forEach(r => {
-    if (r.bass !== r.root) {
-      r.type = r.type ? `${r.type}/${r.bass}` : `/${r.bass}`;
-    }
-  });
-
-  // --- 4. Tri par score ---
-  results.sort((a, b) => b.score - a.score);
-
-  // --- 5. Filtrage des sous-ensembles ---
-  const filtered = [];
-  for (const chord of results) {
-    const sigArr = chord.chordSignature.split(',').map(Number);
-    let isSubset = false;
-
-    for (const kept of filtered) {
-      const biggerArr = kept.chordSignature.split(',').map(Number);
-      if (sigArr.every(n => biggerArr.includes(n)) && biggerArr.length > sigArr.length) {
-        isSubset = true;
-        console.log(`⛔ Sous-ensemble ignoré: ${chord.root}${chord.type} ⊂ ${kept.root}${kept.type}`);
-        break;
-      }
-    }
-
-    if (!isSubset) {
-      filtered.push(chord);
     }
   }
-
-  // --- 6. Résultat final ---
-  return filtered;
+  return null;
 }
 
-}
 
+  // 7. full-coverage avant slash
+  coversAll(usedIntervals, semisMod) {
+    const setPC = new Set(
+      usedIntervals.map(iv => ((iv % 12) + 12) % 12)
+    );
+    return semisMod.every(pc => setPC.has(pc));
+  }
+
+  // 8. génération du résultat pur et slash
+  buildChordResults(midiNums, rootPc, chordLabel, usedIntervals) {
+    const rootName = this.pcToName(rootPc);
+    const bassMidi = Math.min(...midiNums);
+    const bassPc   = this.midiToPc(bassMidi);
+    const bassName = this.pcToName(bassPc);
+
+    const final = {
+      label:   chordLabel + (bassPc !== rootPc ? `/${bassName}` : ''),
+      root:  rootName,
+      basse: bassName
+    };
+
+    return [ final ];
+  }
+
+  // 9. déduplication par nom
+  deduplicate(results) {
+    const seen = new Set();
+    return results.filter(r => {
+      if (seen.has(r.label)) return false;
+      seen.add(r.label);
+      return true;
+    });
+  }
+
+  // 10. tri pure vs slash selon priorité
+  sortByPriority(results, strict) {
+    const pure  = results.filter(r => !r.label.includes('/'));
+    const slash = results.filter(r =>  r.label.includes('/'));
+    return strict ? [...pure, ...slash] : [...slash, ...pure];
+  }
+
+  // 11. option preferSixth
+  filterPreferSixth(results) {
+    const isSix = r => /\b6(?![0-9])/.test(r.label);
+    const sixes = results.filter(isSix);
+    const rest  = results.filter(r => !isSix(r));
+    return [...sixes, ...rest];
+  }
+
+  // utilitaires midi ↔ pc ↔ nom
+  midiToPc(m)   { return ((m % 12) + 12) % 12; }
+  pcToName(pc)  { return this.noteNames[pc]; }
+
+  // construction de la librairie de base
+  buildChordLibrary() {
+      return chordLibrary;
+  }
+}

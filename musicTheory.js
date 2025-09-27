@@ -382,6 +382,17 @@ function parseDegree(rawDegree = '') {
   return { digit, accidental };
 }
 
+function parseInterval(rawDegree = '') {
+  // 1) nature +  chiffre obligatoire 1–7
+  const match = rawDegree.match(/^([PMmdA]?)(\d+)$/);
+  if (!match) return null;
+
+  // match[1] 
+  let nature = match[1] || '';
+  const digit = match[2];
+  return { digit, nature };
+}
+
 function parseNoteName(noteName='') {
   const match = noteName.match(/^([A-G])(bb|b|##|#|♭|♯|𝄫|𝄪|♮)?$/);
   if (!match) return null;
