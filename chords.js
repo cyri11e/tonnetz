@@ -56,10 +56,11 @@ class ChordDetector {
       const structure = this.analyzeIntervals(midiNums, rootPc);
       if (!structure) continue;
 
-      const label = this.formatChordName(structure);
+      const label = this.formatChordName(structure).main;
+      const altLabel = this.formatChordName(structure).alt;
       results.push({
         ...structure,
-        label
+        label, altLabel
       });
     }
 
@@ -264,21 +265,18 @@ formatChordName(struct) {
 
     const ext = extMap[interval];
     if (ext && name.includes(ext)) {
-      console.log('basse deja presente dans le ,nom natif'+name)
       // cas redondant : simplifier en Root/Bass
       alt = name.replace(ext,'') + '/' + struct.bass;
     } else {
       // sinon, garder le slash complet
       name += '/' + struct.bass;
       alt = ''
-    }
-    console.log('nom Alternatif'+alt)
-    
+    }    
   }
 
-  return name;
+  return {main :name, alt : alt};
 }
-
+ 
 
 
 
