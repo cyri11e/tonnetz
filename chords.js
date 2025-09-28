@@ -1,6 +1,19 @@
 class ChordDetector {
   constructor() {
-    this.noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    this.noteNames = [
+  "C",   // 0
+  "Db",  // 1
+  "D",   // 2
+  "Eb",  // 3
+  "E",   // 4
+  "F",   // 5
+  "Gb",  // 6
+  "G",   // 7
+  "Ab",  // 8
+  "A",   // 9
+  "Bb",  // 10
+  "B"    // 11
+];
     this.noteToPc = {
       'C':0, 'C#':1,'Db':1,'D':2,'D#':3,'Eb':3,
       'E':4,'F':5,'F#':6,'Gb':6,'G':7,'G#':8,
@@ -9,6 +22,7 @@ class ChordDetector {
 
     this._lastMidiKey = '';
     this._lastResults = [];
+    this.unitTest()
   }
 
   // --- API principale ---
@@ -157,7 +171,7 @@ detectQuality1357(third, fifth, seventh, is9, is11, is13) {
   }
 
   // Triade mineure
-  if (third === 'm3' && fifth === 'P5') {
+  if (third === 'm3' && (fifth !== 'b5') && (fifth !== '#5')) {
     if (is13) return 'm13';
     if (is11) return 'm11';
     if (is9)  return 'm9';
@@ -242,6 +256,7 @@ formatChordName(struct) {
 
   return name;
 }
+
 
 
 
@@ -371,4 +386,94 @@ scoreStructure(midiNums, struct, rootPc) {
 
   midiToPc(m) { return ((m % 12) + 12) % 12; }
   pcToName(pc) { return this.noteNames[pc]; }
+
+  unitTest() {
+    console.log("=== UNIT TEST CHORD DETECTOR ===");
+const tests = [
+  // --- Triades ---
+  { expect: "C",     midi: [60,64,67] },       // C E G
+  { expect: "C/E",   midi: [64,67,72] },       // E G C
+  { expect: "C/G",   midi: [67,72,76] },       // G C E
+
+  { expect: "Cm",    midi: [60,63,67] },       // C Eb G
+  { expect: "Cm/Eb", midi: [63,67,72] },       // Eb G C
+  { expect: "Cm/G",  midi: [67,72,75] },       // G C Eb
+
+  { expect: "Cdim",  midi: [60,63,66] },       // C Eb Gb
+  { expect: "Cdim/Eb", midi: [63,66,72] },     // Eb Gb C
+  { expect: "Cdim/Gb", midi: [66,72,75] },     // Gb C Eb
+
+  { expect: "Caug",  midi: [60,64,68] },       // C E G#
+  { expect: "Caug/E", midi: [64,68,72] },      // E G# C
+  { expect: "Caug/G#", midi: [68,72,76] },     // G# C E
+
+  { expect: "Csus2", midi: [60,62,67] },       // C D G
+  { expect: "Csus2/D", midi: [62,67,72] },     // D G C
+  { expect: "Csus2/G", midi: [67,72,74] },     // G C D
+
+  { expect: "Csus4", midi: [60,65,67] },       // C F G
+  { expect: "Csus4/F", midi: [65,67,72] },     // F G C
+  { expect: "Csus4/G", midi: [67,72,77] },     // G C F
+
+  // --- Septièmes ---
+  { expect: "Cmaj7", midi: [60,64,67,71] },
+  { expect: "C7",    midi: [60,64,67,70] },
+  { expect: "Cm7",   midi: [60,63,67,70] },
+  { expect: "Cdim7", midi: [60,63,66,69] },
+
+    // Cmaj7 inversions
+  { expect: "Cmaj7/E", midi: [64,67,71,72] }, // E G B C
+  { expect: "Cmaj7/G", midi: [67,71,72,76] }, // G B C E
+  { expect: "Cmaj7/B", midi: [71,72,76,79] }, // B C E G
+
+  // C7 inversions
+  { expect: "C7/E", midi: [64,67,70,72] },    // E G Bb C
+  { expect: "C7/G", midi: [67,70,72,76] },    // G Bb C E
+  { expect: "C7/Bb", midi: [70,72,76,79] },   // Bb C E G
+
+  // Cm7 inversions
+  { expect: "Cm7/Eb", midi: [63,67,70,72] },  // Eb G Bb C
+  { expect: "Cm7/G",  midi: [67,70,72,75] },  // G Bb C Eb
+  { expect: "Cm7/Bb", midi: [70,72,75,79] },  // Bb C Eb G
+
+  // Cdim7 inversions
+  { expect: "Cdim7/Eb", midi: [63,66,69,72] }, // Eb Gb A C (Bbb = A)
+  { expect: "Cdim7/Gb", midi: [66,69,72,75] }, // Gb A C Eb
+  { expect: "Cdim7/A",  midi: [69,72,75,78] }, // A C Eb Gb
+
+  // --- Septièmes sans quinte ---
+  { expect: "Cmaj7(no5)", midi: [60,64,71] },
+  { expect: "C7(no5)",    midi: [60,64,70] },
+  { expect: "Cm7(no5)",   midi: [60,63,70] },
+
+  // --- 9èmes ---
+  { expect: "C9",     midi: [60,64,67,70,74] },
+  { expect: "Cadd9",  midi: [60,64,67,74] },
+  { expect: "C9(no5)",midi: [60,64,70,74] },
+
+  // --- 11èmes ---
+  { expect: "C11",       midi: [60,64,67,70,74,77] },
+  { expect: "C11(no5)",  midi: [60,64,70,74,77] },
+  { expect: "C11(no7)",  midi: [60,64,67,74,77] },
+  { expect: "C11(no9)",  midi: [60,64,67,70,77] },
+
+  // --- 13èmes ---
+  { expect: "C13",       midi: [60,64,67,70,74,77,81] },
+  { expect: "C13(no5)",  midi: [60,64,70,74,77,81] },
+  { expect: "C13(no7)",  midi: [60,64,67,74,77,81] },
+  { expect: "C13(no9)",  midi: [60,64,67,70,77,81] },
+  { expect: "C13(no11)", midi: [60,64,67,70,74,81] },
+];
+
+
+    for (const t of tests) {
+      const res = this.analyzeIntervals(t.midi, 0); // rootPc = C
+      const label = res ? this.formatChordName(res) : "null";
+      if (label === t.expect) {
+        console.log("✔", t.expect, "OK");
+      } else {
+        console.error("✖", t.expect, "=>", label);
+      }
+    }
+  }
 }
