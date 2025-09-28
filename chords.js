@@ -56,11 +56,13 @@ class ChordDetector {
       const structure = this.analyzeIntervals(midiNums, rootPc);
       if (!structure) continue;
 
-      const label = this.formatChordName(structure).main;
-      const altLabel = this.formatChordName(structure).alt;
+      const label = toUnicodeAlteration(this.formatChordName(structure).main);
+      const altLabel = toUnicodeAlteration(this.formatChordName(structure).alt);
+
       results.push({
         ...structure,
-        label, altLabel
+        label, 
+        altLabel
       });
     }
 
@@ -250,31 +252,46 @@ formatChordName(struct) {
     name += '(' + struct.alterations.join(',') + ')';
   }
 
-  // --- Slash chord ---
-  let alt = name
-  if (struct.bass && struct.bass !== struct.root) {
-    console.log('recherche nom alternatif pour '+name)
-    const interval = (this.noteToPc[struct.bass] - this.noteToPc[struct.root] + 12) % 12;
+// --- Slash chord ---
+let alt = '';
+if (struct.bass && struct.bass !== struct.root) {
+  console.log('recherche nom alternatif pour ' + name);
+  const interval = (this.noteToPc[struct.bass] - this.noteToPc[struct.root] + 12) % 12;
 
-    // mapping interval -> addX
-    const extMap = {
-      2: 'add9',
-      5: 'add11',
-      9: 'add13'
-    };
+  // mapping extension -> interval
+  const extMap = {
+    'add9'  : 2,
+    'maj9'  : 2,
+    'add11' : 5,
+    'maj11' : 5,
+    'add13' : 9,
+    'maj13' : 9
+  };
 
-    const ext = extMap[interval];
-    if (ext && name.includes(ext)) {
-      // cas redondant : simplifier en Root/Bass
-      alt = name.replace(ext,'') + '/' + struct.bass;
-    } else {
-      // sinon, garder le slash complet
-      name += '/' + struct.bass;
-      alt = ''
-    }    
+  for (const ext in extMap) {
+    if (extMap[ext] === interval && name.includes(ext)) {
+      if (ext.startsWith('add')) {
+        console.log('add trouvé');
+        alt = name.replace(ext, '') + '/' + struct.bass;
+      } else if (ext.startsWith('maj')) {
+        console.log('maj trouvé');
+        const prev = {
+          'maj9':  'maj7',
+          'maj11': 'maj9',
+          'maj13': 'maj11'
+        };
+        alt = name.replace(ext, prev[ext]) + '/' + struct.bass;
+      }
+    }
   }
 
-  return {main :name, alt : alt};
+  if (!alt) {
+    // sinon, garder le slash complet
+    name += '/' + struct.bass;
+  }
+}
+
+return { main: name, alt: alt };
 }
  
 

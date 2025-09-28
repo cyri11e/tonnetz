@@ -1,6 +1,7 @@
 let tonnetz, midiInput, piano, fretboard, cof, history
 
 let lastChordText = '';
+let lastAltChordText = '';
 let lastChordTime = 0;
 let lastClickTime = 0;
 let noteListView;
@@ -84,9 +85,11 @@ function draw() {
 
   if (chordIsActive) {
     const chord = chords[0];
+    const chord2 = chords[1]||'';
     const newTextChord = `${chord.root}${chord.label}`
     
     lastChordText = `${chord.label}`;
+    lastAltChordText = `${chord.altLabel||chord2.label||''}`;
     lastChordTime = millis();
   }
 
@@ -139,7 +142,7 @@ function displayChord(g) {
   g.textStyle(BOLD);
 
   const targetWidth = width * 0.8;
-  const baseSize = height / 3;
+  const baseSize = height / 4;
   let fontSize = baseSize;
   g.textSize(fontSize);
   let tw = g.textWidth(lastChordText);
@@ -156,9 +159,10 @@ function displayChord(g) {
   g.strokeWeight(fontSize / 16);
   g.stroke(outline);
   g.fill(c);
-  g.text(lastChordText, width / 2, 5 * height / 10);
+  g.text(lastChordText, width / 2,  1.5 * height / 10);
   g.noStroke();
-  g.text(lastChordText, width / 2, 5 * height / 10);
+  g.textSize(fontSize/2);
+  g.text(lastAltChordText, width / 2, 3.5 * height / 10);
   g.pop();
 }
 
