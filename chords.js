@@ -38,6 +38,7 @@ class ChordDetector {
     const results = [];
 
     for (const rootPc of pcs) {
+      console.log('------------')
       const structure = this.analyzeIntervals(midiNums, rootPc);
       if (!structure) continue;
 
@@ -80,14 +81,17 @@ analyzeIntervals(midiNums, rootPc) {
   let third = null;
   if (degrees.has('M3')) third = 'M3';
   else if (degrees.has('m3')) third = 'm3';
-  else if (degrees.has('9')) third = 'sus2';
-  else if (degrees.has('11')) third = 'sus4';
+  else if (degrees.has('9')&&(degrees.has('P5'))) third = 'sus2';
+  else if (degrees.has('11')&&(degrees.has('P5'))) third = 'sus4';
+
+  if (!third) return;
 
   // --- Quinte ---
   let fifth = null;
-  if (degrees.has('b5')) fifth = 'b5';
-  else if (degrees.has('#5')) fifth = '#5';
-  else fifth = 'P5'; // défaut
+  if (degrees.has('P5'))fifth = 'P5';
+  else if (degrees.has('b5')) fifth = 'b5';
+  else if (degrees.has('#5')&&degrees.has('M3')) fifth = '#5';
+
 
   // --- Septième ---
   let seventh = null;
@@ -97,8 +101,8 @@ analyzeIntervals(midiNums, rootPc) {
 
 
   // --- Extensions hiérarchiques ---
-  const has9  = degrees.has('9');
-  const has11 = degrees.has('11');
+  const has9  = degrees.has('9')&& (third !== 'sus2');;
+  const has11 = degrees.has('11') && (third !== 'sus4');
   const has13 = degrees.has('13')&&(!((third == 'm3')&&( fifth == 'b5')));
   const has7  = !!seventh;
 
@@ -124,7 +128,10 @@ analyzeIntervals(midiNums, rootPc) {
   if (third === 'sus4') {
     is11 = false; add11 = false;
   }
- console.log(degrees)
+
+  if (!fifth&&!seventh) return;
+
+ //console.log(degrees)
   return {
     root: rootName,
     bass: bassName,
@@ -140,7 +147,7 @@ analyzeIntervals(midiNums, rootPc) {
 
 detectQuality1357(third, fifth, seventh, is9, is11, is13) {
   // Triade majeure
-  if (third === 'M3' && fifth === 'P5') {
+  if ((third === 'M3') && (fifth !== 'b5') && (fifth !== '#5')){
     if (is13) return (seventh === 'M7') ? 'maj13' : '13';
     if (is11) return (seventh === 'M7') ? 'maj11' : '11';
     if (is9)  return (seventh === 'M7') ? 'maj9'  : '9';
@@ -282,7 +289,7 @@ if (struct.third === 'M3' && struct.fifth === 'P5') {
   if (struct.add11) intervals.push(17);
   if (struct.add13) intervals.push(21);
 
-  console.log(intervals)
+  //console.log(intervals)
   // Conversion en pitch classes
   const chordPcs = new Set(intervals.map(iv => (rootPc + iv) % 12));
 
@@ -307,8 +314,15 @@ scoreStructure(midiNums, struct, rootPc) {
   for (const pc of chordPcs) {
     if (playedPcs.has(pc)) covered++;
   }
+  
+  // Bonus : si la basse jouée correspond à la fondamentale de l'accord
+  const bassPc = this.midiToPc(Math.min(...midiNums));
 
-  const coverage = covered / chordPcs.length;
+  if (bassPc === rootPc) {
+    covered += 2;
+  }
+
+  const coverage = covered / chordPcs.length 
   return { coverage, size: chordPcs.length, covered };
 }
 
