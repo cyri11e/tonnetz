@@ -245,7 +245,9 @@ formatChordName(struct) {
   // --- addX ---
   if (struct.add9)  name += 'add9';
   if (struct.add11) name += 'add11';
-  if (struct.add13) name += 'add13';
+  if (struct.add13)
+    if (struct.seventh) name += 'add13';
+    else  name += '6';
 
   // --- Altérations éventuelles ---
   if (struct.alterations && struct.alterations.length > 0) {
