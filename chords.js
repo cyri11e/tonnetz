@@ -250,8 +250,30 @@ formatChordName(struct) {
   }
 
   // --- Slash chord ---
+  let alt = name
   if (struct.bass && struct.bass !== struct.root) {
-    name += '/' + struct.bass;
+    console.log('recherche nom alternatif pour '+name)
+    const interval = (this.noteToPc[struct.bass] - this.noteToPc[struct.root] + 12) % 12;
+
+    // mapping interval -> addX
+    const extMap = {
+      2: 'add9',
+      5: 'add11',
+      9: 'add13'
+    };
+
+    const ext = extMap[interval];
+    if (ext && name.includes(ext)) {
+      console.log('basse deja presente dans le ,nom natif'+name)
+      // cas redondant : simplifier en Root/Bass
+      alt = name.replace(ext,'') + '/' + struct.bass;
+    } else {
+      // sinon, garder le slash complet
+      name += '/' + struct.bass;
+      alt = ''
+    }
+    console.log('nom Alternatif'+alt)
+    
   }
 
   return name;
