@@ -70,7 +70,7 @@ displayScaleLabel(g, positions, radius) {
     scaleText = `${tonicName} Gamme inconnue`;
   }
 
-  const targetWidth = width * 0.9;
+  const targetWidth = width ;
   let fontSize = CONFIG.fontSize * 2;
   g.textSize(fontSize);
   let tw = g.textWidth(scaleText);
@@ -110,7 +110,7 @@ displayScaleLabel(g, positions, radius) {
     pcs.push(this.tonicPc); // tonique à l’octave
 
     const bubbleCount = pcs.length;
-    const targetWidth = canvasWidth * 0.9;
+    const targetWidth = canvasWidth * 1.9;
 
     let radius = CONFIG.nodeRadius * this.scale;
     let spacing = radius * 2.1;
@@ -191,7 +191,7 @@ displayScaleLabel(g, positions, radius) {
       const colorIndex = QUINTE_INDEX[i % 12];
       const noteColor = color(CONFIG.colors.noteColors[colorIndex]);
 
-      noteColor.setAlpha(isActive ? 220 : CONFIG.inactiveNoteBgalpha);
+      noteColor.setAlpha(isActive ? 250 : CONFIG.inactiveNoteBgalpha);
       if (inGamme) {
         g.fill(noteColor);
       } else {
@@ -221,16 +221,26 @@ displayScaleLabel(g, positions, radius) {
       }
 
       let labelColor = color(inGamme ? CONFIG.colors.nodeLabel : CONFIG.colors.inactiveNodeLabel);
-      labelColor.setAlpha(inGamme ? 185 : 80);
+      labelColor.setAlpha(inGamme ? 225 : 80);
       g.fill(labelColor);
       g.noStroke();
       g.textSize(radius);
-      textNote(g, name, x, y);
+      const NOTE_LABEL_OFFSET = -radius * 0.3; // ajuste la valeur à ton goût
+      textNote(g, name, x, y + NOTE_LABEL_OFFSET);
+
 
       let degreeColor = color(CONFIG.colors.degreeLabel);
-      degreeColor.setAlpha(inGamme ? 225 : 80);
+      degreeColor.setAlpha(isActive ? 255 : inGamme ? 185 : 80);
+
       if (degrees && degrees !== "♪") {
-        g.textSize(radius * 0.6);
+          if (isActive) {
+          // Ombre derrière le texte
+          g.fill(0, 0, 0, 180); // noir semi-transparent
+          g.textSize(radius * 0.9);
+          g.textStyle(BOLD);
+          textDegree(g, degrees, x + 2, y + radius * 0.6 + 2); // léger décalage
+        }
+        g.textSize(radius * 0.8);
         g.textStyle(NORMAL);
         g.fill(degreeColor);
         if (this.layoutMode === 'circle' && positions[i].degreeX !== undefined) {
@@ -246,11 +256,11 @@ displayScaleLabel(g, positions, radius) {
         labelColor.setAlpha(255 * fadeFactor);
         g.fill(labelColor);
         g.textSize(radius);
-        textNote(g, name, x, y);
+        textNote(g, name, x, y + NOTE_LABEL_OFFSET);
 
         if (degrees && degrees !== "♪") {
 
-          g.textSize(radius * 0.6);
+          g.textSize(radius * 0.8);
           g.textStyle(NORMAL);
           g.fill(degreeColor);
           if (this.layoutMode === 'circle' && positions[i].degreeX !== undefined) {
