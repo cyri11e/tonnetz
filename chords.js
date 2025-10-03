@@ -69,86 +69,110 @@ class ChordDetector {
     let unique = this.deduplicate(results);
     return this.sortByPriority(unique, midiNums);
   }
+toNoteObjects(midiNums, rootPc) {
+  return midiNums.map(m => {
+    const pc = this.midiToPc(m);
+    const note = this.pcToName(pc);
+    const iv = ((m - rootPc) % 12 + 12) % 12; // intervalle relatif à la fondamentale
+
+    return {
+      midi: m,
+      pc,
+      note,
+      iv,
+      func: null // fonction musicale, qu’on remplira après
+    };
+  });
+}
 
 analyzeIntervals(midiNums, rootPc) {
-  const degrees = new Set();
-  for (const n of midiNums) {
-    const iv = ((n - rootPc) % 12 + 12) % 12;
-    switch (iv) {
-      case 1: degrees.add('b9'); break;
-      case 2: degrees.add('9'); break;
-      case 3: degrees.add('m3'); break;
-      case 4: degrees.add('M3'); break;
-      case 5: degrees.add('11'); break;
-      case 6: degrees.add('b5'); break;
-      case 7: degrees.add('P5'); break;
-      case 8: degrees.add('#5'); break;
-      case 9: degrees.add('13'); break;
-      case 10: degrees.add('m7'); break;
-      case 11: degrees.add('M7'); break;
-    }
-  }
+  if (!midiNums || midiNums.length === 0) return null;
+
+  const notes = this.toNoteObjects(midiNums, rootPc);
+  const degrees = new Set(notes.map(n => n.iv));
 
   const rootName = this.pcToName(rootPc);
   const bassMidi = Math.min(...midiNums);
   const bassPc   = this.midiToPc(bassMidi);
   const bassName = this.pcToName(bassPc);
 
-  // --- Tierce / sus ---
+  // --- Détection tierce / sus ---
   let third = null;
-  if (degrees.has('M3')) third = 'M3';
-  else if (degrees.has('m3')) third = 'm3';
-  else if (degrees.has('9')&&(degrees.has('P5'))) third = 'sus2';
-  else if (degrees.has('11')&&(degrees.has('P5'))) third = 'sus4';
+  if (degrees.has(4)) third = 'M3';
+  else if (degrees.has(3)) third = 'm3';
+  else if (degrees.has(2) && degrees.has(7)) third = 'sus2';
+  else if (degrees.has(5) && degrees.has(7)) third = 'sus4';
 
-  if (!third) return;
+  if (!third) return null;
 
   // --- Quinte ---
   let fifth = null;
-  if (degrees.has('P5'))fifth = 'P5';
-  else if (degrees.has('b5')) fifth = 'b5';
-  else if (degrees.has('#5')&&degrees.has('M3')) fifth = '#5';
-
+  if (degrees.has(7)) fifth = 'P5';
+  else if (degrees.has(6)) fifth = 'b5';
+  else if (degrees.has(8) && third === 'M3') fifth = '#5';
 
   // --- Septième ---
   let seventh = null;
-  if (degrees.has('m7')) seventh = 'm7';
-  else if (degrees.has('M7')) seventh = 'M7';
-  else if (degrees.has('13')&&(third == 'm3')&&( fifth == 'b5')) seventh = 'bb7';
-
+  if (degrees.has(10)) seventh = 'm7';
+  else if (degrees.has(11)) seventh = 'M7';
+  else if (degrees.has(9) && third === 'm3' && fifth === 'b5') seventh = 'bb7';
 
   // --- Extensions hiérarchiques ---
-  const has9  = degrees.has('9')&& (third !== 'sus2');;
-  const has11 = degrees.has('11') && (third !== 'sus4');
-  const has13 = degrees.has('13')&&(!((third == 'm3')&&( fifth == 'b5')));
+  const has9  = degrees.has(2) && third !== 'sus2';
+  const has11 = degrees.has(5) && third !== 'sus4';
+  const has13 = degrees.has(9) && !(third === 'm3' && fifth === 'b5');
   const has7  = !!seventh;
 
   let is9=false, is11=false, is13=false;
   let add9=false, add11=false, add13=false;
 
-  if (has13 && has7) {
-    is13 = true;
-  } else if (has11 && has7) {
-    is11 = true;
-  } else if (has9 && has7) {
-    is9 = true;
-  }
+  if (has13 && has7) is13 = true;
+  else if (has11 && has7) is11 = true;
+  else if (has9 && has7)  is9 = true;
 
-  if (has9 && !has7) add9 = true;
+  if (has9 && !has7)  add9 = true;
   if (has11 && !has7) add11 = true;
   if (has13 && !has7) add13 = true;
 
-  // --- Nettoyage sus (éviter sus29, sus411) ---
-  if (third === 'sus2') {
-    is9 = false; add9 = false;
-  }
-  if (third === 'sus4') {
-    is11 = false; add11 = false;
-  }
+  // --- Nettoyage sus ---
+  if (third === 'sus2') { is9 = false; add9 = false; }
+  if (third === 'sus4') { is11 = false; add11 = false; }
 
-  if (!fifth&&!seventh) return;
+  if (!fifth && !seventh) return null;
 
- //console.log(degrees)
+  // --- Attribution des fonctions aux notes ---
+for (const n of notes) {
+  switch (n.iv) {
+    case 0:  n.func = "R"; break;
+    case 3:  n.func = "m3"; break;
+    case 4:  n.func = "M3"; break;
+    case 6:  n.func = "♭5"; break;   // ← vrai symbole bémol
+    case 7:  n.func = "5"; break;
+    case 8:  n.func = "♯5"; break;   // ← vrai symbole dièse
+    case 10: n.func = "m7"; break;
+    case 11: n.func = "M7"; break;
+
+    case 2:
+      if (third === 'sus2') n.func = "sus2";
+      else if (is9 || is11 || is13) n.func = "9";
+      else if (add9) n.func = "add9";
+      break;
+
+    case 5:
+      if (third === 'sus4') n.func = "sus4";
+      else if (is11 || is13) n.func = "11";
+      else if (add11) n.func = "add11";
+      break;
+
+    case 9:
+      if (is13) n.func = "13";
+      else if (add13 && (third === 'M3' || third === 'm3')) n.func = "6";
+      break;
+  }
+}
+
+
+
   return {
     root: rootName,
     bass: bassName,
@@ -157,10 +181,12 @@ analyzeIntervals(midiNums, rootPc) {
     seventh,
     is9, is11, is13,
     add9, add11, add13,
-    alterations: Array.from(degrees).filter(d => ['b9','#9','#11','b13'].includes(d)),
-    extensions: [] // toujours défini, même si vide
+    alterations: [], // à compléter si besoin
+    extensions: [],
+    notes // <--- tableau enrichi
   };
 }
+
 
 detectQuality1357(third, fifth, seventh, is9, is11, is13) {
   // Triade majeure
@@ -242,16 +268,23 @@ formatChordName(struct) {
   );
   if (quality) name += quality;
 
-  // --- addX ---
-  if (struct.add9)  name += 'add9';
-  if (struct.add11) name += 'add11';
-  if (struct.add13)
-    if (struct.seventh) name += 'add13';
-    else  name += '6';
+// --- addX ---
+if (struct.add13) {
+  if (!struct.seventh && struct.third.includes('3')) {
+    name += '6';
+  } else {
+    name += 'add13';
+  }
+}
+
+if (struct.add9)  name += 'add9';
+if (struct.add11) name += 'add11';
+
+  
 
   // --- Altérations éventuelles ---
   if (struct.alterations && struct.alterations.length > 0) {
-    name += '(' + struct.alterations.join(',') + ')';
+    name +=  struct.alterations.join(',') ;
   }
 
 // --- Slash chord ---
@@ -292,7 +325,8 @@ if (struct.bass && struct.bass !== struct.root) {
     name += '/' + struct.bass;
   }
 }
-
+if (!struct.fifth) name += '(no5)';
+//if (!struct.seventh) name += '(no7)';
 return { main: name, alt: alt };
 }
  

@@ -34,7 +34,12 @@ function setup() {
   midiInput = new MidiManager((notes, midiNums) => {
     tonnetz.updateFromMidi(midiNums);
     piano.setMidiNotes(midiNums);
-    fretboard.setMidiNotes(midiNums);
+
+    if (midiNums.length > 0) {
+      fretboard.setMidiNotes(midiNums);
+    } else {
+      fretboard.clearNotes(); // méthode à créer pour réinitialiser proprement
+    }
   });
   midiInput.init();
 
@@ -55,7 +60,7 @@ function setup() {
   // Example: width-full, height = width/8, no background fill, at the bottom
   const ratio = 1 / 5;
   fretboard = new Fretboard({
-    frets: 20,
+    frets: 15,
     orientation: 'right',
     pov: false,
     canvasWidth: width,
@@ -64,7 +69,7 @@ function setup() {
     drawBg: true,         // important: don't repaint the area if you already have a global bg
     bottomOffset: 0        // raise this if you want it above another component (e.g., piano)
   });
-  fretboard.hide = true ;
+  fretboard.hide = false ;
   // hsitorique des accords
   //history = new ChordsHistory(0, 0, width/3, height-80); // zone initiale
 }
@@ -78,6 +83,14 @@ function draw() {
 
   const activeNotes = tonnetz.getActiveNotes();
   const chords = activeNotes.length >= 3 ? tonnetz.getDetectedChords() : [];
+
+  // passage de l accords a piano
+  if (chords.length) {
+    const chord = chords[0];
+    piano.setChord(chord);
+    fretboard.setChord(chord);
+  }
+  
   const chordIsActive = chords.length > 0;
   if (chords.length > 0) {
     rootNote = tonnetz.chordDetector.noteToPc[chords[0].root];
@@ -260,6 +273,19 @@ function keyPressed() {
     return;
   }
 
+if (keyCode === RIGHT_ARROW) {
+  if (fretboard?.allCombos?.length > 0) {
+    fretboard.comboIndex = (fretboard.comboIndex + 1) % fretboard.allCombos.length;
+    fretboard.updateFilteredCombo();
+  }
+}
+if (keyCode === LEFT_ARROW) {
+  if (fretboard?.allCombos?.length > 0) {
+    fretboard.comboIndex = (fretboard.comboIndex - 1 + fretboard.allCombos.length) % fretboard.allCombos.length;
+    fretboard.updateFilteredCombo();
+  }
+}
+
 
   if (key === 'Z' || key === 'z') {
     tonnetz.hide = !tonnetz.hide;
@@ -342,6 +368,7 @@ function windowResized() {
   tonnetz.resize(width, height);
   cof.build();
   piano.initLayout(width, height);
+  fretboard.resizeTo(width, Math.round(width * 0.2));
 }
 
 function mouseWheel(event) {
@@ -401,6 +428,9 @@ function mouseWheel(event) {
 
 
 function mouseDragged() {
+  if (fretboard.isSelecting) {
+    fretboard.selectionEndX = mouseX;
+  }
   //history.mouseDragged(mouseX, mouseY);
   const isOverPiano = !piano.hide &&
     mouseY > height - piano.whiteKeyHeight - 20;
@@ -451,6 +481,10 @@ function mouseDragged() {
 
 
 function mousePressed() {
+
+  fretboard.selectionStartX = mouseX;
+  fretboard.selectionEndX = mouseX;
+  fretboard.isSelecting = true;
   //history.mousePressed(mouseX, mouseY);
   if (mouseButton.right) return;
 
@@ -474,7 +508,37 @@ function mousePressed() {
     if (tonnetz.handleClick(mouseX, mouseY, mouseButton)) return;
   }
 }
+
+function mouseMoved(){
+  fretboard.handleHover(this);
+}
+
 function mouseReleased() {
+
+  if (!fretboard.isSelecting) return;
+  fretboard.isSelecting = false;
+
+  const x0 = Math.min(fretboard.selectionStartX, fretboard.selectionEndX);
+  const x1 = Math.max(fretboard.selectionStartX, fretboard.selectionEndX);
+
+  // Trouver les frettes incluses dans la sélection
+  let minFret = null;
+  let maxFret = null;
+
+  for (let k = 0; k <= fretboard.frets; k++) {
+    const x = fretboard.getCaseCenterX(k);
+    if (x >= x0 && x <= x1) {
+      if (minFret === null || k < minFret) minFret = k;
+      if (maxFret === null || k > maxFret) maxFret = k;
+    }
+  }
+
+  if (minFret !== null && maxFret !== null) {
+    fretboard.setPlayZone({ type: 'range', minFret, maxFret });
+  }
+
+
+
   //history.mouseReleased();
   // NoteListView
   if (!noteListView.hide && noteListView.handleRelease(mouseX, mouseY)) return;
