@@ -165,9 +165,15 @@ for (const n of notes) {
       break;
 
     case 9:
-      if (is13) n.func = "13";
-      else if (add13 && (third === 'M3' || third === 'm3')) n.func = "6";
-      break;
+  if (third === 'm3'&&fifth ==='b5') {
+    n.func = "♭♭7"; // septième diminuée
+  } else if (is13) {
+    n.func = "13";
+  } else if (add13 && (third === 'M3' || third === 'm3')) {
+    n.func = "6";
+  }
+  break;
+
   }
 }
 
