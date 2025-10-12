@@ -140,44 +140,50 @@ analyzeIntervals(midiNums, rootPc) {
 
   if (!fifth && !seventh) return null;
 
+  // --- Altérations d’extensions ---
+  let alterations = [];
+  if (degrees.has(1)) alterations.push('♭9');             // Db
+  if (degrees.has(3) && third !== 'm3') alterations.push('♯9'); // D# (éviter confusion avec m3)
+  if (degrees.has(6)) alterations.push('♯11');            // F#
+  if (degrees.has(8) && fifth !== '#5') alterations.push('♭13'); // Ab
+
   // --- Attribution des fonctions aux notes ---
-for (const n of notes) {
-  switch (n.iv) {
-    case 0:  n.func = "R"; break;
-    case 3:  n.func = "m3"; break;
-    case 4:  n.func = "M3"; break;
-    case 6:  n.func = "♭5"; break;   // ← vrai symbole bémol
-    case 7:  n.func = "5"; break;
-    case 8:  n.func = "♯5"; break;   // ← vrai symbole dièse
-    case 10: n.func = "m7"; break;
-    case 11: n.func = "M7"; break;
+  for (const n of notes) {
+    switch (n.iv) {
+      case 0:  n.func = "R"; break;
+      case 3:  n.func = "m3"; break;
+      case 4:  n.func = "M3"; break;
+      case 6:  n.func = "♯11"; break; // utilisé aussi comme ♭5 si triade diminuée
+      case 7:  n.func = "5"; break;
+      case 8:  n.func = alterations.includes('♭13') ? "♭13" : "♯5"; break;
+      case 10: n.func = "m7"; break;
+      case 11: n.func = "M7"; break;
 
-    case 2:
-      if (third === 'sus2') n.func = "sus2";
-      else if (is9 || is11 || is13) n.func = "9";
-      else if (add9) n.func = "add9";
-      break;
-
-    case 5:
-      if (third === 'sus4') n.func = "sus4";
-      else if (is11 || is13) n.func = "11";
-      else if (add11) n.func = "add11";
-      break;
-
-    case 9:
-  if (third === 'm3'&&fifth ==='b5') {
-    n.func = "♭♭7"; // septième diminuée
-  } else if (is13) {
-    n.func = "13";
-  } else if (add13 && (third === 'M3' || third === 'm3')) {
-    n.func = "6";
+      case 1: if (alterations.includes('♭9')) n.func = "♭9"; break;
+      case 2:
+        if (third === 'sus2') n.func = "sus2";
+        else if (is9 || is11 || is13) n.func = "9";
+        else if (add9) n.func = "add9";
+        break;
+      case 3:
+        if (alterations.includes('♯9') && third !== 'm3') n.func = "♯9";
+        break;
+      case 5:
+        if (third === 'sus4') n.func = "sus4";
+        else if (is11 || is13) n.func = "11";
+        else if (add11) n.func = "add11";
+        break;
+      case 9:
+        if (third === 'm3' && fifth === 'b5') {
+          n.func = "♭♭7";
+        } else if (is13) {
+          n.func = "13";
+        } else if (add13 && (third === 'M3' || third === 'm3')) {
+          n.func = "6";
+        }
+        break;
+    }
   }
-  break;
-
-  }
-}
-
-
 
   return {
     root: rootName,
@@ -187,11 +193,12 @@ for (const n of notes) {
     seventh,
     is9, is11, is13,
     add9, add11, add13,
-    alterations: [], // à compléter si besoin
+    alterations,
     extensions: [],
-    notes // <--- tableau enrichi
+    notes
   };
 }
+
 
 
 detectQuality1357(third, fifth, seventh, is9, is11, is13) {

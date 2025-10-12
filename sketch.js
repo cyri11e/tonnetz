@@ -60,7 +60,7 @@ function setup() {
   // Example: width-full, height = width/8, no background fill, at the bottom
   const ratio = 1 / 5;
   fretboard = new Fretboard({
-    frets: 15,
+    frets: 17,
     orientation: 'right',
     pov: false,
     canvasWidth: width,
@@ -69,7 +69,7 @@ function setup() {
     drawBg: true,         // important: don't repaint the area if you already have a global bg
     bottomOffset: 0        // raise this if you want it above another component (e.g., piano)
   });
-  fretboard.hide = false ;
+  fretboard.hide = true ;
   // hsitorique des accords
   //history = new ChordsHistory(0, 0, width/3, height-80); // zone initiale
 }
@@ -114,6 +114,7 @@ function draw() {
 
 
   piano.draw(this, rootNote);
+  fretboard.handleHover(this);
   fretboard.draw(this, rootNote);
 
   if (chords.length > 0) {
