@@ -144,7 +144,12 @@ analyzeIntervals(midiNums, rootPc) {
   let alterations = [];
   if (degrees.has(1)) alterations.push('♭9');             // Db
   if (degrees.has(3) && third !== 'm3') alterations.push('♯9'); // D# (éviter confusion avec m3)
-  if (degrees.has(6)) alterations.push('♯11');            // F#
+  // ⚠️ Cas particulier : éviter ♯11 sur accords diminués
+  if (degrees.has(6)) {
+    if (!(third === 'm3' && fifth === 'b5')) {
+      alterations.push('♯11');
+    }
+  }
   if (degrees.has(8) && fifth !== '#5') alterations.push('♭13'); // Ab
 
   // --- Attribution des fonctions aux notes ---

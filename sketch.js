@@ -23,7 +23,7 @@ function setup() {
   tonnetz = new Tonnetz({
     startNote: 'G',
     H: 4,
-    Vn: 2,
+    Vn: 4,
     canvas
   });
 

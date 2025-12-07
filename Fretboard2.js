@@ -517,6 +517,7 @@ getClosestComboTo(x, y) {
 }
 // Dans ta classe:
 handleHover(g) {
+  if (this.hide) return;
   if (!g) return;
 
   // Anti-flash (optionnel)
