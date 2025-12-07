@@ -108,7 +108,7 @@ analyzeIntervals(midiNums, rootPc) {
   // --- Quinte ---
   let fifth = null;
   if (degrees.has(7)) fifth = 'P5';
-  else if (degrees.has(6)) fifth = 'b5';
+  else if (degrees.has(6) && third === 'm3') fifth = 'b5';
   else if (degrees.has(8) && third === 'M3') fifth = '#5';
 
   // --- Septième ---
@@ -146,7 +146,7 @@ analyzeIntervals(midiNums, rootPc) {
   if (degrees.has(3) && third !== 'm3') alterations.push('♯9'); // D# (éviter confusion avec m3)
   // ⚠️ Cas particulier : éviter ♯11 sur accords diminués
   if (degrees.has(6)) {
-    if (!(third === 'm3' && fifth === 'b5')) {
+    if ( fifth !== 'b5') {
       alterations.push('♯11');
     }
   }
@@ -158,7 +158,7 @@ analyzeIntervals(midiNums, rootPc) {
       case 0:  n.func = "R"; break;
       case 3:  n.func = "m3"; break;
       case 4:  n.func = "M3"; break;
-      case 6:  n.func = "♯11"; break; // utilisé aussi comme ♭5 si triade diminuée
+      case 6:  n.func = alterations.includes('♯11') ? "♯11" : "♭5"; break; // utilisé aussi comme ♭5 si triade diminuée
       case 7:  n.func = "5"; break;
       case 8:  n.func = alterations.includes('♭13') ? "♭13" : "♯5"; break;
       case 10: n.func = "m7"; break;
