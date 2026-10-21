@@ -21,9 +21,9 @@ function setup() {
   background(CONFIG.colors.bg);
 
   tonnetz = new Tonnetz({
-    startNote: 'G',
-    H: 4,
-    Vn: 4,
+    startNote: 'C',
+    H: 3,
+    Vn: 2,
     canvas
   });
 

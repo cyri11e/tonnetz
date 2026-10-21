@@ -54,7 +54,38 @@ class Piano {
 
     // 3) Maintenant que tout est en place, on initialise la grille
     this.initLayout(canvasWidth, canvasHeight);
+    this.noteBubbles = [];
+    this.previousActiveKeys = new Set();
   }
+
+  spawnBubble(midi) {
+
+    const pc = midi % 12;
+
+    const label =
+      this.gamme?.getNoteName(pc)
+      ?? pcToName(pc, this.noteStyle);
+
+    const x = this.getKeyCenter(midi);
+
+    if (x == null) return;
+
+    this.noteBubbles.push({
+      midi,
+      label,
+
+      x,
+      y: this.yBase - this.whiteKeyHeight - 12,
+
+      birthTime: millis(),
+      lifeTime: 3500,
+
+      radius: 18,
+
+      seed: random(10000)
+    });
+  }
+
   getLocalMouseX(screenMouseX) {
     const local = screenMouseX - this.viewportLeft;
     // ancrer dans la zone utile pour éviter les sauts près des bords
@@ -186,6 +217,15 @@ class Piano {
   }
 
   setMidiNotes(midiNums = []) {
+      const newKeys = new Set(midiNums);
+
+  for (const midi of newKeys) {
+    if (!this.previousActiveKeys.has(midi)) {
+      this.spawnBubble(midi);
+    }
+  }
+
+this.previousActiveKeys = newKeys;
     this.activeKeys = new Set(midiNums);
     this.autoPanZoomEnabled = true;
     this.autoPanZoom(midiNums);
@@ -194,6 +234,66 @@ class Piano {
     this.bufferOverlayNotes(midiNums);
   }
 
+  updateBubbles() {
+
+    const now = millis();
+
+    this.noteBubbles = this.noteBubbles.filter(b => {
+
+      const age = now - b.birthTime;
+
+      if (age > b.lifeTime) {
+        return false;
+      }
+
+      b.y -= 0.25;
+
+      return true;
+    });
+  }
+
+drawBubbles(g) {
+
+  const now = millis();
+
+  for (const b of this.noteBubbles) {
+
+    const age = now - b.birthTime;
+    const t = age / b.lifeTime;
+
+    const alpha = 255 * (1 - t);
+
+    g.push();
+
+    // bulle
+    g.stroke(255, alpha);
+    g.strokeWeight(2);
+
+    g.fill(255, 255, 255, alpha * 0.15);
+
+    g.circle(
+      b.x,
+      b.y,
+      b.radius * 2
+    );
+
+    // texte
+    g.noStroke();
+    g.fill(255, alpha);
+
+    g.textAlign(g.CENTER, g.CENTER);
+    g.textSize(b.radius);
+
+    g.text(
+      b.label,
+      b.x,
+      b.y
+    );
+
+    g.pop();
+  }
+}
+  
   bufferOverlayNotes(midiNums) {
     // On garde la dernière série reçue
     this._pendingOverlay = new Set(midiNums);
@@ -209,125 +309,109 @@ class Piano {
   }
 
 
-  draw(g, rootPc = null) {
-    if (this.hide) return;
-    this.updateTransition();
+draw(g, rootPc = null) {
 
-    g.push();
+  if (this.hide) return;
 
-    // Initialisation du tracking visible
-    this.visibleMinMidi = null;
-    this.visibleMaxMidi = null;
+  this.updateTransition();
+  this.updateBubbles();
 
-    let previousMidi = null;
-    let foundFirstVisible = false;
+  g.push();
 
-    // Coordonnées écran
-    const canvasW = this.canvasWidth;
-    const canvasH = this.canvasHeight;
+  this.visibleMinMidi = null;
+  this.visibleMaxMidi = null;
 
-    // Dessin des touches
-    for (const key of this.keyLayouts) {
-      const active = this.activeKeys.has(key.midi);
-      const root = active && rootPc !== null && (key.midi % 12) === rootPc;
+  let previousMidi = null;
+  let foundFirstVisible = false;
 
-      if (key.type === 'white') {
-        // Détection visibilité écran
-        const keyLeft = key.x;
-        const keyRight = key.x + key.w;
-        const isVisible = keyRight >= 0 && keyLeft <= canvasW;
+  const canvasW = this.canvasWidth;
 
-        if (!foundFirstVisible && isVisible) {
-          this.visibleMinMidi = previousMidi ?? key.midi;
-          foundFirstVisible = true;
-        }
+  // Dessin clavier
+  for (const key of this.keyLayouts) {
 
-        if (foundFirstVisible && !isVisible && this.visibleMaxMidi === null) {
-          this.visibleMaxMidi = previousMidi;
-        }
+    const active = this.activeKeys.has(key.midi);
+    const root =
+      active &&
+      rootPc !== null &&
+      (key.midi % 12) === rootPc;
 
-        previousMidi = key.midi;
+    if (key.type === 'white') {
 
-        this.drawWhiteKey(g, key.x, key.y, key.w, key.h, key.keyType, active, root, key.isLeftEdge, key.isRightEdge);
-      } else {
-        this.drawBlackKey(g, key.x, key.y, key.w, key.h, active, root);
+      const keyLeft = key.x;
+      const keyRight = key.x + key.w;
+      const isVisible =
+        keyRight >= 0 &&
+        keyLeft <= canvasW;
+
+      if (!foundFirstVisible && isVisible) {
+        this.visibleMinMidi = previousMidi ?? key.midi;
+        foundFirstVisible = true;
       }
-      if (this.activeKeys.has(key.midi)) {
-        const pc = key.midi % 12;
-        const name = this.gamme?.getNoteName(pc) ?? pcToName(pc, this.noteStyle);
-        if (name) this.drawNoteLabel(g, key, name);
+
+      if (
+        foundFirstVisible &&
+        !isVisible &&
+        this.visibleMaxMidi === null
+      ) {
+        this.visibleMaxMidi = previousMidi;
       }
+
+      previousMidi = key.midi;
+
+      this.drawWhiteKey(
+        g,
+        key.x,
+        key.y,
+        key.w,
+        key.h,
+        key.keyType,
+        active,
+        root,
+        key.isLeftEdge,
+        key.isRightEdge
+      );
+
+    } else {
+
+      this.drawBlackKey(
+        g,
+        key.x,
+        key.y,
+        key.w,
+        key.h,
+        active,
+        root
+      );
 
     }
 
+    if (active) {
+      const pc = key.midi % 12;
 
-    // Si aucune touche hors champ détectée, on prend la dernière blanche
-    if (this.visibleMaxMidi === null) {
-      this.visibleMaxMidi = previousMidi;
-    }
+      const name =
+        this.gamme?.getNoteName(pc)
+        ?? pcToName(pc, this.noteStyle);
 
-    // Affichage de l'intervalle si 2 notes
-    let played = Array.from(this.overlayKeys);
-    if (played.length === 2) {
-      if (this.whiteKeyHeight * 0.20 < 20) return;
-      const fallback = [
-        "P1", "m2", "M2", "m3", "M3",
-        "P4", "d5", "P5", "m6", "M6",
-        "m7", "M7"
-      ];
-      played.sort((a, b) => a - b);
-      const [m1, m2] = played;
-      const x1 = this.getKeyCenter(m1);
-      const x2 = this.getKeyCenter(m2);
-      if (x1 != null && x2 != null) {
-        const semisTotal = m2 - m1;
-        const rawOctaves = Math.floor(semisTotal / 12);
-        const octaves = rawOctaves > 1 ? 1 : rawOctaves;
-        const semisMod = semisTotal % 12;
-
-        let label;
-        // Cas des intervalles parfaits
-        if (semisMod === 0) {
-          // unisson ou octave (tout >0 devient P8 car bridé)
-          label = semisTotal === 0 ? "P1" : "P8";
-
-        } else {
-          const baseLabel = fallback[semisMod] || "";
-
-          // strictement dans l'octave → pas de parenthèse
-          if (octaves === 0) {
-            label = baseLabel;
-
-          } else {
-            // au-delà de l'octave → on compose nature+degré et on garde l'équivalent
-            const parsed = parseInterval(baseLabel);
-            if (!parsed) {
-              label = baseLabel;
-            } else {
-              const { digit, nature } = parsed;
-              const fullDegree = parseInt(digit, 10) + octaves * 7;
-              label = `${nature}${fullDegree} (${baseLabel})`;
-            }
-          }
-        }
-
-        const yLine = this.yBase - this.whiteKeyHeight - 1;
-        g.push();
-        g.stroke(CONFIG.colors.playedStroke);
-        g.strokeWeight(2);
-        g.line(x1, yLine, x2, yLine);
-        g.pop();
-
-        const xText = (x1 + x2) / 2;
-        const yText = yLine - 6;
-        g.push();
-        g.textAlign(g.CENTER, g.BOTTOM);
-        g.textSize(this.whiteKeyHeight * 0.15);
-        g.text(label, xText, yText);
-        g.pop();
+      if (name) {
+        this.drawNoteLabel(g, key, name);
       }
     }
+  }
 
+  if (this.visibleMaxMidi === null) {
+    this.visibleMaxMidi = previousMidi;
+  }
+
+  // ----------------------------
+  // Intervalles
+  // ----------------------------
+
+  let played = Array.from(this.overlayKeys);
+
+  if (
+    played.length === 2 &&
+    this.whiteKeyHeight * 0.20 >= 20
+  ) {
 
     const fallback = [
       "P1", "m2", "M2", "m3", "M3",
@@ -335,33 +419,141 @@ class Piano {
       "m7", "M7"
     ];
 
-    played = Array.from(this.overlayKeys).sort((a, b) => a - b);
+    played.sort((a, b) => a - b);
 
-if (this.currentChord?.notes && rootPc != null) {
-  if (this.whiteKeyHeight * 0.20 < 20) return;
+    const [m1, m2] = played;
 
-  for (const n of this.currentChord.notes) {
-    const midi = n.midi;
-    const x = this.getKeyCenter(midi);
-    if (x == null) continue;
+    const x1 = this.getKeyCenter(m1);
+    const x2 = this.getKeyCenter(m2);
 
-    let label = n.func;
-    let color = (n.func === "Root")
-      ? CONFIG.colors.rootStroke
-      : CONFIG.colors.playedStroke;
+    if (x1 != null && x2 != null) {
 
-    const yText = this.yBase - this.whiteKeyHeight - 6;
-    g.push();
-    g.textAlign(g.CENTER, g.BOTTOM);
-    g.textSize(this.whiteKeyHeight * 0.15);
-    g.fill(color);
-    g.text(label||'?', x, yText);
-    g.pop();
+      const semisTotal = m2 - m1;
+      const rawOctaves = Math.floor(semisTotal / 12);
+      const octaves = rawOctaves > 1 ? 1 : rawOctaves;
+      const semisMod = semisTotal % 12;
+
+      let label;
+
+      if (semisMod === 0) {
+
+        label =
+          semisTotal === 0
+            ? "P1"
+            : "P8";
+
+      } else {
+
+        const baseLabel =
+          fallback[semisMod] || "";
+
+        if (octaves === 0) {
+
+          label = baseLabel;
+
+        } else {
+
+          const parsed =
+            parseInterval(baseLabel);
+
+          if (!parsed) {
+
+            label = baseLabel;
+
+          } else {
+
+            const { digit, nature } = parsed;
+
+            const fullDegree =
+              parseInt(digit, 10)
+              + octaves * 7;
+
+            label =
+              `${nature}${fullDegree} (${baseLabel})`;
+          }
+        }
+      }
+
+      const yLine =
+        this.yBase -
+        this.whiteKeyHeight -
+        1;
+
+      g.push();
+      g.stroke(CONFIG.colors.playedStroke);
+      g.strokeWeight(2);
+      g.line(x1, yLine, x2, yLine);
+      g.pop();
+
+      const xText = (x1 + x2) / 2;
+      const yText = yLine - 6;
+
+      g.push();
+      g.textAlign(g.CENTER, g.BOTTOM);
+      g.textSize(this.whiteKeyHeight * 0.15);
+      g.text(label, xText, yText);
+      g.pop();
+    }
   }
+
+  // ----------------------------
+  // Fonctions d'accord
+  // ----------------------------
+
+  if (
+    this.currentChord?.notes &&
+    rootPc != null &&
+    this.whiteKeyHeight * 0.20 >= 20
+  ) {
+
+    for (const n of this.currentChord.notes) {
+
+      const x =
+        this.getKeyCenter(n.midi);
+
+      if (x == null) continue;
+
+      const color =
+        n.func === "Root"
+          ? CONFIG.colors.rootStroke
+          : CONFIG.colors.playedStroke;
+
+      const yText =
+        this.yBase -
+        this.whiteKeyHeight -
+        6;
+
+      g.push();
+
+      g.textAlign(
+        g.CENTER,
+        g.BOTTOM
+      );
+
+      g.textSize(
+        this.whiteKeyHeight * 0.15
+      );
+
+      g.fill(color);
+
+      g.text(
+        n.func || "?",
+        x,
+        yText
+      );
+
+      g.pop();
+    }
+  }
+
+  // ----------------------------
+  // Bulles
+  // ----------------------------
+
+  this.drawBubbles(g);
+
+  g.pop();
 }
-
-    g.pop();
-  }
 
   drawNoteLabel(g, key, name) {
     if (key.w < 20) return;
