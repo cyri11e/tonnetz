@@ -93,7 +93,7 @@ function draw() {
   
   const chordIsActive = chords.length > 0;
   if (chords.length > 0) {
-    rootNote = tonnetz.chordDetector.noteToPc[chords[0].root];
+    rootNote = nameToPc(chords[0].root);
   }
 
   if (chordIsActive) {

@@ -28,7 +28,10 @@ class ChordDetector {
   // --- API principale ---
   detect(activeNotesNames, midiNumbers = null) {
     const midiNums = Array.isArray(midiNumbers) ? midiNumbers : [];
-    const key = midiNums.slice().sort((a, b) => a - b).join(',');
+    const namesKey = this.nameResolver
+      ? Array.from({ length: 12 }, (_, pc) => this.pcToName(pc)).join('')
+      : '';
+    const key = midiNums.slice().sort((a, b) => a - b).join(',') + '|' + namesKey;
 
     if (key === this._lastMidiKey) {
       return this._lastResults;
@@ -476,7 +479,10 @@ scoreStructure(midiNums, struct, rootPc) {
   }
 
   midiToPc(m) { return ((m % 12) + 12) % 12; }
-  pcToName(pc) { return this.noteNames[pc]; }
+  pcToName(pc) {
+    pc = ((pc % 12) + 12) % 12;
+    return this.nameResolver?.(pc) ?? this.noteNames[pc];
+  }
 
   unitTest() {
     console.log("=== UNIT TEST CHORD DETECTOR ===");

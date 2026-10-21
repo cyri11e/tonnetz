@@ -21,6 +21,8 @@ class Tonnetz {
     this.activePcs = new Set();
     this.activeMidiNums = [];
     this.chordDetector = new ChordDetector();
+    this.chordDetector.nameResolver = (pc) =>
+      this.gamme?.getNoteName?.(pc) ?? pcToName(pc, this.noteStyle);
     this.noteStyle = 'mixed';
     NOTE_NAMES = ENHARMONIC_MAPS[this.noteStyle];
 
