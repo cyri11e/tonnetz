@@ -7,7 +7,7 @@ class NoteListView {
     this.bubbles = [];
     this.lastActiveTimes = Array(12).fill(0);
     this.offsetX = 0;
-    this.offsetY = width / 2 ;
+    this.offsetY = height / 2 ;
     this.scale = 1.5;
     this.currentMouseX = 0;
     this.currentMouseY = 0;
@@ -71,7 +71,7 @@ displayScaleLabel(g, positions, radius) {
   }
 
   const targetWidth = width ;
-  let fontSize = CONFIG.fontSize * 2;
+  let fontSize = CONFIG.fontSize * this.scale;
   g.textSize(fontSize);
   let tw = g.textWidth(scaleText);
   if (tw > targetWidth) {
@@ -82,7 +82,7 @@ displayScaleLabel(g, positions, radius) {
   g.push();
   g.fill(CONFIG.colors.selectedNodeStroke);
   g.noStroke();
-  g.textAlign(CENTER, BOTTOM);
+  g.textAlign(LEFT, BOTTOM);
   g.textStyle(BOLD);
 
   let labelX, labelY;
@@ -95,6 +95,7 @@ displayScaleLabel(g, positions, radius) {
   } else if (this.layoutMode === 'circle') {
     const firstX = positions[0].x;
     const centerY = positions[0].y; // ou recalculer centerY si besoin
+    g.textAlign(CENTER, BOTTOM);
     labelX = firstX;
     labelY = centerY - radius ;
   }

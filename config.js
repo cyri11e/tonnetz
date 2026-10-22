@@ -3,6 +3,10 @@ const CONFIG = {
   // Durée (en ms) du fondu pour l’overlay des notes jouées
   fadeTime: 3000,
 
+  // bulles 
+  inScaleColor : [0, 150, 255],
+  offScaleColor : [255, 160, 40],
+
   // Échelle de la grille Tonnetz (en pixels)
   unitX: 18,        // largeur d’une unité horizontale
   unitY: 18,        // hauteur d’une unité verticale

@@ -110,10 +110,14 @@ function draw() {
   cof.draw(rootNote); // au-dessus
   if (tonnetz.debug)
     cof.drawHitzone(); // debug
-
-
+  
+  
+  noteListView.update(tonnetz.gamme, tonnetz.keyPc);
+  noteListView.draw(this, width, tonnetz.zoom);
 
   piano.draw(this, rootNote);
+  piano.updateTheory(tonnetz.gamme, tonnetz.keyPc, tonnetz.noteStyle);
+  
   fretboard.handleHover(this);
   fretboard.draw(this, rootNote);
 
@@ -134,9 +138,7 @@ function draw() {
 
 
 
-  noteListView.update(tonnetz.gamme, tonnetz.keyPc);
-  piano.updateTheory(tonnetz.gamme, tonnetz.keyPc, tonnetz.noteStyle);
-  noteListView.draw(this, width, tonnetz.zoom);
+
   displayChord(this);
   displayFPS(this);
 

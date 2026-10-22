@@ -277,8 +277,8 @@ drawBubbles(g, rootPc) {
 
     // bulle
     const strokeColor = b.inScale
-    ? [80, 180, 255]   // bleu
-    : [255, 160, 40];  // orange
+    ? CONFIG.inScaleColor   // bleu ou vert
+    : CONFIG.offScaleColor;  // orange
 
     g.stroke(strokeColor[0], strokeColor[1], strokeColor[2], alpha);
     g.strokeWeight(2);
@@ -340,7 +340,7 @@ if (isRoot) {
 g.fill(255, alpha)
 
     g.textAlign(g.CENTER, g.CENTER);
-    g.textSize(b.radius);
+    g.textSize(b.radius *1.2);
 
     g.text(
       b.label,
