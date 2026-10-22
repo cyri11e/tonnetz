@@ -132,12 +132,12 @@ function draw() {
     pop();
   }
 
-  displayChord(this);
+
 
   noteListView.update(tonnetz.gamme, tonnetz.keyPc);
   piano.updateTheory(tonnetz.gamme, tonnetz.keyPc, tonnetz.noteStyle);
   noteListView.draw(this, width, tonnetz.zoom);
-
+  displayChord(this);
   displayFPS(this);
 
   //history.update();
@@ -146,7 +146,7 @@ function draw() {
 
 function displayChord(g) {
   const alphaValue = lastChordText
-    ? 65 * getFadeFactor(lastChordTime)
+    ? 155 * getFadeFactor(lastChordTime)
     : 0;
 
   if (alphaValue <= 0 || !lastChordText) return;

@@ -89,11 +89,13 @@ displayScaleLabel(g, positions, radius) {
 
   if (this.layoutMode === 'line') {
     const firstY = positions[0].y;
-    labelX = width / 2;
+    const firstX = positions[0].x;
+    labelX = firstX;
     labelY = firstY - radius ;
   } else if (this.layoutMode === 'circle') {
+    const firstX = positions[0].x;
     const centerY = positions[0].y; // ou recalculer centerY si besoin
-    labelX = width / 2;
+    labelX = firstX;
     labelY = centerY - radius ;
   }
 
