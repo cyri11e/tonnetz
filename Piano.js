@@ -82,6 +82,7 @@ class Piano {
       label,
       inScale,
       func,
+      isRoot: null,
       x,
       y: this.yBase - this.whiteKeyHeight - 12,
 
@@ -261,9 +262,11 @@ drawBubbles(g, rootPc) {
   const now = millis();
 
   for (const b of this.noteBubbles) {
-  const isRoot =
-    b.func === "Root" ||
-    b.func === "R";
+  // État figé au premier rendu, identique à celui de la touche (même rootPc)
+  if (b.isRoot == null) {
+    b.isRoot = rootPc != null && (b.midi % 12) === rootPc;
+  }
+  const isRoot = b.isRoot;
     
     const age = now - b.birthTime;
     const t = age / b.lifeTime;
