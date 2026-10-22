@@ -60,7 +60,14 @@ class Piano {
 
   spawnBubble(midi) {
 
+    const chordInfo = this.currentChord?.notes?.find(
+      n => n.midi === midi
+    );
+
+    const func = chordInfo?.func ?? null; 
+
     const pc = midi % 12;
+    const inScale =   this.gamme?.pitchClasses?.includes(pc) ?? false;
 
     const label =
       this.gamme?.getNoteName(pc)
@@ -73,14 +80,15 @@ class Piano {
     this.noteBubbles.push({
       midi,
       label,
-
+      inScale,
+      func,
       x,
       y: this.yBase - this.whiteKeyHeight - 12,
 
       birthTime: millis(),
-      lifeTime: 3500,
+      lifeTime: 5000,
 
-      radius: 18,
+      radius: this.zoomLevel *18,
 
       seed: random(10000)
     });
@@ -239,25 +247,24 @@ this.previousActiveKeys = newKeys;
     const now = millis();
 
     this.noteBubbles = this.noteBubbles.filter(b => {
-
       const age = now - b.birthTime;
-
       if (age > b.lifeTime) {
         return false;
       }
-
-      b.y -= 0.25;
-
+      b.y -= 2; // vitesse d'ascension
       return true;
     });
   }
 
-drawBubbles(g) {
+drawBubbles(g, rootPc) {
 
   const now = millis();
 
   for (const b of this.noteBubbles) {
-
+  const isRoot =
+    b.func === "Root" ||
+    b.func === "R";
+    
     const age = now - b.birthTime;
     const t = age / b.lifeTime;
 
@@ -266,20 +273,67 @@ drawBubbles(g) {
     g.push();
 
     // bulle
-    g.stroke(255, alpha);
+    const strokeColor = b.inScale
+    ? [80, 180, 255]   // bleu
+    : [255, 160, 40];  // orange
+
+    g.stroke(strokeColor[0], strokeColor[1], strokeColor[2], alpha);
     g.strokeWeight(2);
+    g.fill(strokeColor[0], strokeColor[1], strokeColor[2], alpha * 0.15);
 
-    g.fill(255, 255, 255, alpha * 0.15);
+if (isRoot) {
 
-    g.circle(
-      b.x,
-      b.y,
-      b.radius * 2
-    );
+  g.rectMode(g.CENTER);
+
+  g.stroke(
+    strokeColor[0], strokeColor[1], strokeColor[2], alpha
+  );
+
+  g.fill(
+    strokeColor[0], strokeColor[1], strokeColor[2], alpha * 0.85
+  );
+
+  g.rect(
+    b.x,
+    b.y,
+    b.radius * 2,
+    b.radius * 2,
+    4
+  );
+
+} else {
+
+  g.stroke(
+    strokeColor[0],
+    strokeColor[1],
+    strokeColor[2],
+    alpha
+  );
+
+  g.fill(
+    strokeColor[0],
+    strokeColor[1],
+    strokeColor[2],
+    alpha * 0.85
+  );
+
+  g.circle(
+    b.x,
+    b.y,
+    b.radius * 2
+  );
+}
 
     // texte
     g.noStroke();
-    g.fill(255, alpha);
+
+    g.fill(
+      strokeColor[0],
+      strokeColor[1],
+      strokeColor[2],
+      alpha
+    );
+g.fill(255)
 
     g.textAlign(g.CENTER, g.CENTER);
     g.textSize(b.radius);
@@ -550,7 +604,7 @@ draw(g, rootPc = null) {
   // Bulles
   // ----------------------------
 
-  this.drawBubbles(g);
+  this.drawBubbles(g, rootPc);
 
   g.pop();
 }
