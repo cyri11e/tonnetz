@@ -252,7 +252,7 @@ this.previousActiveKeys = newKeys;
       if (age > b.lifeTime) {
         return false;
       }
-      b.y -= 2; // vitesse d'ascension
+      b.y -= 3 * this.zoomLevel; // vitesse d'ascension
       return true;
     });
   }
@@ -289,7 +289,8 @@ if (isRoot) {
   g.rectMode(g.CENTER);
 
   g.stroke(
-    strokeColor[0], strokeColor[1], strokeColor[2], alpha
+    //strokeColor[0], strokeColor[1], strokeColor[2], alpha
+    255,0,0, alpha
   );
 
   g.fill(
@@ -336,7 +337,7 @@ if (isRoot) {
       strokeColor[2],
       alpha
     );
-g.fill(255)
+g.fill(255, alpha)
 
     g.textAlign(g.CENTER, g.CENTER);
     g.textSize(b.radius);
