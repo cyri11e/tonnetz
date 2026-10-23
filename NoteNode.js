@@ -55,8 +55,10 @@ class NoteNode {
     const QUINTE_INDEX = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
     const colorIndex = QUINTE_INDEX[rel % 12];
     const baseColor = g.color(CONFIG.colors.noteColors[colorIndex]);
-    const noteColor = g.lerpColor(baseColor,
-                             color(0), active ? 0 : 0.5);
+    const noteColor = CONFIG.colors.bg
+    // const noteColor = g.lerpColor(baseColor,
+    //                               g.color(CONFIG.colors.bg), 
+    //                               active ? 0: 0.5);
     
     // --- Cercle de base ---
     g.push();
@@ -67,9 +69,10 @@ class NoteNode {
     if (isTonic) {
       g.fill(noteColor);
       g.stroke(CONFIG.colors.selectedNodeStroke); // Optionnel si tu veux un contour spécifique
-      g.strokeWeight(2 * zoom);         
+      g.strokeWeight(2 * zoom);       
     } else if (inGamme) {
       g.fill(noteColor);
+      g.noFill;
       g.stroke(CONFIG.colors.selectedNodeStroke);
       g.strokeWeight(zoom);        
     } else {
@@ -77,6 +80,7 @@ class NoteNode {
       g.stroke(CONFIG.colors.inactiveNodeStroke);
       g.strokeWeight(1 * zoom);            // ← Même pour les non sélectionnées
     }
+
     g.circle(0, 0, radius * 2)
 
 

@@ -341,7 +341,7 @@ linkTrianglesHorizontally() {
       // Couche de base — toujours dessinée
       if (isInScale) {
         const colBase = g.color(baseColor);
-        colBase.setAlpha(40); // assombri 
+        colBase.setAlpha(0); // assombri 
         g.noStroke();
         g.fill(colBase);
         g.triangle(a.px, a.py, b.px, b.py, c.px, c.py);
@@ -390,10 +390,11 @@ linkTrianglesHorizontally() {
         g.fill(labelColor);
         g.textFont(CONFIG.fontFamily);
         g.textAlign(CENTER, CENTER);
+        g.textStyle(NORMAL)
         g.textSize(
           tri.type === 'dim' || tri.type === 'aug'
             ? CONFIG.fontSize * 0.6 * zoom
-            : CONFIG.fontSize * 1.2 * zoom
+            : CONFIG.fontSize * 0.8 * zoom
         );
 
         if (tri.type === 'aug' || tri.type === 'dim') {
@@ -415,9 +416,9 @@ linkTrianglesHorizontally() {
         romanColor.setAlpha(fadeFactor > 0 ? 255 * fadeFactor : 65);
         g.fill(romanColor);
         g.textFont(CONFIG.fontFamilyRoman);
-        g.textStyle(BOLD);
+        g.textStyle(NORMAL);
         g.textAlign(CENTER, CENTER);
-        g.textSize(CONFIG.fontSize * 1.5 * zoom);
+        g.textSize(CONFIG.fontSize * 2.1 * zoom);
 
         const numeralOffset =
           tri.type === 'min' ? CONFIG.fontSize * 0.7 * zoom :
