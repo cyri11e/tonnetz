@@ -25,6 +25,16 @@ class ChordDetector {
     this.unitTest()
   }
 
+noteNameToPc(note) {
+  if (!note) return undefined;
+
+  const normalized = note
+    .replace(/♭/g, 'b')
+    .replace(/♯/g, '#');
+
+  return this.noteToPc[normalized];
+}
+
   // --- API principale ---
   detect(activeNotesNames, midiNumbers = null) {
     const midiNums = Array.isArray(midiNumbers) ? midiNumbers : [];
@@ -416,53 +426,128 @@ if (struct.third === 'M3' && struct.fifth === 'P5') {
 
 // --- Nouveau scoring basé sur la structure (avec slash pris en compte) ---
 scoreStructure(midiNums, struct, rootPc) {
-  const playedPcs = new Set(midiNums.map(n => this.midiToPc(n)));
-  const chordPcs = this.buildSignatureFromStructure(struct, rootPc);
+  const playedPcs = new Set(
+    midiNums.map(n => this.midiToPc(n))
+  );
+
+  const chordPcs = new Set(
+    this.buildSignatureFromStructure(struct, rootPc)
+  );
 
   let covered = 0;
+
   for (const pc of chordPcs) {
     if (playedPcs.has(pc)) covered++;
   }
-  
-  // Bonus : si la basse jouée correspond à la fondamentale de l'accord
-  const bassPc = this.midiToPc(Math.min(...midiNums));
 
-  if (bassPc === rootPc) {
-    covered += 2;
+  let explained = 0;
+
+  for (const pc of playedPcs) {
+    if (chordPcs.has(pc)) explained++;
   }
 
-  const coverage = covered / chordPcs.length 
-  return { coverage, size: chordPcs.length, covered };
+  const precision = chordPcs.size
+    ? covered / chordPcs.size
+    : 0;
+
+  const recall = playedPcs.size
+    ? explained / playedPcs.size
+    : 0;
+
+  const bassPc = this.midiToPc(Math.min(...midiNums));
+  const bassBonus = bassPc === rootPc ? 0.05 : 0;
+
+  // Score équilibré entre notes attendues et notes expliquées.
+  const score = precision * 0.4 + recall * 0.6 + bassBonus;
+console.log({
+  chord: this.formatChordName(struct).main,
+  playedPcs: [...playedPcs],
+  expectedPcs: [...chordPcs],
+  covered,
+  explained,
+  precision,
+  recall
+});
+  return {
+    score,
+    precision,
+    recall,
+    size: chordPcs.size,
+    covered,
+    explained
+  };
 }
 
 
-  debugScores(midiNums, results) {
-    for (const r of results) {
-      const rootPc = this.noteToPc[r.root];
-      const { coverage, size, covered } = this.scoreStructure(midiNums, r, rootPc);
-      console.log(`${r.label} -> ${(coverage*100).toFixed(0)}% (${covered}/${size})`);
+
+debugScores(midiNums, results) {
+  for (const r of results) {
+    const rootPc = this.noteToPc[r.root];
+    const { precision, size, covered, score } =
+      this.scoreStructure(midiNums, r, rootPc);
+
+    console.log(
+      `${r.label} -> ${(precision * 100).toFixed(0)}% ` +
+      `(${covered}/${size}), score=${score.toFixed(3)}`
+    );
+  }
+}
+
+
+
+sortByPriority(results, midiNums = []) {
+  const scored = results.map(r => {
+    const rootPc = this.noteNameToPc(r.root);
+    const base = this.scoreStructure(midiNums, r, rootPc);
+
+    // Malus de complexité : préférer les accords usuels
+    let penalty = 0;
+
+    // Accords étendus : 9, 11, 13
+    if (r.is9)  penalty += 0.04;
+    if (r.is11) penalty += 0.09;
+    if (r.is13) penalty += 0.10;
+
+    // Extensions altérées : b9, #9, #11, b13
+    penalty += (r.alterations?.length ?? 0) * 0.06;
+
+    // Triade augmentée : interprétation moins courante
+
+    // Accords symétriques : ambiguïté de fondamentale
+    if (r.fifth === 'b5' && r.third === 'm3') {
+      penalty += 0.08; // diminué
     }
-  }
 
-  sortByPriority(results, midiNums = []) {
-    const scored = results.map(r => {
-      const rootPc = this.noteToPc[r.root];
-      const { coverage, size, covered } = this.scoreStructure(midiNums, r, rootPc);
-      return { ...r, coverage, size, covered };
-    });
+    if (r.fifth === '#5' && r.third === 'M3') {
+      penalty += 0.08; // augmenté
+    }
 
-    scored.sort((a, b) => {
-      if (b.coverage !== a.coverage) return b.coverage - a.coverage;
-      if (b.covered !== a.covered) return b.covered - a.covered;
-      if (a.size !== b.size) return a.size - b.size;
-      const aSlash = a.label.includes('/');
-      const bSlash = b.label.includes('/');
-      if (aSlash !== bSlash) return aSlash ? 1 : -1;
-      return 0;
-    });
+    return {
+      ...r,
+      ...base,
+      priorityScore: base.score - penalty
+    };
+  });
 
-    return scored;
-  }
+  scored.sort((a, b) => {
+    if (Math.abs(b.priorityScore - a.priorityScore) > 0.001) {
+      return b.priorityScore - a.priorityScore;
+    }
+
+    if (b.explained !== a.explained) {
+      return b.explained - a.explained;
+    }
+
+    if (a.size !== b.size) {
+      return a.size - b.size;
+    }
+
+    return 0;
+  });
+
+  return scored;
+}
+
 
   // --- Utilitaires ---
   getUniquePcs(midiNums) {
