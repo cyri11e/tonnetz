@@ -54,7 +54,7 @@ class NoteNode {
 
     const QUINTE_INDEX = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
     const colorIndex = QUINTE_INDEX[rel % 12];
-    const baseColor = g.color(CONFIG.colors.noteColors[colorIndex],0);
+    const baseColor = g.color(CONFIG.colors.noteColors[colorIndex]);
     const noteColor = CONFIG.colors.bg
     // const noteColor = g.lerpColor(baseColor,
     //                               g.color(CONFIG.colors.bg), 

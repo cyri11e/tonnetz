@@ -537,7 +537,7 @@ function mouseReleased() {
   }
 
   if (minFret !== null && maxFret !== null) {
-    fretboard.setPlayZone({ type: 'range', minFret, maxFret });
+    //fretboard.setPlayZone({ type: 'range', minFret, maxFret });
   }
 
 
