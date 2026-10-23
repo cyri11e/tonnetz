@@ -139,13 +139,13 @@ displayScaleLabel(g, positions, radius) {
       const endX = positions[positions.length - 1].x;
       const baseY = positions[0].y;
 
-      g.strokeCap(ROUND);
+      g.strokeCap(SQUARE);
       const bgColor = g.color(CONFIG.colors.bg);
       bgColor.setAlpha(200);
       g.fill(bgColor);
       g.stroke(CONFIG.colors.bg);
       g.strokeWeight(radius * 2.6);
-      g.line(startX, baseY, endX, baseY);
+      g.line(startX-radius/2, baseY, endX-radius/2, baseY);
       g.noStroke();
 
       const shadowColor = g.color(0, 0, 0, 50);
@@ -153,7 +153,7 @@ displayScaleLabel(g, positions, radius) {
       for (let i = 0; i < 3; i++) {
         g.stroke(shadowColor);
         g.strokeWeight(radius * 2.6 + i * 2);
-        g.line(startX, baseY + shadowOffset + i, endX, baseY + shadowOffset + i);
+        //g.line(startX, baseY + shadowOffset + i, endX, baseY + shadowOffset + i);
       }
     }
 
@@ -211,7 +211,13 @@ displayScaleLabel(g, positions, radius) {
 
       g.stroke(strokeColor);
       g.strokeWeight(outlineWeight);
-      g.circle(x, y, radius * 2);
+
+      if (this.layoutMode === 'line') {
+        g.rectMode(CENTER);
+        g.rect(x, y, radius * 2, radius * 2, radius * 0.15);
+      } else {
+        g.circle(x, y, radius * 2);
+      } 
 
       // Effet d'overlay pour la bulle en cours de déplacement
       if (draggedBubble && draggedBubble.pc === pc && !draggedBubble.isDragTonic) {
@@ -220,7 +226,18 @@ displayScaleLabel(g, positions, radius) {
         const dx = this.currentMouseX - draggedBubble.startX;
         const dy = this.currentMouseY - draggedBubble.startY;
         g.noStroke();
-        g.circle(x + dx, y + dy, radius * 2.2);
+       if (this.layoutMode === 'line') {
+          g.rectMode(CENTER);
+          g.rect(
+            x + dx,
+            y + dy,
+            radius * 2.2,
+            radius * 2.2,
+            radius * 0.15
+          );
+        } else {
+          g.circle(x + dx, y + dy, radius * 2.2);
+        }
       }
 
       let labelColor = color(inGamme ? CONFIG.colors.nodeLabel : CONFIG.colors.inactiveNodeLabel);

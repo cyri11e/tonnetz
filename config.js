@@ -36,7 +36,7 @@ const CONFIG = {
 
   // Palette de couleurs centralisée
   colors: {
-    bg:                 '#0f0f10',         // couleur de fond du canvas
+    bg:                 '#564d14',         // couleur de fond du canvas
     nodeStroke:         '#cfcfd2',         // contour des nœuds
     nodeFill:           'rgba(0,0,0,0)',   // remplissage des nœuds (transparent)
     nodeLabel:          '#e7e7ea',         // couleur du texte des étiquettes
