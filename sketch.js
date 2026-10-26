@@ -407,7 +407,7 @@ function mouseWheel(event) {
     }
 
     if (isOverNoteList) {
-      noteListView.scale = constrain(noteListView.scale * factor, 0.5, 2);
+      noteListView.scale = constrain(noteListView.scale * factor, 0.5, 10);
       return false;
     }
   }

@@ -12,6 +12,7 @@ class NoteListView {
     this.currentMouseX = 0;
     this.currentMouseY = 0;
     this.hide = false;
+    this.shape = [];
   }
 
   setLayoutMode(mode) {
@@ -165,6 +166,7 @@ displayScaleLabel(g, positions, radius) {
     const chords = tonnetz.getDetectedChords?.() ?? [];
     const rootPc = chords.length ? nameToPc(chords[0].root) : -1;
 
+    this.shape = []; // init forme accords
     for (let i = 0; i < bubbleCount - 1; i++) {
       const isOctave = (i === 12);
       const pc = pcs[i];
@@ -218,7 +220,8 @@ displayScaleLabel(g, positions, radius) {
       } else {
         g.circle(x, y, radius * 2);
       } 
-
+      //if (this.layoutMode === 'circle' && this.isShape)
+      //  g.beginShape();
       // Effet d'overlay pour la bulle en cours de déplacement
       if (draggedBubble && draggedBubble.pc === pc && !draggedBubble.isDragTonic) {
         const overlayColor = g.color(255, 255, 255, 100);
@@ -240,8 +243,9 @@ displayScaleLabel(g, positions, radius) {
         }
       }
 
+
       let labelColor = color(inGamme ? CONFIG.colors.nodeLabel : CONFIG.colors.inactiveNodeLabel);
-      labelColor.setAlpha(inGamme ? 225 : 80);
+      labelColor.setAlpha(inGamme ? 225 : 20);
       g.fill(labelColor);
       g.noStroke();
       g.textSize(radius);
@@ -250,7 +254,7 @@ displayScaleLabel(g, positions, radius) {
 
 
       let degreeColor = color(CONFIG.colors.degreeLabel);
-      degreeColor.setAlpha(isActive ? 255 : inGamme ? 185 : 80);
+      degreeColor.setAlpha(isActive ? 255 : inGamme ? 185 : 20);
 
       if (degrees && degrees !== "♪") {
           if (isActive) {
@@ -265,6 +269,9 @@ displayScaleLabel(g, positions, radius) {
         g.fill(degreeColor);
         if (this.layoutMode === 'circle' && positions[i].degreeX !== undefined) {
           textDegree(g, degrees, positions[i].degreeX, positions[i].degreeY);
+        if (isActive)  
+          this.shape.push({x : positions[i].degreeX, y : positions[i].degreeY})
+          //vertex(positions[i].degreeX, positions[i].degreeY);
         } else {
           textDegree(g, degrees, x, y + radius * 0.6);
         }
@@ -285,6 +292,7 @@ displayScaleLabel(g, positions, radius) {
           g.fill(degreeColor);
           if (this.layoutMode === 'circle' && positions[i].degreeX !== undefined) {
             textDegree(g, degrees, positions[i].degreeX, positions[i].degreeY);
+
           } else {
             textDegree(g, degrees, x, y + radius * 0.6);
           }
@@ -295,7 +303,22 @@ displayScaleLabel(g, positions, radius) {
       if (!isOctave) {
         this.bubbles.push({ x, y, radius, pc });
       }
+    
     }
+      if (this.layoutMode === 'circle'){
+        g.stroke(0,255,255)
+        g.fill(255,255,0,80)
+
+
+        if (this.shape.length > 0) { 
+          g.beginShape();
+          for (let points of this.shape)
+            vertex(points.x,points.y)
+          g.endShape(CLOSE);       
+        } 
+      }
+
+
     this.displayScaleLabel(g, positions, radius);
 
     g.pop();
