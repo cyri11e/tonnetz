@@ -31,7 +31,7 @@ const CONFIG = {
   fontFamilyRoman: 'Arial Unicode MS',
 
   // transparence des couleur de fond de note
-  inactiveNoteBgalpha: 100,
+  inactiveNoteBgalpha: 200,
   activeNoteBgalpha: 255,
 
   // Palette de couleurs centralisée

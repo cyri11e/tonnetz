@@ -84,7 +84,7 @@ displayScaleLabel(g, positions, radius) {
   g.fill(CONFIG.colors.selectedNodeStroke);
   g.noStroke();
   g.textAlign(LEFT, BOTTOM);
-  g.textStyle(BOLD);
+  g.textStyle(NORMAL);
 
   let labelX, labelY;
 
@@ -308,15 +308,13 @@ displayScaleLabel(g, positions, radius) {
     
     }
       if (this.layoutMode === 'circle'){
-
-
         if (this.shape.length > 0) { 
           g.push();
           g.beginShape();
           g.strokeWeight(radius * 0.1);
           g.stroke(0,255,255)
           //g.fill(255,255,0,80)
-          g.noFill;
+          g.noFill();
           for (let points of this.shape)
             vertex(points.x,points.y)
           g.endShape(CLOSE);

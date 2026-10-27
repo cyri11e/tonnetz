@@ -161,7 +161,7 @@ reset() {
   draw(g) {
     if (this.hide) return;
     g.push();
-    g.background(CONFIG.colors.bg);
+    //g.background(CONFIG.colors.bg);
     //this.drawGrid(g);
     if (this.netGrid.chordTriangle) {
       this.netGrid.chordTriangle.draw(g, this.zoom, this.activePcs);

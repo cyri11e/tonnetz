@@ -1,5 +1,7 @@
 let tonnetz, midiInput, piano, fretboard, cof, history
 
+let bgImage;
+
 let lastChordText = '';
 let lastAltChordText = '';
 let lastChordTime = 0;
@@ -13,12 +15,15 @@ let noteListStartX = null;  // Position initiale pour le drag de la liste
 let noteListStartY = null;
 
 
-function setup() {
+
+async function setup() {
+   bgImage = await loadImage('mw.jpg');
   const canvas = createCanvas(windowWidth, windowHeight);
+  
   canvas.elt.oncontextmenu = () => false;
   textFont(CONFIG.fontFamily);
   textStyle(CONFIG.fontWeight);
-  background(CONFIG.colors.bg);
+  //background(CONFIG.colors.bg);
 
   tonnetz = new Tonnetz({
     startNote: 'C',
@@ -75,9 +80,38 @@ function setup() {
 }
 
 // --------------     AFFICHAGE -----------------
+function drawBackground() {
+
+  if (!bgImage) {
+    background(CONFIG.colors.bg);
+    return;
+  }
+
+  const scale = Math.max(
+    width / bgImage.width,
+    height / bgImage.height
+  );
+
+  const w = bgImage.width * scale;
+  const h = bgImage.height * scale;
+
+  image(
+    bgImage,
+    (width - w) / 2,
+    (height - h) / 2,
+    w,
+    h
+  );
+
+  // voile sombre
+  fill(0, 150);
+  noStroke();
+  rect(0, 0, width, height);
+}
 
 function draw() {
-  background(CONFIG.colors.bg);
+ // background(CONFIG.colors.bg);
+
 
   let rootNote = null;
 
@@ -105,6 +139,8 @@ function draw() {
     lastAltChordText = `${chord.altLabel||chord2.label||''}`;
     lastChordTime = millis();
   }
+
+drawBackground();
 
   tonnetz.draw(this);
   cof.draw(rootNote); // au-dessus
