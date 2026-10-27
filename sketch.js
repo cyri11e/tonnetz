@@ -190,7 +190,7 @@ function displayChord(g) {
   if (alphaValue <= 0 || !lastChordText) return;
 
   g.push();
-  g.textAlign(CENTER, CENTER);
+  g.textAlign(LEFT, CENTER);
   g.textStyle(BOLD);
 
   const targetWidth = width * 0.8;
@@ -211,10 +211,10 @@ function displayChord(g) {
   g.strokeWeight(fontSize / 16);
   g.stroke(outline);
   g.fill(c);
-  g.text(lastChordText, width / 2,  1.5 * height / 10);
+  g.text(lastChordText, width / 10,  1.5 * height / 10);
   g.noStroke();
   g.textSize(fontSize/2);
-  g.text(lastAltChordText, width / 2, 3.5 * height / 10);
+  g.text(lastAltChordText, width / 10, 3.5 * height / 10);
   g.pop();
 }
 
