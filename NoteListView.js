@@ -257,20 +257,22 @@ displayScaleLabel(g, positions, radius) {
       degreeColor.setAlpha(isActive ? 255 : inGamme ? 185 : 20);
 
       if (degrees && degrees !== "♪") {
-          if (isActive) {
+         {
           // Ombre derrière le texte
-          g.fill(0, 0, 0, 180); // noir semi-transparent
-          g.textSize(radius * 0.9);
-          g.textStyle(BOLD);
-          textDegree(g, degrees, x + 2, y + radius * 0.6 + 2); // léger décalage
-        }
+          g.textStyle(NORMAL);
+          g.textSize(radius * 0.8);
+          g.fill(degreeColor);
+          if (this.layoutMode === 'circle')
+            textDegree(g, degrees, x + 2, y + radius * 0.6 + 2); // léger décalage
+        } 
+
         g.textSize(radius * 0.8);
         g.textStyle(NORMAL);
         g.fill(degreeColor);
         if (this.layoutMode === 'circle' && positions[i].degreeX !== undefined) {
-          textDegree(g, degrees, positions[i].degreeX, positions[i].degreeY);
-        if (isActive)  
-          this.shape.push({x : positions[i].degreeX, y : positions[i].degreeY})
+          //textDegree(g, degrees, positions[i].degreeX, positions[i].degreeY);
+          if (isActive)  
+            this.shape.push({x : positions[i].degreeX, y : positions[i].degreeY})
           //vertex(positions[i].degreeX, positions[i].degreeY);
         } else {
           textDegree(g, degrees, x, y + radius * 0.6);
@@ -291,7 +293,7 @@ displayScaleLabel(g, positions, radius) {
           g.textStyle(NORMAL);
           g.fill(degreeColor);
           if (this.layoutMode === 'circle' && positions[i].degreeX !== undefined) {
-            textDegree(g, degrees, positions[i].degreeX, positions[i].degreeY);
+            //textDegree(g, degrees, positions[i].degreeX, positions[i].degreeY);
 
           } else {
             textDegree(g, degrees, x, y + radius * 0.6);
@@ -306,15 +308,19 @@ displayScaleLabel(g, positions, radius) {
     
     }
       if (this.layoutMode === 'circle'){
-        g.stroke(0,255,255)
-        g.fill(255,255,0,80)
 
 
         if (this.shape.length > 0) { 
+          g.push();
           g.beginShape();
+          g.strokeWeight(radius * 0.1);
+          g.stroke(0,255,255)
+          //g.fill(255,255,0,80)
+          g.noFill;
           for (let points of this.shape)
             vertex(points.x,points.y)
-          g.endShape(CLOSE);       
+          g.endShape(CLOSE);
+          g.pop();       
         } 
       }
 

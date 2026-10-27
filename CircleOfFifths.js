@@ -2,8 +2,10 @@ class CircleOfFifths {
   constructor(tonnetz) {
     this.tonnetz = tonnetz;
     this.hide = true;
-    this.relOrder = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
-
+    this.fifths = 0;
+    this.mode = 
+    this.order = [[0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5],[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]]
+    this.relOrder = this.order[ this.fifths];
     this.center = { x: 0, y: 0 };
     this.radius = 0;
     this.ringThickness = Math.max(18, Math.floor(CONFIG.nodeRadius * 3));
@@ -283,7 +285,16 @@ draw(rootPc = null) {
   // Interactions
 handleClick(mx, my, mouseButton) {
   if (this.hide) return false;
-  if (mouseButton && mouseButton.right) return false;
+  if (mouseButton && mouseButton.right) return false;   
+    
+  if (keyIsDown(SHIFT))
+    {
+    this.fifths = (this.fifths + 1) % 2;
+    this.relOrder = this.order[this.fifths];
+    this.recomputePositions();
+    return false; 
+  }
+
 
   const d = dist(mx, my, this.center.x, this.center.y);
   const centerRadius = this.radius * 0.7;
