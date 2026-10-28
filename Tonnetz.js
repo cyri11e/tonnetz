@@ -243,7 +243,7 @@ reset() {
 
   // Dans la classe Tonnetz
   rotateMode() {
-    // interaction touche T
+    // interaction touche M
     // fait tourner les modes de la gamme
     // saut par quinte pour aller dans l'ordre de "clarte"
     // 

@@ -140,22 +140,22 @@ displayScaleLabel(g, positions, radius) {
       const endX = positions[positions.length - 1].x;
       const baseY = positions[0].y;
 
-      g.strokeCap(SQUARE);
-      const bgColor = g.color(CONFIG.colors.bg);
-      bgColor.setAlpha(200);
-      g.fill(bgColor);
-      g.stroke(CONFIG.colors.bg);
-      g.strokeWeight(radius * 2.6);
-      g.line(startX-radius/2, baseY, endX-radius/2, baseY);
-      g.noStroke();
+      // g.strokeCap(SQUARE);
+      // const bgColor = g.color(CONFIG.colors.bg);
+      // bgColor.setAlpha(200);
+      //g.fill(bgColor);
+      // g.stroke(CONFIG.colors.bg);
+      // g.strokeWeight(radius * 2.6);
+      // g.line(startX-radius/2, baseY, endX-radius/2, baseY);
+      // g.noStroke();
 
-      const shadowColor = g.color(0, 0, 0, 50);
-      const shadowOffset = 2;
-      for (let i = 0; i < 3; i++) {
-        g.stroke(shadowColor);
-        g.strokeWeight(radius * 2.6 + i * 2);
-        //g.line(startX, baseY + shadowOffset + i, endX, baseY + shadowOffset + i);
-      }
+      // const shadowColor = g.color(0, 0, 0, 50);
+      // const shadowOffset = 2;
+      // for (let i = 0; i < 3; i++) {
+      //   g.stroke(shadowColor);
+      //   g.strokeWeight(radius * 2.6 + i * 2);
+      //   //g.line(startX, baseY + shadowOffset + i, endX, baseY + shadowOffset + i);
+      // }
     }
 
     this.bubbles = [];
@@ -245,7 +245,7 @@ displayScaleLabel(g, positions, radius) {
 
 
       let labelColor = color(inGamme ? CONFIG.colors.nodeLabel : CONFIG.colors.inactiveNodeLabel);
-      labelColor.setAlpha(inGamme ? 225 : 20);
+      labelColor.setAlpha(inGamme ? 225 : 40);
       g.fill(labelColor);
       g.noStroke();
       g.textSize(radius);
@@ -254,7 +254,7 @@ displayScaleLabel(g, positions, radius) {
 
 
       let degreeColor = color(CONFIG.colors.degreeLabel);
-      degreeColor.setAlpha(isActive ? 255 : inGamme ? 185 : 20);
+      degreeColor.setAlpha(isActive ? 255 : inGamme ? 185 : 40);
 
       if (degrees && degrees !== "♪") {
          {
